@@ -61,7 +61,7 @@ export default function App() {
       formData.append('timestamp', audioRef.current.currentTime);
 
       // This uses the Vite proxy to forward the request to your local backend
-      const response = await fetch('/api/generate-flashcard', {
+      const response = await fetch('https://flashfonic-backend.shewski40.replit.dev/api/generate-flashcard', {
         method: 'POST',
         body: formData,
       });
