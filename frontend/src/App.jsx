@@ -270,6 +270,7 @@ function App() {
       setIsListening(true);
       setNotification('Listening... click "Flash It" or use voice trigger.');
 
+      // --- Use the original stream for the MediaRecorder ---
       mediaRecorderRef.current = new MediaRecorder(streamRef.current);
       audioChunksRef.current = [];
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
@@ -277,10 +278,14 @@ function App() {
       });
       mediaRecorderRef.current.start(1000);
 
-      // --- Silence Detection Logic ---
+      // --- CORRECTED: Silence Detection Logic ---
+      const audioTrack = streamRef.current.getAudioTracks()[0];
+      const clonedTrack = audioTrack.clone(); // Clone the track for analysis
+      const analyserStream = new MediaStream([clonedTrack]);
+
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const analyser = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+      const source = audioContextRef.current.createMediaStreamSource(analyserStream);
       source.connect(analyser);
       analyser.fftSize = 256;
       const bufferLength = analyser.frequencyBinCount;
@@ -290,8 +295,7 @@ function App() {
         analyser.getByteFrequencyData(dataArray);
         let sum = dataArray.reduce((a, b) => a + b, 0);
 
-        // --- MODIFIED: Check for low volume instead of absolute silence ---
-        if (sum < 5) { 
+        if (sum < 5) { // Adjusted threshold for ambient noise
           if (!silenceTimeoutRef.current) {
             silenceTimeoutRef.current = setTimeout(() => {
               stopListening();
@@ -329,7 +333,8 @@ function App() {
         recognitionRef.current = recognition;
       }
     } catch (err) {
-      setNotification("Microphone access denied.");
+      console.error("Error starting listening:", err);
+      setNotification("Microphone access denied or error.");
     }
   };
 
