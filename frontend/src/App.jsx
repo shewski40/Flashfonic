@@ -9,16 +9,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [flaggedCards, setFlaggedCards] = useState({});
-  const [reviewMode, setReviewMode] = useState('all');
-
-  // --- TTS State ---
-  const [isReading, setIsReading] = useState(false);
-  const [speechRate, setSpeechRate] = useState(1);
-  const [speechDelay, setSpeechDelay] = useState(3);
-  const [voices, setVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState('');
-  const speechTimeoutRef = useRef(null);
-
+  const [reviewMode, setReviewMode] = useState('all'); // 'all' or 'flagged'
 
   const studyDeck = reviewMode === 'flagged' 
     ? deck.filter(card => flaggedCards[card.id]) 
@@ -26,87 +17,15 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
 
   const currentCard = studyDeck[currentIndex];
 
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
-      setVoices(englishVoices);
-      if (englishVoices.length > 0 && !selectedVoice) {
-        setSelectedVoice(englishVoices[0].name);
-      }
-    };
-
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, [selectedVoice]);
-
-
-  const speak = (text, onEnd) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voice = voices.find(v => v.name === selectedVoice);
-    if (voice) {
-      utterance.voice = voice;
-    }
-    utterance.rate = speechRate;
-    utterance.onend = onEnd;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopReading = () => {
-    setIsReading(false);
-    window.speechSynthesis.cancel();
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-    }
-  };
-  
-  // --- MODIFIED: Main useEffect for TTS logic ---
-  useEffect(() => {
-    if (!isReading || !currentCard) {
-      return; // Do nothing if not in reading mode or no card
-    }
-
-    // This function defines the sequence for reading a single card
-    const readCardSequence = () => {
-      setIsFlipped(false);
-      const questionText = `Question: ${currentCard.question}`;
-      
-      speak(questionText, () => {
-        // When the question is done, set a timeout for the answer
-        speechTimeoutRef.current = setTimeout(() => {
-          setIsFlipped(true);
-          const answerText = `Answer: ${currentCard.answer}`;
-          speak(answerText, () => {
-            // When the answer is done, automatically go to the next card
-            setCurrentIndex(prev => (prev + 1) % studyDeck.length);
-          });
-        }, speechDelay * 1000);
-      });
-    };
-
-    readCardSequence();
-
-    // Cleanup function: This will run when the component unmounts OR when dependencies change
-    // (i.e., when user manually navigates, changing currentIndex)
-    return () => {
-      window.speechSynthesis.cancel();
-      clearTimeout(speechTimeoutRef.current);
-    };
-  }, [isReading, currentIndex, studyDeck]); // Re-run the effect if reading mode changes or the card changes
-
-
   const handleCardClick = () => {
     if (studyDeck.length === 0) return;
-    stopReading(); // Stop audio on manual click
-    setIsFlipped(prev => !prev);
+    if (!isFlipped) {
+      setIsFlipped(true);
+    } else {
+      goToNext();
+    }
   };
 
-  // --- MODIFIED: Simplified navigation functions ---
   const goToNext = () => {
     if (studyDeck.length === 0) return;
     setIsFlipped(false);
@@ -120,7 +39,6 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   };
 
   const scrambleDeck = () => {
-    stopReading();
     const newDeckOrder = [...deck].sort(() => Math.random() - 0.5);
     setDeck(newDeckOrder);
     setCurrentIndex(0);
@@ -140,7 +58,6 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   };
 
   const toggleReviewMode = () => {
-    stopReading();
     setReviewMode(prev => prev === 'all' ? 'flagged' : 'all');
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -213,9 +130,9 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               </div>
 
               <div className="viewer-nav">
-                <button onClick={goToPrev}>&larr; Prev</button>
+                <button onClick={(e) => {e.stopPropagation(); goToPrev();}}>&larr; Prev</button>
                 <span>{currentIndex + 1} / {studyDeck.length}</span>
-                <button onClick={goToNext} >Next &rarr;</button>
+                <button onClick={(e) => {e.stopPropagation(); goToNext();}} >Next &rarr;</button>
               </div>
             </>
           ) : (
@@ -224,51 +141,6 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
             </div>
           )}
-
-          <div className="tts-controls">
-            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">
-              {isReading ? '■ Stop Audio' : '▶ Play Audio'}
-            </button>
-            <div className="tts-slider-group">
-              <label>Voice</label>
-              <select 
-                className="tts-voice-select"
-                value={selectedVoice}
-                onChange={(e) => setSelectedVoice(e.target.value)}
-                disabled={isReading}
-              >
-                {voices.map(voice => (
-                  <option key={voice.name} value={voice.name}>
-                    {voice.name} ({voice.lang})
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="tts-slider-group">
-              <label>Delay: {speechDelay}s</label>
-              <input 
-                type="range" 
-                min="1" 
-                max="10" 
-                step="1" 
-                value={speechDelay} 
-                onChange={(e) => setSpeechDelay(Number(e.target.value))}
-                disabled={isReading}
-              />
-            </div>
-            <div className="tts-slider-group">
-              <label>Speed: {speechRate}x</label>
-              <input 
-                type="range" 
-                min="0.5" 
-                max="2" 
-                step="0.1" 
-                value={speechRate} 
-                onChange={(e) => setSpeechRate(Number(e.target.value))}
-                disabled={isReading}
-              />
-            </div>
-          </div>
         </>
       )}
     </div>
@@ -309,6 +181,40 @@ const CreateFolderModal = ({ onClose, onCreate }) => {
   );
 };
 
+// --- Reusable Prompt Modal ---
+const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
+  const [value, setValue] = useState(defaultValue || '');
+
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (value) {
+      onConfirm(value);
+    }
+  };
+
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>{title}</h2>
+        <p className="modal-message">{message}</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="number"
+            className="modal-input"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            autoFocus
+          />
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
+            <button type="submit" className="modal-create-btn">Confirm</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
 
 function App() {
   const [appMode, setAppMode] = useState('live');
@@ -329,7 +235,7 @@ function App() {
   const [editingCard, setEditingCard] = useState(null);
   const [studyingFolder, setStudyingFolder] = useState(null);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
-
+  const [promptModalConfig, setPromptModalConfig] = useState(null);
 
   const audioChunksRef = useRef([]);
   const mediaRecorderRef = useRef(null);
@@ -337,6 +243,11 @@ function App() {
   const fileInputRef = useRef(null);
   const audioPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
+  
+  // --- NEW: Refs for silence detection ---
+  const audioContextRef = useRef(null);
+  const silenceTimeoutRef = useRef(null);
+  const animationFrameRef = useRef(null);
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
@@ -354,6 +265,7 @@ function App() {
     setGeneratedFlashcards([]);
   };
 
+  // --- MODIFIED: startListening with silence detection ---
   const startListening = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -367,6 +279,38 @@ function App() {
       });
       mediaRecorderRef.current.start(1000);
 
+      // --- Silence Detection Logic ---
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      const analyser = audioContextRef.current.createAnalyser();
+      const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const checkForSilence = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = dataArray.reduce((a, b) => a + b, 0);
+
+        if (sum === 0) { // If silent
+          if (!silenceTimeoutRef.current) {
+            silenceTimeoutRef.current = setTimeout(() => {
+              stopListening();
+              setNotification('Stopped listening due to silence.');
+            }, 15000); // 15 seconds
+          }
+        } else { // If sound is detected
+          if (silenceTimeoutRef.current) {
+            clearTimeout(silenceTimeoutRef.current);
+            silenceTimeoutRef.current = null;
+          }
+        }
+        animationFrameRef.current = requestAnimationFrame(checkForSilence);
+      };
+      checkForSilence();
+      // --- End Silence Detection Logic ---
+
+
       if (voiceActivated && 'webkitSpeechRecognition' in window) {
         const recognition = new window.webkitSpeechRecognition();
         recognition.continuous = true;
@@ -375,7 +319,7 @@ function App() {
 
         recognition.onresult = (event) => {
           const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-          if (transcript.includes('flash it')) {
+          if (transcript.includes('flash')) {
             handleLiveFlashIt();
           }
         };
@@ -390,6 +334,7 @@ function App() {
     }
   };
 
+  // --- MODIFIED: stopListening to clean up silence detection ---
   const stopListening = () => {
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -398,6 +343,20 @@ function App() {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
+    
+    // Cleanup silence detection
+    if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+    }
+    if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+    }
+
     setNotification('');
   };
 
@@ -451,7 +410,7 @@ function App() {
         const base64Audio = reader.result.split(',')[1];
 
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ audio_data: base64Audio })
@@ -559,111 +518,128 @@ function App() {
   };
 
   const exportFolderToPDF = (folderName) => {
-    const cardsPerPageOption = prompt("How many flashcards per page? (6, 8, or 10)", "8");
-    const cardsPerPage = parseInt(cardsPerPageOption, 10);
-    if (![6, 8, 10].includes(cardsPerPage)) {
-      alert("Invalid number. Please choose 6, 8, or 10.");
-      return;
-    }
-
-    const doc = new jsPDF();
-    const cards = folders[folderName];
-    const pageW = doc.internal.pageSize.getWidth();
-    const pageH = doc.internal.pageSize.getHeight();
-
-    const layoutConfig = {
-      6: { rows: 3, cols: 2, fontSize: 12 },
-      8: { rows: 4, cols: 2, fontSize: 10 },
-      10: { rows: 5, cols: 2, fontSize: 9 },
-    };
-    const config = layoutConfig[cardsPerPage];
-    const margin = 15;
-    const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
-    const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
-
-    const drawHeader = () => {
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(30);
-        doc.setTextColor("#8B5CF6");
-        doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+    setPromptModalConfig({
+      title: 'Export to PDF',
+      message: 'How many flashcards per page? (6, 8, or 10)',
+      defaultValue: '8',
+      onConfirm: (value) => {
+        const cardsPerPage = parseInt(value, 10);
+        if (![6, 8, 10].includes(cardsPerPage)) {
+          alert("Invalid number. Please choose 6, 8, or 10.");
+          return;
+        }
         
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(16);
-        doc.setTextColor("#1F2937");
-        doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
-    };
+        const doc = new jsPDF();
+        const cards = folders[folderName];
+        const pageW = doc.internal.pageSize.getWidth();
+        const pageH = doc.internal.pageSize.getHeight();
 
-    for (let i = 0; i < cards.length; i += cardsPerPage) {
-      const pageCards = cards.slice(i, i + cardsPerPage);
+        const layoutConfig = {
+          6: { rows: 3, cols: 2, fontSize: 12 },
+          8: { rows: 4, cols: 2, fontSize: 10 },
+          10: { rows: 5, cols: 2, fontSize: 9 },
+        };
+        const config = layoutConfig[cardsPerPage];
+        const margin = 15;
+        const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
+        const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
 
-      if (i > 0) doc.addPage();
-      drawHeader();
-      
-      pageCards.forEach((card, index) => {
-        const row = Math.floor(index / config.cols);
-        const col = index % config.cols;
-        const cardX = margin + (col * (cardW + margin));
-        const cardY = 40 + (row * (cardH + margin));
+        const drawHeader = () => {
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(30);
+            doc.setTextColor("#8B5CF6");
+            doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+            
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(16);
+            doc.setTextColor("#1F2937");
+            doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
+        };
 
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(0);
-        doc.setTextColor("#000000");
-        doc.rect(cardX, cardY, cardW, cardH);
+        for (let i = 0; i < cards.length; i += cardsPerPage) {
+          const pageCards = cards.slice(i, i + cardsPerPage);
 
-        doc.setFontSize(config.fontSize);
-        const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
-        const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-        doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-      });
+          if (i > 0) doc.addPage();
+          drawHeader();
+          
+          pageCards.forEach((card, index) => {
+            const row = Math.floor(index / config.cols);
+            const col = index % config.cols;
+            const cardX = margin + (col * (cardW + margin));
+            const cardY = 40 + (row * (cardH + margin));
 
-      doc.addPage();
-      drawHeader();
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(0);
+            doc.setTextColor("#000000");
+            doc.rect(cardX, cardY, cardW, cardH);
 
-      pageCards.forEach((card, index) => {
-        const row = Math.floor(index / config.cols);
-        const col = index % config.cols;
-        const cardX = margin + (col * (cardW + margin));
-        const cardY = 40 + (row * (cardH + margin));
+            doc.setFontSize(config.fontSize);
+            const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
+            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+          });
 
-        doc.setLineWidth(0.5);
-        doc.setDrawColor(0);
-        doc.setTextColor("#000000");
-        doc.rect(cardX, cardY, cardW, cardH);
+          doc.addPage();
+          drawHeader();
 
-        doc.setFontSize(config.fontSize);
-        const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
-        const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-        doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-      });
-    }
-    
-    doc.save(`${folderName}-flashcards.pdf`);
+          pageCards.forEach((card, index) => {
+            const row = Math.floor(index / config.cols);
+            const col = index % config.cols;
+            const cardX = margin + (col * (cardW + margin));
+            const cardY = 40 + (row * (cardH + margin));
+
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(0);
+            doc.setTextColor("#000000");
+            doc.rect(cardX, cardY, cardW, cardH);
+
+            doc.setFontSize(config.fontSize);
+            const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
+            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+          });
+        }
+        
+        doc.save(`${folderName}-flashcards.pdf`);
+        setPromptModalConfig(null);
+      },
+      onClose: () => setPromptModalConfig(null)
+    });
   };
   
   const exportFolderToCSV = (folderName) => {
-      const numCards = parseInt(prompt("How many flashcards to export?", folders[folderName].length), 10);
-      if (isNaN(numCards) || numCards <= 0) {
-          alert("Invalid number.");
-          return;
-      }
-  
-      const cards = folders[folderName].slice(0, numCards);
-      let csvContent = "data:text/csv;charset=utf-8,";
-      csvContent += "FlashFonic\nListen. Flash it. Learn.\n\n";
-      csvContent += "Question,Answer\n";
-  
-      cards.forEach(card => {
-          const row = `"${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`;
-          csvContent += row + "\n";
-      });
-  
-      const encodedUri = encodeURI(csvContent);
-      const link = document.createElement("a");
-      link.setAttribute("href", encodedUri);
-      link.setAttribute("download", `${folderName}-flashcards.csv`);
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+    setPromptModalConfig({
+      title: 'Export to CSV',
+      message: 'How many flashcards do you want to export?',
+      defaultValue: folders[folderName].length,
+      onConfirm: (value) => {
+        const numCards = parseInt(value, 10);
+        if (isNaN(numCards) || numCards <= 0) {
+            alert("Invalid number.");
+            return;
+        }
+    
+        const cards = folders[folderName].slice(0, numCards);
+        let csvContent = "data:text/csv;charset=utf-8,";
+        csvContent += "FlashFonic\nListen. Flash it. Learn.\n\n";
+        csvContent += "Question,Answer\n";
+    
+        cards.forEach(card => {
+            const row = `"${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`;
+            csvContent += row + "\n";
+        });
+    
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", `${folderName}-flashcards.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setPromptModalConfig(null);
+      },
+      onClose: () => setPromptModalConfig(null)
+    });
   };
 
   const renderCardContent = (card, source, folderName) => {
@@ -714,6 +690,8 @@ function App() {
         />
       )}
 
+      {promptModalConfig && <PromptModal {...promptModalConfig} />}
+
       <div className="header">
         <h1>FlashFonic</h1>
         <h2 className="subheading">Listen. Flash it. Learn.</h2>
@@ -738,7 +716,7 @@ function App() {
                   </button>
               </div>
             </div>
-            {voiceActivated && <p className="voice-hint">🎤 Say "Flash IT!" to capture.</p>}
+            {voiceActivated && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
             <div className="slider-container">
               <label htmlFor="duration-slider">Capture Last: {duration}s</label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
