@@ -243,10 +243,6 @@ function App() {
   const fileInputRef = useRef(null);
   const audioPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
-  
-  const audioContextRef = useRef(null);
-  const silenceTimeoutRef = useRef(null);
-  const animationFrameRef = useRef(null);
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
@@ -270,49 +266,12 @@ function App() {
       setIsListening(true);
       setNotification('Listening... click "Flash It" or use voice trigger.');
 
-      // --- Use the original stream for the MediaRecorder ---
       mediaRecorderRef.current = new MediaRecorder(streamRef.current);
       audioChunksRef.current = [];
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
       });
       mediaRecorderRef.current.start(1000);
-
-      // --- CORRECTED: Silence Detection Logic ---
-      const audioTrack = streamRef.current.getAudioTracks()[0];
-      const clonedTrack = audioTrack.clone(); // Clone the track for analysis
-      const analyserStream = new MediaStream([clonedTrack]);
-
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const analyser = audioContextRef.current.createAnalyser();
-      const source = audioContextRef.current.createMediaStreamSource(analyserStream);
-      source.connect(analyser);
-      analyser.fftSize = 256;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      const checkForSilence = () => {
-        analyser.getByteFrequencyData(dataArray);
-        let sum = dataArray.reduce((a, b) => a + b, 0);
-
-        if (sum < 5) { // Adjusted threshold for ambient noise
-          if (!silenceTimeoutRef.current) {
-            silenceTimeoutRef.current = setTimeout(() => {
-              stopListening();
-              setNotification('Stopped listening due to silence.');
-            }, 15000); // 15 seconds
-          }
-        } else {
-          if (silenceTimeoutRef.current) {
-            clearTimeout(silenceTimeoutRef.current);
-            silenceTimeoutRef.current = null;
-          }
-        }
-        animationFrameRef.current = requestAnimationFrame(checkForSilence);
-      };
-      checkForSilence();
-      // --- End Silence Detection Logic ---
-
 
       if (voiceActivated && 'webkitSpeechRecognition' in window) {
         const recognition = new window.webkitSpeechRecognition();
@@ -333,8 +292,7 @@ function App() {
         recognitionRef.current = recognition;
       }
     } catch (err) {
-      console.error("Error starting listening:", err);
-      setNotification("Microphone access denied or error.");
+      setNotification("Microphone access denied.");
     }
   };
 
@@ -346,19 +304,6 @@ function App() {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
-    
-    if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-    }
-    if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-        silenceTimeoutRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-    }
-
     setNotification('');
   };
 
