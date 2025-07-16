@@ -244,7 +244,6 @@ function App() {
   const audioPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
   
-  // --- NEW: Refs for silence detection ---
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -265,7 +264,6 @@ function App() {
     setGeneratedFlashcards([]);
   };
 
-  // --- MODIFIED: startListening with silence detection ---
   const startListening = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -292,14 +290,15 @@ function App() {
         analyser.getByteFrequencyData(dataArray);
         let sum = dataArray.reduce((a, b) => a + b, 0);
 
-        if (sum === 0) { // If silent
+        // --- MODIFIED: Check for low volume instead of absolute silence ---
+        if (sum < 5) { 
           if (!silenceTimeoutRef.current) {
             silenceTimeoutRef.current = setTimeout(() => {
               stopListening();
               setNotification('Stopped listening due to silence.');
             }, 15000); // 15 seconds
           }
-        } else { // If sound is detected
+        } else {
           if (silenceTimeoutRef.current) {
             clearTimeout(silenceTimeoutRef.current);
             silenceTimeoutRef.current = null;
@@ -334,7 +333,6 @@ function App() {
     }
   };
 
-  // --- MODIFIED: stopListening to clean up silence detection ---
   const stopListening = () => {
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -344,7 +342,6 @@ function App() {
       recognitionRef.current = null;
     }
     
-    // Cleanup silence detection
     if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
         animationFrameRef.current = null;
