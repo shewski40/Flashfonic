@@ -226,7 +226,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                 <span>{currentIndex + 1} / {studyDeck.length}</span>
                 <button onClick={goToNext} >Next &rarr;</button>
               </div>
-            </>
+          </>
           ) : (
             <div className="viewer-empty">
               <p>No cards to display in this mode.</p>
