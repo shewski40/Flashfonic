@@ -6,7 +6,7 @@
   --content-bg: #1F2937;
   --border-color: #374151;
   --text-light: #F9FAFB;
-  --text-soft: #D1D5DB; /* NEW: Softer text color */
+  --text-soft: #D1D5DB; 
   --text-dark: #9CA3AF;
   --success-green: #10B981;
   --danger-red: #EF4444;
@@ -249,14 +249,17 @@ input[type="range"]::-webkit-slider-thumb {
     flex-grow: 1;
 }
 
-/* --- MODIFIED: Softer font color and spacing for Q/A text --- */
 .card-content p {
-    padding-right: 60px; /* More space for buttons */
+    padding-right: 60px; 
     font-family: 'Poppins', sans-serif;
-    color: var(--text-soft); /* Softer text color */
+    color: var(--text-soft); 
+    margin-bottom: 0.75em; /* Added spacing between Q and A */
+}
+.card-content p:last-child {
+    margin-bottom: 0;
 }
 .card-content p strong {
-    color: var(--text-light); /* Keep labels bright */
+    color: var(--text-light); 
 }
 
 .folder-actions {
@@ -794,7 +797,7 @@ input[type="range"]::-webkit-slider-thumb {
   flex-direction: column;
   flex-grow: 1;
   min-width: 120px;
-  position: relative; /* For dropdown positioning */
+  position: relative; 
 }
 
 .tts-slider-group label {
@@ -807,7 +810,6 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-/* --- MODIFIED: Custom Dropdown Styles --- */
 .custom-select-trigger {
   background-color: var(--dark-bg);
   color: var(--text-light);
@@ -846,8 +848,8 @@ input[type="range"]::-webkit-slider-thumb {
   border: 1px solid var(--border-color);
   border-radius: 8px;
   z-index: 10;
-  max-height: 200px; /* Added for scrolling */
-  overflow-y: auto; /* Added for scrolling */
+  max-height: 250px; /* Increased height */
+  overflow-y: auto; 
 }
 
 .custom-select-option {
@@ -858,7 +860,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .custom-select-option:hover {
-  background-color: var(--primary-purple); /* Added hover effect */
+  background-color: var(--primary-purple); 
   color: white;
 }
 
