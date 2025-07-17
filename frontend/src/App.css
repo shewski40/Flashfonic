@@ -6,6 +6,7 @@
   --content-bg: #1F2937;
   --border-color: #374151;
   --text-light: #F9FAFB;
+  --text-soft: #D1D5DB; /* NEW: Softer text color */
   --text-dark: #9CA3AF;
   --success-green: #10B981;
   --danger-red: #EF4444;
@@ -248,9 +249,14 @@ input[type="range"]::-webkit-slider-thumb {
     flex-grow: 1;
 }
 
+/* --- MODIFIED: Softer font color and spacing for Q/A text --- */
 .card-content p {
-    padding-right: 50px; 
+    padding-right: 60px; /* More space for buttons */
     font-family: 'Poppins', sans-serif;
+    color: var(--text-soft); /* Softer text color */
+}
+.card-content p strong {
+    color: var(--text-light); /* Keep labels bright */
 }
 
 .folder-actions {
@@ -788,6 +794,7 @@ input[type="range"]::-webkit-slider-thumb {
   flex-direction: column;
   flex-grow: 1;
   min-width: 120px;
+  position: relative; /* For dropdown positioning */
 }
 
 .tts-slider-group label {
@@ -800,14 +807,59 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-.tts-voice-select {
-  width: 100%;
-  padding: 0.5em;
+/* --- MODIFIED: Custom Dropdown Styles --- */
+.custom-select-trigger {
   background-color: var(--dark-bg);
   color: var(--text-light);
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  font-size: 0.9em;
+  padding: 0.8em;
+  font-family: 'Poppins', sans-serif;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.custom-select-trigger .arrow {
+  border: solid var(--text-dark);
+  border-width: 0 2px 2px 0;
+  display: inline-block;
+  padding: 3px;
+  transition: transform 0.2s ease;
+}
+
+.custom-select-trigger .arrow.down {
+  transform: rotate(45deg);
+}
+
+.custom-select-trigger .arrow.up {
+  transform: rotate(-135deg);
+}
+
+.custom-select-options {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: var(--content-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  z-index: 10;
+  max-height: 200px; /* Added for scrolling */
+  overflow-y: auto; /* Added for scrolling */
+}
+
+.custom-select-option {
+  padding: 0.8em;
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  color: var(--text-soft);
+}
+
+.custom-select-option:hover {
+  background-color: var(--primary-purple); /* Added hover effect */
+  color: white;
 }
 
 .stop-listening-bar {
@@ -829,4 +881,13 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 0.5em 1em;
   font-weight: bold;
   cursor: pointer;
+}
+
+.check-all-btn {
+    background-color: var(--content-bg);
+    color: var(--text-light);
+    border: 1px solid var(--primary-purple);
+    padding: 0.5em 1em;
+    border-radius: 8px;
+    cursor: pointer;
 }
