@@ -9,7 +9,14 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [flaggedCards, setFlaggedCards] = useState({});
-  const [reviewMode, setReviewMode] = useState('all'); // 'all' or 'flagged'
+  const [reviewMode, setReviewMode] = useState('all');
+
+  const [isReading, setIsReading] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1);
+  const [speechDelay, setSpeechDelay] = useState(3);
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const speechTimeoutRef = useRef(null);
 
   const studyDeck = reviewMode === 'flagged' 
     ? deck.filter(card => flaggedCards[card.id]) 
@@ -17,28 +24,94 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
 
   const currentCard = studyDeck[currentIndex];
 
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+      setVoices(englishVoices);
+      if (englishVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(englishVoices[0].name);
+      }
+    };
+
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [selectedVoice]);
+
+  const speak = (text, onEnd) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voice = voices.find(v => v.name === selectedVoice);
+    if (voice) {
+      utterance.voice = voice;
+    }
+    utterance.rate = speechRate;
+    utterance.onend = onEnd;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+
+  const stopReading = () => {
+    setIsReading(false);
+    window.speechSynthesis.cancel();
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
+  };
+
+  useEffect(() => {
+    if (!isReading || !currentCard) {
+      return;
+    }
+
+    const readCardSequence = () => {
+      setIsFlipped(false);
+      const questionText = `Question: ${currentCard.question}`;
+      
+      speak(questionText, () => {
+        speechTimeoutRef.current = setTimeout(() => {
+          setIsFlipped(true);
+          const answerText = `Answer: ${currentCard.answer}`;
+          speak(answerText, () => {
+            setCurrentIndex(prev => (prev + 1) % studyDeck.length);
+          });
+        }, speechDelay * 1000);
+      });
+    };
+
+    readCardSequence();
+
+    return () => {
+      window.speechSynthesis.cancel();
+      clearTimeout(speechTimeoutRef.current);
+    };
+  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice]);
+
   const handleCardClick = () => {
     if (studyDeck.length === 0) return;
-    if (!isFlipped) {
-      setIsFlipped(true);
-    } else {
-      goToNext();
-    }
+    stopReading();
+    setIsFlipped(prev => !prev);
   };
 
   const goToNext = () => {
     if (studyDeck.length === 0) return;
+    stopReading();
     setIsFlipped(false);
     setCurrentIndex((prevIndex) => (prevIndex + 1) % studyDeck.length);
   };
 
   const goToPrev = () => {
     if (studyDeck.length === 0) return;
+    stopReading();
     setIsFlipped(false);
     setCurrentIndex((prevIndex) => (prevIndex - 1 + studyDeck.length) % studyDeck.length);
   };
 
   const scrambleDeck = () => {
+    stopReading();
     const newDeckOrder = [...deck].sort(() => Math.random() - 0.5);
     setDeck(newDeckOrder);
     setCurrentIndex(0);
@@ -58,6 +131,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   };
 
   const toggleReviewMode = () => {
+    stopReading();
     setReviewMode(prev => prev === 'all' ? 'flagged' : 'all');
     setCurrentIndex(0);
     setIsFlipped(false);
@@ -74,6 +148,10 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
     newDeck.splice(dropIndex, 0, draggedItem);
     setDeck(newDeck);
   };
+  
+  useEffect(() => {
+    return () => stopReading();
+  }, []);
 
   return (
     <div className="viewer-overlay">
@@ -130,9 +208,9 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               </div>
 
               <div className="viewer-nav">
-                <button onClick={(e) => {e.stopPropagation(); goToPrev();}}>&larr; Prev</button>
+                <button onClick={goToPrev}>&larr; Prev</button>
                 <span>{currentIndex + 1} / {studyDeck.length}</span>
-                <button onClick={(e) => {e.stopPropagation(); goToNext();}} >Next &rarr;</button>
+                <button onClick={goToNext} >Next &rarr;</button>
               </div>
             </>
           ) : (
@@ -141,6 +219,50 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
             </div>
           )}
+          <div className="tts-controls">
+            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">
+              {isReading ? '■ Stop Audio' : '▶ Play Audio'}
+            </button>
+            <div className="tts-slider-group">
+              <label>Voice</label>
+              <select 
+                className="tts-voice-select"
+                value={selectedVoice}
+                onChange={(e) => setSelectedVoice(e.target.value)}
+                disabled={isReading}
+              >
+                {voices.map(voice => (
+                  <option key={voice.name} value={voice.name}>
+                    {voice.name} ({voice.lang})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="tts-slider-group">
+              <label>Delay: {speechDelay}s</label>
+              <input 
+                type="range" 
+                min="1" 
+                max="10" 
+                step="1" 
+                value={speechDelay} 
+                onChange={(e) => setSpeechDelay(Number(e.target.value))}
+                disabled={isReading}
+              />
+            </div>
+            <div className="tts-slider-group">
+              <label>Speed: {speechRate}x</label>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value={speechRate} 
+                onChange={(e) => setSpeechRate(Number(e.target.value))}
+                disabled={isReading}
+              />
+            </div>
+          </div>
         </>
       )}
     </div>
@@ -236,6 +358,7 @@ function App() {
   const [studyingFolder, setStudyingFolder] = useState(null);
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [promptModalConfig, setPromptModalConfig] = useState(null);
+  const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
 
   const audioChunksRef = useRef([]);
   const mediaRecorderRef = useRef(null);
@@ -258,10 +381,11 @@ function App() {
   }, [folders]);
 
   const handleModeChange = (mode) => {
-    if (isListening) stopListening();
+    if (isListening) {
+      stopListening();
+    }
     setAppMode(mode);
     setNotification('');
-    setGeneratedFlashcards([]);
   };
 
   const startListening = async () => {
@@ -270,7 +394,6 @@ function App() {
       setIsListening(true);
       setNotification('Listening... click "Flash It" or use voice trigger.');
 
-      // --- CORRECTED: Silence Detection and Recording Setup ---
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
       
@@ -294,12 +417,12 @@ function App() {
         analyser.getByteFrequencyData(dataArray);
         let sum = dataArray.reduce((a, b) => a + b, 0);
 
-        if (sum < 5) { // Adjusted threshold for ambient noise
+        if (sum < 5) {
           if (!silenceTimeoutRef.current) {
             silenceTimeoutRef.current = setTimeout(() => {
               stopListening();
               setNotification('Stopped listening due to silence.');
-            }, 15000); // 15 seconds
+            }, 15000);
           }
         } else {
           if (silenceTimeoutRef.current) {
@@ -310,7 +433,6 @@ function App() {
         animationFrameRef.current = requestAnimationFrame(checkForSilence);
       };
       checkForSilence();
-      // --- End Correction ---
 
       if (voiceActivated && 'webkitSpeechRecognition' in window) {
         const recognition = new window.webkitSpeechRecognition();
@@ -461,16 +583,24 @@ function App() {
     setCheckedCards(newCheckedCards);
   };
 
-  const moveCheckedToFolder = (folderName) => {
-    const cardsToMove = generatedFlashcards.filter(card => checkedCards[card.id]);
-    if (cardsToMove.length > 0 && folders[folderName]) {
-        setFolders(prev => ({
-            ...prev,
-            [folderName]: [...prev[folderName], ...cardsToMove]
-        }));
-        setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
-        setCheckedCards({});
+  const handleMoveToFolder = () => {
+    if (!selectedFolderForMove) {
+      setNotification("Please select a folder first.");
+      return;
     }
+    const cardsToMove = generatedFlashcards.filter(card => checkedCards[card.id]);
+    if (cardsToMove.length === 0) {
+      setNotification("Please check the cards you want to move.");
+      return;
+    }
+
+    setFolders(prev => ({
+        ...prev,
+        [selectedFolderForMove]: [...prev[selectedFolderForMove], ...cardsToMove]
+    }));
+    setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
+    setCheckedCards({});
+    setSelectedFolderForMove('');
   };
 
   const handleCreateFolder = (folderName) => {
@@ -725,6 +855,12 @@ function App() {
           </>
         ) : (
           <>
+            {isListening && (
+              <div className="stop-listening-bar">
+                <p>🔴 Live Capture is running in the background...</p>
+                <button onClick={stopListening}>■ Stop Listening</button>
+              </div>
+            )}
             <div className="upload-button-container">
               <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
             </div>
@@ -752,10 +888,10 @@ function App() {
       {notification && <p className="notification">{notification}</p>}
       
       {generatedFlashcards.length > 0 && (
-          <div className="generated-cards-queue">
+          <div className="card generated-cards-queue">
               <div className="queue-header">
                 <h3>Review Queue</h3>
-                <button onClick={handleCheckAll}>Check All</button>
+                <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
               </div>
               {generatedFlashcards.map(card => (
                   <div key={card.id} className="card generated-card">
@@ -769,15 +905,16 @@ function App() {
                   </div>
               ))}
               <div className="folder-actions">
-                  <select onChange={(e) => moveCheckedToFolder(e.target.value)} defaultValue="">
-                      <option value="" disabled>Move checked to folder...</option>
+                  <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                      <option value="" disabled>Select a folder...</option>
                       {Object.keys(folders).map(name => <option key={name} value={name}>{name}</option>)}
                   </select>
+                  <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
               </div>
           </div>
       )}
 
-      <div className="folders-container">
+      <div className="card folders-container">
         <h2 className="section-heading">Your Folders</h2>
         <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
         <div className="folder-list">
@@ -817,4 +954,3 @@ const formatTime = (time) => {
 };
 
 export default App;
-
