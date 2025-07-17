@@ -248,6 +248,10 @@ input[type="range"]::-webkit-slider-thumb {
     flex-grow: 1;
 }
 
+.card-content p {
+    padding-right: 50px; 
+}
+
 .folder-actions {
     margin-top: 1rem;
 }
@@ -544,7 +548,7 @@ input[type="range"]::-webkit-slider-thumb {
 .viewer-main {
   width: 100%;
   max-width: 600px;
-  height: 400px;
+  height: 350px; 
   perspective: 1000px;
   cursor: pointer;
 }
@@ -593,7 +597,7 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   width: 100%;
   max-width: 600px;
-  margin-top: 2rem;
+  margin-top: 1rem; 
 }
 
 .viewer-nav button {
@@ -702,6 +706,11 @@ input[type="range"]::-webkit-slider-thumb {
   box-sizing: border-box;
 }
 
+.modal-message {
+    color: var(--text-dark);
+    margin-bottom: 1rem;
+}
+
 .modal-actions {
   display: flex;
   justify-content: flex-end;
@@ -727,16 +736,15 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-light);
 }
 
-/* --- MODIFIED: TTS Controls Layout --- */
 .tts-controls {
   display: flex;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  flex-wrap: wrap; 
   align-items: center;
   gap: 1rem;
   background-color: var(--content-bg);
   padding: 1rem;
   border-radius: 12px;
-  margin-bottom: 1rem;
+  margin-top: 1rem; 
   width: 100%;
   max-width: 600px;
   box-sizing: border-box;
@@ -756,7 +764,7 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   flex-direction: column;
   flex-grow: 1;
-  min-width: 120px; /* Ensure sliders don't get too squished */
+  min-width: 120px;
 }
 
 .tts-slider-group label {
@@ -769,7 +777,6 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-/* --- NEW: Voice Select Dropdown --- */
 .tts-voice-select {
   width: 100%;
   padding: 0.5em;
