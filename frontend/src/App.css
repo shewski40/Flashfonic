@@ -250,7 +250,6 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .card-content p {
-    padding-right: 60px; 
     font-family: 'Poppins', sans-serif;
     color: var(--text-soft); 
     margin-bottom: 0.75em;
@@ -461,19 +460,36 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-dark);
 }
 
-.edit-btn {
+/* --- MODIFIED: Button positioning and styling --- */
+.card-top-actions {
     position: absolute;
     top: 10px;
     right: 15px;
-    background: none;
-    border: none;
-    color: var(--text-dark);
-    cursor: pointer;
-    font-weight: bold;
-    font-size: 0.9em;
+    display: flex;
+    gap: 0.5rem;
 }
-.edit-btn:hover {
-    color: var(--primary-purple);
+
+.edit-btn, .card-move-btn {
+    background: none;
+    border: 1px solid var(--text-dark);
+    color: var(--text-dark);
+    border-radius: 6px;
+    padding: 0.2em 0.6em;
+    font-size: 0.8em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.card-move-btn {
+    border-color: var(--secondary-pink);
+    color: var(--secondary-pink);
+}
+
+.edit-btn:hover, .card-move-btn:hover {
+    color: white;
+    border-color: var(--primary-purple);
+    background-color: var(--primary-purple);
 }
 
 .card-delete-btn {
@@ -841,8 +857,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .custom-select-options {
   position: absolute;
-  bottom: 100%; /* MODIFIED: Opens upwards */
-  margin-bottom: 0.5rem; /* MODIFIED: Adds space from trigger */
+  bottom: 100%; 
+  margin-bottom: 0.5rem; 
   left: 0;
   right: 0;
   background-color: var(--content-bg);
@@ -899,7 +915,7 @@ input[type="range"]::-webkit-slider-thumb {
     display: flex;
     justify-content: flex-end;
     gap: 1rem;
-    margin-bottom: 1rem; /* NEW: Adds space below buttons */
+    margin-bottom: 1rem;
 }
 
 .card-move-btn {
