@@ -6,7 +6,7 @@
   --content-bg: #1F2937;
   --border-color: #374151;
   --text-light: #F9FAFB;
-  --text-soft: #D1D5DB; 
+  --text-soft: #D1D5DB;
   --text-dark: #9CA3AF;
   --success-green: #10B981;
   --danger-red: #EF4444;
@@ -245,8 +245,12 @@ input[type="range"]::-webkit-slider-thumb {
     height: 20px;
 }
 
+/* --- MODIFIED --- */
 .card-content {
     flex-grow: 1;
+    /* This padding prevents the Q/A text from flowing under the
+       absolutely positioned Edit, Move, and Delete buttons. */
+    padding-right: 5rem; 
 }
 
 .card-content p {
@@ -254,10 +258,13 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-soft); 
     margin-top: 0;
     margin-bottom: 0;
+    word-wrap: break-word; /* Ensures long text wraps properly */
 }
 
+/* --- MODIFIED --- */
 .card-content p:first-of-type {
-    margin-bottom: 1em; /* Adds space between Q and A */
+    /* Increased space between the Question and Answer for better readability */
+    margin-bottom: 1.5em; 
 }
 
 .card-content p strong {
