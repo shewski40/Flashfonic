@@ -245,11 +245,8 @@ input[type="range"]::-webkit-slider-thumb {
     height: 20px;
 }
 
-/* --- MODIFIED --- */
 .card-content {
     flex-grow: 1;
-    /* This padding prevents the Q/A text from flowing under the
-       absolutely positioned Edit, Move, and Delete buttons. */
     padding-right: 5rem; 
 }
 
@@ -258,12 +255,10 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-soft); 
     margin-top: 0;
     margin-bottom: 0;
-    word-wrap: break-word; /* Ensures long text wraps properly */
+    word-wrap: break-word;
 }
 
-/* --- MODIFIED --- */
 .card-content p:first-of-type {
-    /* Increased space between the Question and Answer for better readability */
     margin-bottom: 1.5em; 
 }
 
@@ -470,18 +465,21 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-dark);
 }
 
+/* --- MODIFIED --- */
 .card-top-actions {
     position: absolute;
     top: 1.5em;
     right: 2em;
     display: flex;
+    flex-direction: column; /* Stacks the buttons vertically */
     gap: 0.5rem;
 }
 
+/* --- MODIFIED --- */
 .edit-btn, .card-move-btn {
     background: none;
-    border: 1px solid var(--text-dark);
-    color: var(--text-dark);
+    border: 1px solid var(--primary-purple); /* Unified color */
+    color: var(--primary-purple); /* Unified color */
     border-radius: 6px;
     padding: 0.2em 0.6em;
     font-size: 0.8em;
@@ -490,14 +488,11 @@ input[type="range"]::-webkit-slider-thumb {
     transition: all 0.2s ease;
 }
 
-.card-move-btn {
-    border-color: var(--secondary-pink);
-    color: var(--secondary-pink);
-}
+/* This rule is no longer needed as the color is unified above */
+/* .card-move-btn { ... } */
 
 .edit-btn:hover, .card-move-btn:hover {
     color: white;
-    border-color: var(--primary-purple);
     background-color: var(--primary-purple);
 }
 
@@ -917,24 +912,6 @@ input[type="range"]::-webkit-slider-thumb {
     border: 1px solid var(--primary-purple);
     padding: 0.5em 1em;
     border-radius: 8px;
-    cursor: pointer;
-}
-
-.card-top-actions {
-    position: absolute;
-    top: 1.5em;
-    right: 2em;
-    display: flex;
-    gap: 0.5rem;
-}
-
-.card-move-btn {
-    background: none;
-    border: 1px solid var(--secondary-pink);
-    color: var(--secondary-pink);
-    border-radius: 6px;
-    padding: 0.2em 0.6em;
-    font-size: 0.8em;
     cursor: pointer;
 }
 
