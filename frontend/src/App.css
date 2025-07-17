@@ -253,7 +253,7 @@ input[type="range"]::-webkit-slider-thumb {
     padding-right: 60px; 
     font-family: 'Poppins', sans-serif;
     color: var(--text-soft); 
-    margin-bottom: 0.75em; /* Added spacing between Q and A */
+    margin-bottom: 0.75em;
 }
 .card-content p:last-child {
     margin-bottom: 0;
@@ -841,14 +841,15 @@ input[type="range"]::-webkit-slider-thumb {
 
 .custom-select-options {
   position: absolute;
-  top: 100%;
+  bottom: 100%; /* MODIFIED: Opens upwards */
+  margin-bottom: 0.5rem; /* MODIFIED: Adds space from trigger */
   left: 0;
   right: 0;
   background-color: var(--content-bg);
   border: 1px solid var(--border-color);
   border-radius: 8px;
   z-index: 10;
-  max-height: 250px; /* Increased height */
+  max-height: 250px; 
   overflow-y: auto; 
 }
 
@@ -891,5 +892,42 @@ input[type="range"]::-webkit-slider-thumb {
     border: 1px solid var(--primary-purple);
     padding: 0.5em 1em;
     border-radius: 8px;
+    cursor: pointer;
+}
+
+.card-top-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 1rem;
+    margin-bottom: 1rem; /* NEW: Adds space below buttons */
+}
+
+.card-move-btn {
+    background: none;
+    border: 1px solid var(--secondary-pink);
+    color: var(--secondary-pink);
+    border-radius: 6px;
+    padding: 0.2em 0.6em;
+    font-size: 0.8em;
+    cursor: pointer;
+}
+
+.move-mode p {
+    color: var(--text-light);
+    margin-bottom: 0.5rem;
+}
+
+.move-controls {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.move-cancel-btn {
+    background-color: var(--border-color);
+    color: var(--text-light);
+    border: none;
+    border-radius: 6px;
+    padding: 0.4em 0.8em;
+    font-size: 0.8em;
     cursor: pointer;
 }
