@@ -18,7 +18,6 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [selectedVoice, setSelectedVoice] = useState('');
   const speechTimeoutRef = useRef(null);
 
-  // New state for custom voice dropdown
   const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
   const voiceDropdownRef = useRef(null);
 
@@ -28,7 +27,6 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
 
   const currentCard = studyDeck[currentIndex];
 
-  // Effect to handle clicks outside the custom dropdown to close it
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (voiceDropdownRef.current && !voiceDropdownRef.current.contains(event.target)) {
@@ -387,7 +385,6 @@ function App() {
   const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
   const [promptModalConfig, setPromptModalConfig] = useState(null);
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
-  // New state to manage which card is being moved
   const [movingCard, setMovingCard] = useState(null);
 
 
@@ -1011,13 +1008,18 @@ function App() {
         <div className="folder-list">
           {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
             <details key={name} className="folder">
-              <summary>
+              <summary onClick={(e) => {
+                // Prevent summary click from toggling if a button inside was clicked
+                if (e.target.closest('button')) {
+                  e.preventDefault();
+                }
+              }}>
                 <div className="folder-summary">
                     <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
                     <div className="folder-export-buttons">
-                        <button onClick={(e) => { e.stopPropagation(); setStudyingFolder({ name, cards: folders[name] }) }} className="study-btn">Study</button>
-                        <button onClick={(e) => { e.stopPropagation(); exportFolderToPDF(name) }}>Export PDF</button>
-                        <button onClick={(e) => { e.stopPropagation(); exportFolderToCSV(name) }}>Export CSV</button>
+                        <button onClick={() => setStudyingFolder({ name, cards: folders[name] })} className="study-btn">Study</button>
+                        <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
+                        <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
                     </div>
                 </div>
               </summary>
