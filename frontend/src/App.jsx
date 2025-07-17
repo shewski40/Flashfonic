@@ -452,7 +452,7 @@ function App() {
         const base64Audio = reader.result.split(',')[1];
 
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ audio_data: base64Audio })
