@@ -26,7 +26,7 @@ body {
 #root {
   max-width: 700px;
   margin: 0 auto;
-  padding: 2rem 1rem; /* Adjusted padding for mobile */
+  padding: 2rem 1rem; /* Mobile first padding */
   text-align: center;
 }
 
@@ -36,7 +36,7 @@ body {
 
 .header h1 {
   font-family: 'Poppins', sans-serif;
-  font-size: 2.5rem; /* Reduced font size for mobile */
+  font-size: 2.5rem; /* Mobile first font size */
   font-weight: 700;
   color: transparent;
   background-clip: text;
@@ -47,7 +47,7 @@ body {
 
 .subheading {
     font-family: 'Poppins', sans-serif;
-    font-size: 1.1rem; /* Reduced font size for mobile */
+    font-size: 1.1rem; /* Mobile first font size */
     font-weight: 500;
     margin-top: 0;
     color: var(--primary-purple);
@@ -57,7 +57,7 @@ body {
 
 .card {
   background-color: var(--content-bg);
-  padding: 1.5em; /* Adjusted padding for mobile */
+  padding: 1.5em; /* Mobile first padding */
   border-radius: 16px;
   margin-bottom: 1.5rem;
   border: 1px solid var(--border-color);
@@ -72,12 +72,12 @@ body {
   justify-content: space-around;
   align-items: center;
   margin-bottom: 1.5rem;
-  gap: 1rem; /* Add gap between stacked buttons */
+  gap: 1rem; 
 }
 
 .main-controls button {
   padding: 0.8em 1.5em;
-  font-size: 1em; /* Adjusted font size */
+  font-size: 1em; /* Mobile button font size */
   font-weight: bold;
   border: none;
   border-radius: 30px;
@@ -85,7 +85,7 @@ body {
   transition: all 0.2s ease;
   background-color: var(--primary-purple);
   color: white;
-  width: 100%; /* Make buttons full width */
+  width: 100%; 
 }
 
 .mode-selector {
@@ -100,11 +100,11 @@ body {
 
 .mode-selector button {
   flex: 1;
-  padding: 0.8em 0.5em; /* Adjusted padding */
+  padding: 0.8em 0.5em; 
   border: none;
   background-color: var(--content-bg);
   color: var(--text-dark);
-  font-size: 0.9em; /* Adjusted font size */
+  font-size: 0.9em; 
   font-weight: 500;
   border-radius: 9px;
   cursor: pointer;
@@ -128,7 +128,7 @@ body {
 .flash-it-button {
   width: 100%;
   padding: 1em 1.5em;
-  font-size: 1.2em; /* Adjusted font size */
+  font-size: 1.2em; /* Mobile font size */
   margin-top: 1.5rem; 
   border-radius: 12px;
   background: var(--brand-gradient);
@@ -154,7 +154,7 @@ body {
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  width: 90%; /* Increase width */
+  width: 90%; 
   height: 8px;
   background: var(--border-color);
   border-radius: 5px;
@@ -187,7 +187,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .voice-activate-btn {
     padding: 0.8em 1.5em;
-    font-size: 1em; /* Adjusted font size */
+    font-size: 1em; /* Mobile font size */
     font-weight: bold;
     border: none;
     border-radius: 30px;
@@ -208,12 +208,12 @@ input[type="range"]::-webkit-slider-thumb {
     text-align: center;
     font-style: italic;
     color: var(--secondary-pink);
-    margin-top: -0.5rem; /* Adjusted margin */
+    margin-top: -0.5rem;
     margin-bottom: 1rem;
 }
 
 .section-heading {
-    font-size: 1.5rem; /* Adjusted font size */
+    font-size: 1.5rem; /* Mobile font size */
     font-weight: 700;
     color: transparent;
     background-clip: text;
@@ -233,14 +233,14 @@ input[type="range"]::-webkit-slider-thumb {
 
 .generated-cards-queue h3 {
     margin: 0;
-    font-size: 1.3rem; /* Adjusted font size */
+    font-size: 1.3rem; /* Mobile font size */
     color: var(--primary-purple);
 }
 
 .generated-card {
     display: flex;
     align-items: flex-start;
-    gap: 0.5rem; /* Reduced gap */
+    gap: 0.5rem; 
 }
 
 .card-selection {
@@ -254,7 +254,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .card-content {
     flex-grow: 1;
-    padding-right: 3rem; /* Reduced padding */
+    padding-right: 3rem; 
 }
 
 .card-content p {
@@ -263,11 +263,11 @@ input[type="range"]::-webkit-slider-thumb {
     margin-top: 0;
     margin-bottom: 0;
     word-wrap: break-word;
-    font-size: 0.9rem; /* Adjusted font size */
+    font-size: 0.9rem; 
 }
 
 .card-content p:first-of-type {
-    margin-bottom: 1em; /* Adjusted margin */
+    margin-bottom: 1em; 
 }
 
 .card-content p strong {
@@ -279,7 +279,7 @@ input[type="range"]::-webkit-slider-thumb {
     display: flex;
     flex-direction: column; /* Stack on mobile */
     gap: 1rem;
-    align-items: stretch; /* Make children full width */
+    align-items: stretch; 
 }
 
 .folder-select {
@@ -341,7 +341,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-list summary {
     position: relative;
-    padding: 1em 1em 1em 2.5em; /* Adjusted padding */
+    padding: 1em 1em 1em 2.5em; 
     font-weight: 600;
     cursor: pointer;
     outline: none;
@@ -372,19 +372,19 @@ input[type="range"]::-webkit-slider-thumb {
 .folder-summary {
     display: flex;
     flex-direction: column; /* Stack on mobile */
-    align-items: flex-start; /* Align to the left */
+    align-items: flex-start; 
     gap: 0.75rem;
     width: 100%;
 }
 
 .folder-export-buttons {
     display: flex;
-    gap: 0.5rem; /* Add gap between buttons */
-    flex-wrap: wrap; /* Allow buttons to wrap */
+    gap: 0.5rem; 
+    flex-wrap: wrap; 
 }
 
 .folder-export-buttons button {
-    margin-left: 0; /* Remove margin */
+    margin-left: 0; 
     padding: 0.4em 0.8em;
     font-size: 0.8em;
     background-color: var(--border-color);
@@ -401,7 +401,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .saved-card-in-folder {
     background-color: var(--dark-bg);
-    margin: 0.5em 1em; /* Adjusted margin */
+    margin: 0.5em 1em; 
     border-radius: 8px;
     padding: 1em;
 }
@@ -430,13 +430,13 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-dark);
     margin-top: 1rem;
     font-style: italic;
-    word-break: break-all; /* Ensure long file names wrap */
+    word-break: break-all; 
 }
 
 .audio-player {
     display: flex;
     align-items: center;
-    gap: 0.5rem; /* Reduced gap */
+    gap: 0.5rem; 
     margin-top: 1rem;
     background-color: var(--dark-bg);
     padding: 0.75rem;
@@ -448,14 +448,14 @@ input[type="range"]::-webkit-slider-thumb {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 35px; /* Smaller button */
+    width: 35px; 
     height: 35px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1rem; /* Smaller icon */
+    font-size: 1rem; 
     cursor: pointer;
-    flex-shrink: 0; /* Prevent shrinking */
+    flex-shrink: 0; 
 }
 
 .progress-bar-container {
@@ -474,7 +474,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .time-display {
     font-family: monospace;
-    font-size: 0.8em; /* Smaller font */
+    font-size: 0.8em; 
     color: var(--text-dark);
 }
 
@@ -485,8 +485,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .card-top-actions {
     position: absolute;
-    top: 1em; /* Adjusted position */
-    right: 1em; /* Adjusted position */
+    top: 1em; 
+    right: 1em; 
     display: flex;
     flex-direction: column; 
     gap: 0.5rem;
@@ -511,8 +511,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .card-delete-btn {
     position: absolute;
-    bottom: 1em; /* Adjusted position */
-    right: 1em; /* Adjusted position */
+    bottom: 1em; 
+    right: 1em; 
     background: none;
     border: none;
     color: var(--text-dark);
@@ -573,9 +573,9 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   justify-content: flex-start;
   z-index: 1000;
-  padding: 1rem; /* Adjusted padding */
+  padding: 1rem; 
   box-sizing: border-box;
-  overflow-y: auto; /* Allow scrolling on small screens */
+  overflow-y: auto; 
 }
 
 .viewer-header {
@@ -589,11 +589,11 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .viewer-header h2 {
-    font-size: 1.2rem; /* Adjust font size */
+    font-size: 1.2rem; 
 }
 
 .viewer-close-btn {
-  font-size: 2rem; /* Adjust font size */
+  font-size: 2rem; 
   background: none;
   border: none;
   color: var(--text-light);
@@ -602,9 +602,9 @@ input[type="range"]::-webkit-slider-thumb {
 
 .viewer-controls {
     display: flex;
-    gap: 0.5rem; /* Reduced gap */
+    gap: 0.5rem; 
     margin-bottom: 1rem;
-    flex-wrap: wrap; /* Allow wrapping */
+    flex-wrap: wrap; 
     justify-content: center;
 }
 
@@ -615,13 +615,13 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0.5em 1em;
     border-radius: 8px;
     cursor: pointer;
-    font-size: 0.9em; /* Adjust font size */
+    font-size: 0.9em; 
 }
 
 .viewer-main {
   width: 100%;
   max-width: 600px;
-  height: 300px; /* Reduced height for mobile */
+  height: 300px; /* Mobile height */
   perspective: 1000px;
   cursor: pointer;
   margin-bottom: 1rem;
@@ -647,9 +647,9 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem; /* Reduced font size */
+  font-size: 1.2rem; /* Mobile font size */
   text-align: center;
-  padding: 1rem; /* Reduced padding */
+  padding: 1rem; 
   box-sizing: border-box;
   border-radius: 16px;
 }
@@ -671,14 +671,14 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   width: 100%;
   max-width: 600px;
-  margin-top: 0; /* Removed margin-top */
+  margin-top: 0; 
 }
 
 .viewer-nav button {
   background-color: var(--content-bg);
   color: var(--text-light);
   border: 1px solid var(--border-color);
-  padding: 0.5em 1em; /* Adjusted padding */
+  padding: 0.5em 1em; 
   border-radius: 8px;
   cursor: pointer;
 }
@@ -700,13 +700,13 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 8px;
   cursor: grab;
   border-left: 4px solid var(--secondary-pink);
-  font-size: 0.9rem; /* Adjust font size */
+  font-size: 0.9rem; 
 }
 
 .flag-btn {
   position: absolute;
-  top: 10px; /* Adjusted position */
-  right: 10px; /* Adjusted position */
+  top: 10px; 
+  right: 10px; 
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -726,7 +726,7 @@ input[type="range"]::-webkit-slider-thumb {
 .viewer-empty {
   width: 100%;
   max-width: 600px;
-  height: 300px; /* Reduced height */
+  height: 300px; 
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -737,9 +737,9 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .viewer-empty p {
-  font-size: 1.1rem; /* Adjust font size */
+  font-size: 1.1rem; 
   color: var(--text-dark);
-  padding: 0 1rem; /* Add padding */
+  padding: 0 1rem; 
 }
 
 .modal-overlay {
@@ -753,7 +753,7 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   justify-content: center;
   z-index: 1001; 
-  padding: 1rem; /* Add padding */
+  padding: 1rem; 
   box-sizing: border-box;
 }
 
@@ -762,7 +762,7 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 2rem;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  width: 100%; /* Full width on mobile */
+  width: 100%; 
   max-width: 400px;
   text-align: center;
 }
@@ -770,7 +770,7 @@ input[type="range"]::-webkit-slider-thumb {
 .modal-content h2 {
   margin-top: 0;
   color: var(--text-light);
-  font-size: 1.5rem; /* Adjust font size */
+  font-size: 1.5rem; 
 }
 
 .modal-input {
@@ -986,11 +986,13 @@ input[type="range"]::-webkit-slider-thumb {
 
   .main-controls .listening-control {
     flex-direction: row; /* Side-by-side buttons on desktop */
+    justify-content: space-around;
   }
   
   .main-controls button {
     width: auto; /* Auto width for buttons */
     font-size: 1.1em; /* Restore desktop font size */
+    padding: 0.8em 1.5em; /* Restore original padding */
   }
   
   .voice-activate-btn {
@@ -1005,6 +1007,7 @@ input[type="range"]::-webkit-slider-thumb {
 
   .flash-it-button {
     font-size: 1.3em; /* Restore desktop font size */
+    padding: 1em 1.5em; /* Restore original padding */
   }
 
   .section-heading {
