@@ -416,33 +416,6 @@ function App() {
     setNotification('');
   };
 
-  // Effect to manage the speech recognition lifecycle
-  useEffect(() => {
-    if (!recognitionRef.current) return;
-
-    const recognition = recognitionRef.current;
-
-    // This function will be called when the recognition service ends
-    const handleEnd = () => {
-      // We only want to restart if the user hasn't manually stopped listening.
-      // The `isListening` state will be up-to-date here because this effect
-      // re-runs whenever `isListening` or `voiceActivated` changes.
-      if (isListening && voiceActivated) {
-        console.log("Speech recognition service ended, restarting...");
-        recognition.start();
-      }
-    };
-
-    recognition.onend = handleEnd;
-
-    // Cleanup function to remove the event listener
-    return () => {
-      if (recognition) {
-        recognition.onend = null;
-      }
-    };
-  }, [isListening, voiceActivated]); // This ensures the `onend` handler always has the latest state
-
   const startListening = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -489,33 +462,37 @@ function App() {
       };
       checkForSilence();
 
+      // --- FIXED VOICE RECOGNITION LOGIC ---
       if (voiceActivated && 'webkitSpeechRecognition' in window) {
-        if (!recognitionRef.current) {
-            const recognition = new window.webkitSpeechRecognition();
-            recognition.continuous = true;
-            recognition.lang = 'en-US';
-            recognition.interimResults = false;
-            recognitionRef.current = recognition;
-        }
+        // Create a new recognition object each time, as in the original code
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
 
-        recognitionRef.current.onresult = (event) => {
-          // Iterate through the results since the last check
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-              const transcript = event.results[i][0].transcript.trim().toLowerCase();
-              // Check if the transcript contains "flash" as a whole word.
-              if (transcript.split(' ').includes('flash')) {
-                  console.log('Voice trigger "flash" detected!');
-                  handleLiveFlashIt();
-              }
+        recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+          // Use the more lenient 'includes' check which is less prone to punctuation issues
+          if (transcript.includes('flash')) {
+            console.log('Voice trigger "flash" detected!');
+            handleLiveFlashIt();
           }
         };
 
-        recognitionRef.current.onerror = (e) => console.error('Voice trigger error:', e);
+        recognition.onerror = (e) => console.error('Voice trigger error:', e);
         
-        // The onend logic is now handled by the useEffect hook
-        recognitionRef.current.start();
+        // If the service stops for any reason (like browser timeout), restart it if we're still supposed to be listening.
+        recognition.onend = () => {
+            if (voiceActivated && isListening) {
+                console.log("Recognition service ended, restarting...");
+                recognition.start();
+            }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition; // Store the new instance in the ref
       }
-    } catch (err) {
+    } catch (err)      {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
     }
@@ -526,9 +503,10 @@ function App() {
     streamRef.current?.getTracks().forEach(track => track.stop());
     setIsListening(false);
     
-    // The useEffect will now see `isListening` as false, preventing restart.
+    // Stop the recognition service and clear the ref
     if (recognitionRef.current) {
       recognitionRef.current.stop();
+      recognitionRef.current = null;
     }
     
     if (animationFrameRef.current) {
