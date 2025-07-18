@@ -386,6 +386,7 @@ function App() {
   const [promptModalConfig, setPromptModalConfig] = useState(null);
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
+  const [listeningDuration, setListeningDuration] = useState(0); // 0 means indefinite
 
 
   const audioChunksRef = useRef([]);
@@ -394,6 +395,7 @@ function App() {
   const fileInputRef = useRef(null);
   const audioPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
+  const listeningTimeoutRef = useRef(null);
   
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
@@ -421,6 +423,14 @@ function App() {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
       setNotification('Listening... click "Flash It" or use voice trigger.');
+
+      // Set a timeout to stop listening if a duration is set
+      if (listeningDuration > 0) {
+        listeningTimeoutRef.current = setTimeout(() => {
+          setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
+          stopListening();
+        }, listeningDuration * 60 * 1000); // Convert minutes to milliseconds
+      }
 
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
@@ -462,9 +472,7 @@ function App() {
       };
       checkForSilence();
 
-      // --- FIXED VOICE RECOGNITION LOGIC ---
       if (voiceActivated && 'webkitSpeechRecognition' in window) {
-        // Create a new recognition object each time, as in the original code
         const recognition = new window.webkitSpeechRecognition();
         recognition.continuous = true;
         recognition.lang = 'en-US';
@@ -472,25 +480,21 @@ function App() {
 
         recognition.onresult = (event) => {
           const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-          // Use the more lenient 'includes' check which is less prone to punctuation issues
           if (transcript.includes('flash')) {
-            console.log('Voice trigger "flash" detected!');
             handleLiveFlashIt();
           }
         };
 
         recognition.onerror = (e) => console.error('Voice trigger error:', e);
         
-        // If the service stops for any reason (like browser timeout), restart it if we're still supposed to be listening.
         recognition.onend = () => {
             if (voiceActivated && isListening) {
-                console.log("Recognition service ended, restarting...");
                 recognition.start();
             }
         };
 
         recognition.start();
-        recognitionRef.current = recognition; // Store the new instance in the ref
+        recognitionRef.current = recognition;
       }
     } catch (err)      {
       console.error("Error starting listening:", err);
@@ -499,11 +503,16 @@ function App() {
   };
 
   const stopListening = () => {
+    // Clear the auto-stop timer if it's running
+    if (listeningTimeoutRef.current) {
+      clearTimeout(listeningTimeoutRef.current);
+      listeningTimeoutRef.current = null;
+    }
+
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
     setIsListening(false);
     
-    // Stop the recognition service and clear the ref
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
@@ -904,6 +913,32 @@ function App() {
     );
   };
 
+  // Helper function to format the listening duration for display
+  const formatListeningDuration = (minutes) => {
+    if (minutes === 0) return 'Off';
+    if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''}`;
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
+    if (remainingMinutes === 0) return `${hours} hr${hours > 1 ? 's' : ''}`;
+    return `${hours} hr ${remainingMinutes} mins`;
+  };
+
+  // Helper to convert slider value to minutes
+  const sliderValueToMinutes = (value) => {
+    if (value === 0) return 0; // Off
+    if (value <= 5) return value; // 1-5 minutes
+    if (value <= 16) return 5 + (value - 5) * 5; // 10, 15, ... 60 minutes
+    return 60 + (value - 16) * 10; // 70, 80, ... 120 minutes
+  };
+
+  // Helper to convert minutes back to a slider value
+  const minutesToSliderValue = (minutes) => {
+    if (minutes === 0) return 0;
+    if (minutes <= 5) return minutes;
+    if (minutes <= 60) return 5 + (minutes - 5) / 5;
+    return 16 + (minutes - 60) / 10;
+  };
+
 
   return (
     <>
@@ -949,10 +984,26 @@ function App() {
               </div>
             </div>
             {voiceActivated && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
+            
+            <div className="slider-container timer-slider-container">
+              <label htmlFor="timer-slider">Auto-Stop Listening: {formatListeningDuration(listeningDuration)}</label>
+              <input 
+                id="timer-slider" 
+                type="range" 
+                min="0" 
+                max="22" // 0=off, 1-5=mins, 6-16=5min steps, 17-22=10min steps
+                step="1" 
+                value={minutesToSliderValue(listeningDuration)} 
+                onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} 
+                disabled={isListening} 
+              />
+            </div>
+
             <div className="slider-container">
               <label htmlFor="duration-slider">Capture Last: {duration}s</label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
+
             <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         ) : (
@@ -1031,7 +1082,17 @@ function App() {
                 <div className="folder-summary">
                     <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
                     <div className="folder-export-buttons">
-                        <button onClick={() => setStudyingFolder({ name, cards: folders[name] })} className="study-btn">Study</button>
+                        <button 
+                          onClick={() => {
+                            if (isListening) {
+                              stopListening();
+                            }
+                            setStudyingFolder({ name, cards: folders[name] });
+                          }} 
+                          className="study-btn"
+                        >
+                          Study
+                        </button>
                         <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
                         <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
                     </div>
