@@ -75,7 +75,8 @@ body {
   gap: 1rem; 
 }
 
-.main-controls button {
+/* This rule is now more specific to avoid affecting the upload button */
+.main-controls .listening-control button {
   padding: 0.8em 1.5em;
   font-size: 1em; /* Mobile button font size */
   font-weight: bold;
@@ -430,6 +431,11 @@ input[type="range"]::-webkit-slider-thumb {
     margin: 0.5em 1em; 
     border-radius: 8px;
     padding: 1em;
+}
+
+/* This new rule centers the upload button */
+.upload-button-container {
+    text-align: center;
 }
 
 .upload-button-container button {
@@ -1016,11 +1022,7 @@ input[type="range"]::-webkit-slider-thumb {
     flex: 1; /* Make them take up equal space */
   }
 
-  .main-controls button {
-    width: 100%; /* Make button fill its container */
-    font-size: 1.1em; /* Restore desktop font size */
-    padding: 0.8em 1.5em; /* Restore original padding */
-  }
+  /* This rule was removed to prevent it from affecting the upload button */
   
   .voice-activate-btn {
     width: 100%; /* Make button fill its container */
