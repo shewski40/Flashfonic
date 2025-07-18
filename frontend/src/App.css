@@ -381,6 +381,7 @@ input[type="range"]::-webkit-slider-thumb {
     display: flex;
     gap: 0.5rem; 
     flex-wrap: wrap; 
+    align-items: center; /* Vertically align buttons */
 }
 
 .folder-export-buttons button {
@@ -394,9 +395,13 @@ input[type="range"]::-webkit-slider-thumb {
     cursor: pointer;
 }
 
+/* --- MODIFIED: Larger Study Button --- */
 .study-btn {
     background-color: var(--success-green) !important;
     border-color: var(--success-green) !important;
+    padding: 0.6em 1.2em !important; /* Larger padding */
+    font-size: 0.9em !important; /* Larger font */
+    font-weight: 600 !important; /* Bolder text */
 }
 
 .saved-card-in-folder {
@@ -989,7 +994,6 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 1rem; /* Add a gap for desktop */
   }
   
-  /* NEW: Make the two top buttons symmetrical */
   .main-controls .listening-control > button,
   .main-controls .listening-control > .voice-toggle-container {
     flex: 1; /* Make them take up equal space */
@@ -1012,8 +1016,8 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .flash-it-button {
-    font-size: 1.5em; /* NEW: Increased font size for desktop */
-    padding: 1.2em 1.5em; /* NEW: Increased padding for desktop */
+    font-size: 1.5em; 
+    padding: 1.2em 1.5em; 
   }
 
   .section-heading {
