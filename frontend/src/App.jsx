@@ -386,7 +386,7 @@ function App() {
   const [promptModalConfig, setPromptModalConfig] = useState(null);
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
-  const [listeningDuration, setListeningDuration] = useState(0); // 0 means indefinite
+  const [listeningDuration, setListeningDuration] = useState(1); // Default to 1 minute
 
 
   const audioChunksRef = useRef([]);
@@ -424,7 +424,7 @@ function App() {
       setIsListening(true);
       setNotification('Listening... click "Flash It" or use voice trigger.');
 
-      // Set a timeout to stop listening if a duration is set
+      // Set a timeout to stop listening
       if (listeningDuration > 0) {
         listeningTimeoutRef.current = setTimeout(() => {
           setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
@@ -915,17 +915,15 @@ function App() {
 
   // Helper function to format the listening duration for display
   const formatListeningDuration = (minutes) => {
-    if (minutes === 0) return 'Off';
-    if (minutes < 60) return `${minutes} min${minutes > 1 ? 's' : ''}`;
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
-    if (remainingMinutes === 0) return `${hours} hr${hours > 1 ? 's' : ''}`;
-    return `${hours} hr ${remainingMinutes} mins`;
+    if (remainingMinutes === 0) return `${hours} hour${hours > 1 ? 's' : ''}`;
+    return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} minutes`;
   };
 
   // Helper to convert slider value to minutes
   const sliderValueToMinutes = (value) => {
-    if (value === 0) return 0; // Off
     if (value <= 5) return value; // 1-5 minutes
     if (value <= 16) return 5 + (value - 5) * 5; // 10, 15, ... 60 minutes
     return 60 + (value - 16) * 10; // 70, 80, ... 120 minutes
@@ -933,7 +931,6 @@ function App() {
 
   // Helper to convert minutes back to a slider value
   const minutesToSliderValue = (minutes) => {
-    if (minutes === 0) return 0;
     if (minutes <= 5) return minutes;
     if (minutes <= 60) return 5 + (minutes - 5) / 5;
     return 16 + (minutes - 60) / 10;
@@ -985,13 +982,16 @@ function App() {
             </div>
             {voiceActivated && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
             
-            <div className="slider-container timer-slider-container">
-              <label htmlFor="timer-slider">Auto-Stop Listening: {formatListeningDuration(listeningDuration)}</label>
+            <div className="slider-container">
+              <div className="slider-label-group">
+                <label htmlFor="timer-slider">Listening Duration</label>
+                <span className="slider-value">{formatListeningDuration(listeningDuration)}</span>
+              </div>
               <input 
                 id="timer-slider" 
                 type="range" 
-                min="0" 
-                max="22" // 0=off, 1-5=mins, 6-16=5min steps, 17-22=10min steps
+                min="1" 
+                max="22" // 1=1min, 5=5mins, 16=60mins, 22=120mins
                 step="1" 
                 value={minutesToSliderValue(listeningDuration)} 
                 onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} 
@@ -1000,7 +1000,10 @@ function App() {
             </div>
 
             <div className="slider-container">
-              <label htmlFor="duration-slider">Capture Last: {duration}s</label>
+              <div className="slider-label-group">
+                  <label htmlFor="duration-slider">Capture Last</label>
+                  <span className="slider-value">{duration} seconds</span>
+              </div>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
 
@@ -1030,7 +1033,10 @@ function App() {
               </div>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
-              <label htmlFor="duration-slider-upload">Capture Last: {duration}s</label>
+              <div className="slider-label-group">
+                  <label htmlFor="duration-slider-upload">Capture Last</label>
+                  <span className="slider-value">{duration} seconds</span>
+              </div>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
              <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>

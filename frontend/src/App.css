@@ -151,12 +151,38 @@ body {
   width: 100%;
 }
 
-/* NEW: Styles for the new timer slider */
-.timer-slider-container {
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color);
+/* MODIFIED: Add space between sliders */
+.slider-container + .slider-container {
+  margin-top: 1.5rem;
 }
+
+/* NEW: Styles for the sleek slider labels */
+.slider-label-group {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0 5%; /* Align with the slider's width */
+  margin-bottom: 0.5rem;
+}
+
+.slider-label-group label {
+  font-size: 1em;
+  color: var(--text-soft);
+  font-weight: 500;
+}
+
+.slider-value {
+  font-size: 1em;
+  font-weight: 600;
+  color: var(--primary-purple);
+  background-color: var(--dark-bg);
+  padding: 0.2em 0.6em;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+}
+
 
 input[type="range"] {
   -webkit-appearance: none;
