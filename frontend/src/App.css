@@ -432,10 +432,9 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 1em;
 }
 
-/* --- MODIFIED: Resized "Change File" button --- */
 .upload-button-container button {
     padding: 0.8em 1.5em;
-    font-size: 1em; /* Made slightly smaller */
+    font-size: 1em;
     font-weight: bold;
     border: none;
     border-radius: 30px;
@@ -454,7 +453,6 @@ input[type="range"]::-webkit-slider-thumb {
     word-break: break-all; 
 }
 
-/* --- MODIFIED: Fixed Audio Player Layout --- */
 .audio-player {
     display: flex;
     align-items: center;
@@ -481,8 +479,8 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .progress-bar-container {
-    flex: 1; /* Use flex: 1 to take up available space */
-    min-width: 50px; /* Prevent it from collapsing */
+    flex-grow: 1;
+    min-width: 50px;
     height: 8px;
     background-color: var(--border-color);
     border-radius: 4px;
@@ -1067,6 +1065,10 @@ input[type="range"]::-webkit-slider-thumb {
   
   .folder-export-buttons button {
     margin-left: 10px; /* Restore desktop margin */
+  }
+
+  .upload-button-container button {
+    font-size: 1.1em; /* Restore desktop size */
   }
 
   .audio-player {
