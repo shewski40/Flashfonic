@@ -986,17 +986,23 @@ input[type="range"]::-webkit-slider-thumb {
 
   .main-controls .listening-control {
     flex-direction: row; /* Side-by-side buttons on desktop */
-    justify-content: space-around;
+    gap: 1rem; /* Add a gap for desktop */
   }
   
+  /* NEW: Make the two top buttons symmetrical */
+  .main-controls .listening-control > button,
+  .main-controls .listening-control > .voice-toggle-container {
+    flex: 1; /* Make them take up equal space */
+  }
+
   .main-controls button {
-    width: auto; /* Auto width for buttons */
+    width: 100%; /* Make button fill its container */
     font-size: 1.1em; /* Restore desktop font size */
     padding: 0.8em 1.5em; /* Restore original padding */
   }
   
   .voice-activate-btn {
-    width: auto; /* Auto width for buttons */
+    width: 100%; /* Make button fill its container */
     font-size: 1.1em; /* Restore desktop font size */
   }
 
@@ -1006,8 +1012,8 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .flash-it-button {
-    font-size: 1.3em; /* Restore desktop font size */
-    padding: 1em 1.5em; /* Restore original padding */
+    font-size: 1.5em; /* NEW: Increased font size for desktop */
+    padding: 1.2em 1.5em; /* NEW: Increased padding for desktop */
   }
 
   .section-heading {
