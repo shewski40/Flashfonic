@@ -26,7 +26,7 @@ body {
 #root {
   max-width: 700px;
   margin: 0 auto;
-  padding: 2rem;
+  padding: 2rem 1rem; /* Adjusted padding for mobile */
   text-align: center;
 }
 
@@ -36,7 +36,7 @@ body {
 
 .header h1 {
   font-family: 'Poppins', sans-serif;
-  font-size: 3.5rem;
+  font-size: 2.5rem; /* Reduced font size for mobile */
   font-weight: 700;
   color: transparent;
   background-clip: text;
@@ -47,7 +47,7 @@ body {
 
 .subheading {
     font-family: 'Poppins', sans-serif;
-    font-size: 1.4rem;
+    font-size: 1.1rem; /* Reduced font size for mobile */
     font-weight: 500;
     margin-top: 0;
     color: var(--primary-purple);
@@ -57,7 +57,7 @@ body {
 
 .card {
   background-color: var(--content-bg);
-  padding: 1.5em 2em;
+  padding: 1.5em; /* Adjusted padding for mobile */
   border-radius: 16px;
   margin-bottom: 1.5rem;
   border: 1px solid var(--border-color);
@@ -68,14 +68,16 @@ body {
 
 .main-controls .listening-control {
   display: flex;
+  flex-direction: column; /* Stack buttons on mobile */
   justify-content: space-around;
   align-items: center;
   margin-bottom: 1.5rem;
+  gap: 1rem; /* Add gap between stacked buttons */
 }
 
 .main-controls button {
   padding: 0.8em 1.5em;
-  font-size: 1.1em;
+  font-size: 1em; /* Adjusted font size */
   font-weight: bold;
   border: none;
   border-radius: 30px;
@@ -83,6 +85,7 @@ body {
   transition: all 0.2s ease;
   background-color: var(--primary-purple);
   color: white;
+  width: 100%; /* Make buttons full width */
 }
 
 .mode-selector {
@@ -97,11 +100,11 @@ body {
 
 .mode-selector button {
   flex: 1;
-  padding: 0.8em 1em;
+  padding: 0.8em 0.5em; /* Adjusted padding */
   border: none;
   background-color: var(--content-bg);
   color: var(--text-dark);
-  font-size: 1em;
+  font-size: 0.9em; /* Adjusted font size */
   font-weight: 500;
   border-radius: 9px;
   cursor: pointer;
@@ -125,7 +128,7 @@ body {
 .flash-it-button {
   width: 100%;
   padding: 1em 1.5em;
-  font-size: 1.3em;
+  font-size: 1.2em; /* Adjusted font size */
   margin-top: 1.5rem; 
   border-radius: 12px;
   background: var(--brand-gradient);
@@ -145,12 +148,13 @@ body {
   flex-direction: column;
   align-items: center;
   gap: 0.5rem;
+  width: 100%;
 }
 
 input[type="range"] {
   -webkit-appearance: none;
   appearance: none;
-  width: 80%;
+  width: 90%; /* Increase width */
   height: 8px;
   background: var(--border-color);
   border-radius: 5px;
@@ -179,10 +183,11 @@ input[type="range"]::-webkit-slider-thumb {
     display: flex;
     align-items: center;
     justify-content: center;
+    width: 100%;
 }
 .voice-activate-btn {
     padding: 0.8em 1.5em;
-    font-size: 1.1em;
+    font-size: 1em; /* Adjusted font size */
     font-weight: bold;
     border: none;
     border-radius: 30px;
@@ -191,6 +196,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: var(--content-bg);
     border: 2px solid var(--secondary-pink);
     color: var(--secondary-pink);
+    width: 100%;
 }
 
 .voice-activate-btn.active {
@@ -202,12 +208,12 @@ input[type="range"]::-webkit-slider-thumb {
     text-align: center;
     font-style: italic;
     color: var(--secondary-pink);
-    margin-top: -1rem;
+    margin-top: -0.5rem; /* Adjusted margin */
     margin-bottom: 1rem;
 }
 
 .section-heading {
-    font-size: 1.8rem;
+    font-size: 1.5rem; /* Adjusted font size */
     font-weight: 700;
     color: transparent;
     background-clip: text;
@@ -219,21 +225,22 @@ input[type="range"]::-webkit-slider-thumb {
 
 .generated-cards-queue .queue-header {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column; /* Stack on mobile */
+    gap: 0.5rem;
     align-items: center;
     margin-bottom: 1rem;
 }
 
 .generated-cards-queue h3 {
     margin: 0;
-    font-size: 1.5rem;
+    font-size: 1.3rem; /* Adjusted font size */
     color: var(--primary-purple);
 }
 
 .generated-card {
     display: flex;
     align-items: flex-start;
-    gap: 1rem;
+    gap: 0.5rem; /* Reduced gap */
 }
 
 .card-selection {
@@ -247,7 +254,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .card-content {
     flex-grow: 1;
-    padding-right: 5rem; 
+    padding-right: 3rem; /* Reduced padding */
 }
 
 .card-content p {
@@ -256,10 +263,11 @@ input[type="range"]::-webkit-slider-thumb {
     margin-top: 0;
     margin-bottom: 0;
     word-wrap: break-word;
+    font-size: 0.9rem; /* Adjusted font size */
 }
 
 .card-content p:first-of-type {
-    margin-bottom: 1.5em; 
+    margin-bottom: 1em; /* Adjusted margin */
 }
 
 .card-content p strong {
@@ -269,8 +277,9 @@ input[type="range"]::-webkit-slider-thumb {
 .folder-actions {
     margin-top: 1rem;
     display: flex;
+    flex-direction: column; /* Stack on mobile */
     gap: 1rem;
-    align-items: center;
+    align-items: stretch; /* Make children full width */
 }
 
 .folder-select {
@@ -332,7 +341,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-list summary {
     position: relative;
-    padding: 1em 1.5em 1em 2.5em;
+    padding: 1em 1em 1em 2.5em; /* Adjusted padding */
     font-weight: 600;
     cursor: pointer;
     outline: none;
@@ -362,13 +371,20 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-summary {
     display: flex;
-    justify-content: space-between;
-    align-items: center;
+    flex-direction: column; /* Stack on mobile */
+    align-items: flex-start; /* Align to the left */
+    gap: 0.75rem;
     width: 100%;
 }
 
+.folder-export-buttons {
+    display: flex;
+    gap: 0.5rem; /* Add gap between buttons */
+    flex-wrap: wrap; /* Allow buttons to wrap */
+}
+
 .folder-export-buttons button {
-    margin-left: 10px;
+    margin-left: 0; /* Remove margin */
     padding: 0.4em 0.8em;
     font-size: 0.8em;
     background-color: var(--border-color);
@@ -385,7 +401,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .saved-card-in-folder {
     background-color: var(--dark-bg);
-    margin: 0.5em 1.5em 1em 1.5em;
+    margin: 0.5em 1em; /* Adjusted margin */
     border-radius: 8px;
     padding: 1em;
 }
@@ -414,12 +430,13 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-dark);
     margin-top: 1rem;
     font-style: italic;
+    word-break: break-all; /* Ensure long file names wrap */
 }
 
 .audio-player {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.5rem; /* Reduced gap */
     margin-top: 1rem;
     background-color: var(--dark-bg);
     padding: 0.75rem;
@@ -431,13 +448,14 @@ input[type="range"]::-webkit-slider-thumb {
     color: white;
     border: none;
     border-radius: 50%;
-    width: 40px;
-    height: 40px;
+    width: 35px; /* Smaller button */
+    height: 35px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.2rem;
+    font-size: 1rem; /* Smaller icon */
     cursor: pointer;
+    flex-shrink: 0; /* Prevent shrinking */
 }
 
 .progress-bar-container {
@@ -456,7 +474,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .time-display {
     font-family: monospace;
-    font-size: 0.9em;
+    font-size: 0.8em; /* Smaller font */
     color: var(--text-dark);
 }
 
@@ -465,21 +483,19 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-dark);
 }
 
-/* --- MODIFIED --- */
 .card-top-actions {
     position: absolute;
-    top: 1.5em;
-    right: 2em;
+    top: 1em; /* Adjusted position */
+    right: 1em; /* Adjusted position */
     display: flex;
-    flex-direction: column; /* Stacks the buttons vertically */
+    flex-direction: column; 
     gap: 0.5rem;
 }
 
-/* --- MODIFIED --- */
 .edit-btn, .card-move-btn {
     background: none;
-    border: 1px solid var(--primary-purple); /* Unified color */
-    color: var(--primary-purple); /* Unified color */
+    border: 1px solid var(--primary-purple);
+    color: var(--primary-purple);
     border-radius: 6px;
     padding: 0.2em 0.6em;
     font-size: 0.8em;
@@ -488,9 +504,6 @@ input[type="range"]::-webkit-slider-thumb {
     transition: all 0.2s ease;
 }
 
-/* This rule is no longer needed as the color is unified above */
-/* .card-move-btn { ... } */
-
 .edit-btn:hover, .card-move-btn:hover {
     color: white;
     background-color: var(--primary-purple);
@@ -498,8 +511,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .card-delete-btn {
     position: absolute;
-    bottom: 1.5em;
-    right: 2em;
+    bottom: 1em; /* Adjusted position */
+    right: 1em; /* Adjusted position */
     background: none;
     border: none;
     color: var(--text-dark);
@@ -560,8 +573,9 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   justify-content: flex-start;
   z-index: 1000;
-  padding: 2rem;
+  padding: 1rem; /* Adjusted padding */
   box-sizing: border-box;
+  overflow-y: auto; /* Allow scrolling on small screens */
 }
 
 .viewer-header {
@@ -574,8 +588,12 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 1rem;
 }
 
+.viewer-header h2 {
+    font-size: 1.2rem; /* Adjust font size */
+}
+
 .viewer-close-btn {
-  font-size: 2.5rem;
+  font-size: 2rem; /* Adjust font size */
   background: none;
   border: none;
   color: var(--text-light);
@@ -584,8 +602,10 @@ input[type="range"]::-webkit-slider-thumb {
 
 .viewer-controls {
     display: flex;
-    gap: 1rem;
+    gap: 0.5rem; /* Reduced gap */
     margin-bottom: 1rem;
+    flex-wrap: wrap; /* Allow wrapping */
+    justify-content: center;
 }
 
 .viewer-controls button {
@@ -595,14 +615,16 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0.5em 1em;
     border-radius: 8px;
     cursor: pointer;
+    font-size: 0.9em; /* Adjust font size */
 }
 
 .viewer-main {
   width: 100%;
   max-width: 600px;
-  height: 350px; 
+  height: 300px; /* Reduced height for mobile */
   perspective: 1000px;
   cursor: pointer;
+  margin-bottom: 1rem;
 }
 
 .viewer-card {
@@ -625,9 +647,9 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.8rem;
+  font-size: 1.2rem; /* Reduced font size */
   text-align: center;
-  padding: 2rem;
+  padding: 1rem; /* Reduced padding */
   box-sizing: border-box;
   border-radius: 16px;
 }
@@ -649,14 +671,14 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   width: 100%;
   max-width: 600px;
-  margin-top: 1rem; 
+  margin-top: 0; /* Removed margin-top */
 }
 
 .viewer-nav button {
   background-color: var(--content-bg);
   color: var(--text-light);
   border: 1px solid var(--border-color);
-  padding: 0.5em 1.5em;
+  padding: 0.5em 1em; /* Adjusted padding */
   border-radius: 8px;
   cursor: pointer;
 }
@@ -678,12 +700,13 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 8px;
   cursor: grab;
   border-left: 4px solid var(--secondary-pink);
+  font-size: 0.9rem; /* Adjust font size */
 }
 
 .flag-btn {
   position: absolute;
-  top: 15px;
-  right: 15px;
+  top: 10px; /* Adjusted position */
+  right: 10px; /* Adjusted position */
   background: none;
   border: none;
   font-size: 1.5rem;
@@ -703,7 +726,7 @@ input[type="range"]::-webkit-slider-thumb {
 .viewer-empty {
   width: 100%;
   max-width: 600px;
-  height: 400px;
+  height: 300px; /* Reduced height */
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -714,8 +737,9 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .viewer-empty p {
-  font-size: 1.2rem;
+  font-size: 1.1rem; /* Adjust font size */
   color: var(--text-dark);
+  padding: 0 1rem; /* Add padding */
 }
 
 .modal-overlay {
@@ -729,6 +753,8 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   justify-content: center;
   z-index: 1001; 
+  padding: 1rem; /* Add padding */
+  box-sizing: border-box;
 }
 
 .modal-content {
@@ -736,7 +762,7 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 2rem;
   border-radius: 16px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-  width: 90%;
+  width: 100%; /* Full width on mobile */
   max-width: 400px;
   text-align: center;
 }
@@ -744,6 +770,7 @@ input[type="range"]::-webkit-slider-thumb {
 .modal-content h2 {
   margin-top: 0;
   color: var(--text-light);
+  font-size: 1.5rem; /* Adjust font size */
 }
 
 .modal-input {
@@ -892,8 +919,11 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 12px;
   margin-bottom: 1.5rem;
   display: flex;
+  flex-direction: column; /* Stack on mobile */
   justify-content: space-between;
   align-items: center;
+  text-align: center;
+  gap: 0.5rem;
 }
 
 .stop-listening-bar button {
@@ -933,4 +963,73 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0.4em 0.8em;
     font-size: 0.8em;
     cursor: pointer;
+}
+
+/* --- MEDIA QUERIES FOR RESPONSIVENESS --- */
+/* Apply these styles for screens wider than 768px (tablets and desktops) */
+@media (min-width: 768px) {
+  #root {
+    padding: 2rem; /* Restore original padding */
+  }
+
+  .header h1 {
+    font-size: 3.5rem; /* Restore original font size */
+  }
+
+  .subheading {
+    font-size: 1.4rem; /* Restore original font size */
+  }
+
+  .card {
+    padding: 1.5em 2em; /* Restore original padding */
+  }
+
+  .main-controls .listening-control {
+    flex-direction: row; /* Side-by-side buttons on desktop */
+  }
+  
+  .main-controls button {
+    width: auto; /* Auto width for buttons */
+  }
+  
+  .voice-activate-btn {
+    width: auto; /* Auto width for buttons */
+  }
+
+  .mode-selector button {
+    padding: 0.8em 1em; /* Restore padding */
+    font-size: 1em; /* Restore font size */
+  }
+
+  .generated-cards-queue .queue-header {
+    flex-direction: row; /* Side-by-side on desktop */
+  }
+
+  .folder-actions {
+    flex-direction: row; /* Side-by-side on desktop */
+    align-items: center;
+  }
+
+  .folder-summary {
+    flex-direction: row; /* Side-by-side on desktop */
+    align-items: center;
+  }
+
+  .stop-listening-bar {
+    flex-direction: row; /* Side-by-side on desktop */
+    text-align: left;
+  }
+
+  .viewer-main {
+    height: 350px; /* Restore original height */
+  }
+
+  .card-face {
+    font-size: 1.8rem; /* Restore font size */
+    padding: 2rem; /* Restore padding */
+  }
+  
+  .viewer-empty {
+    height: 400px; /* Restore height */
+  }
 }
