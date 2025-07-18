@@ -368,7 +368,7 @@ function App() {
   const [appMode, setAppMode] = useState('live');
   const [isListening, setIsListening] = useState(false);
   const [notification, setNotification] = useState('');
-  const [duration, setDuration] = useState(10);
+  const [duration, setDuration] = useState(15); // Default capture duration set to 15
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
   const [folders, setFolders] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);

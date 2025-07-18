@@ -151,19 +151,17 @@ body {
   width: 100%;
 }
 
-/* MODIFIED: Add space between sliders */
 .slider-container + .slider-container {
   margin-top: 1.5rem;
 }
 
-/* NEW: Styles for the sleek slider labels */
 .slider-label-group {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
   box-sizing: border-box;
-  padding: 0 5%; /* Align with the slider's width */
+  padding: 0 5%;
   margin-bottom: 0.5rem;
 }
 
@@ -176,7 +174,7 @@ body {
 .slider-value {
   font-size: 1em;
   font-weight: 600;
-  color: var(--primary-purple);
+  color: var(--secondary-pink); /* Changed color to pink */
   background-color: var(--dark-bg);
   padding: 0.2em 0.6em;
   border-radius: 6px;
