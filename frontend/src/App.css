@@ -990,10 +990,12 @@ input[type="range"]::-webkit-slider-thumb {
   
   .main-controls button {
     width: auto; /* Auto width for buttons */
+    font-size: 1.1em; /* Restore desktop font size */
   }
   
   .voice-activate-btn {
     width: auto; /* Auto width for buttons */
+    font-size: 1.1em; /* Restore desktop font size */
   }
 
   .mode-selector button {
@@ -1001,10 +1003,26 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 1em; /* Restore font size */
   }
 
+  .flash-it-button {
+    font-size: 1.3em; /* Restore desktop font size */
+  }
+
+  .section-heading {
+    font-size: 1.8rem; /* Restore desktop font size */
+  }
+
   .generated-cards-queue .queue-header {
     flex-direction: row; /* Side-by-side on desktop */
   }
+  
+  .generated-cards-queue h3 {
+    font-size: 1.5rem; /* Restore desktop font size */
+  }
 
+  .card-content p {
+    font-size: 1rem; /* Restore desktop font size */
+  }
+  
   .folder-actions {
     flex-direction: row; /* Side-by-side on desktop */
     align-items: center;
@@ -1014,10 +1032,40 @@ input[type="range"]::-webkit-slider-thumb {
     flex-direction: row; /* Side-by-side on desktop */
     align-items: center;
   }
+  
+  .folder-export-buttons button {
+    margin-left: 10px; /* Restore desktop margin */
+  }
+
+  .audio-player {
+    gap: 1rem; /* Restore desktop gap */
+  }
+
+  .play-pause-btn {
+    width: 40px;
+    height: 40px;
+    font-size: 1.2rem;
+  }
+
+  .time-display {
+    font-size: 0.9em;
+  }
 
   .stop-listening-bar {
     flex-direction: row; /* Side-by-side on desktop */
     text-align: left;
+  }
+
+  .viewer-header h2 {
+    font-size: 1.5rem; /* Restore desktop font size */
+  }
+
+  .viewer-close-btn {
+    font-size: 2.5rem; /* Restore desktop font size */
+  }
+
+  .viewer-controls button {
+    font-size: 1em; /* Restore desktop font size */
   }
 
   .viewer-main {
@@ -1031,5 +1079,13 @@ input[type="range"]::-webkit-slider-thumb {
   
   .viewer-empty {
     height: 400px; /* Restore height */
+  }
+
+  .viewer-empty p {
+    font-size: 1.2rem; /* Restore desktop font size */
+  }
+
+  .modal-content h2 {
+    font-size: 1.75rem; /* Restore desktop font size */
   }
 }
