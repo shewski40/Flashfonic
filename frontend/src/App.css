@@ -75,8 +75,8 @@ body {
   gap: 1rem; 
 }
 
-/* This rule is now more specific to avoid affecting the upload button */
-.main-controls .listening-control button {
+/* UPDATED: This now targets only the start/stop button */
+.start-stop-btn {
   padding: 0.8em 1.5em;
   font-size: 1em; /* Mobile button font size */
   font-weight: bold;
@@ -433,7 +433,6 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 1em;
 }
 
-/* This new rule centers the upload button */
 .upload-button-container {
     text-align: center;
 }
@@ -1017,12 +1016,11 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 1rem; /* Add a gap for desktop */
   }
   
-  .main-controls .listening-control > button,
-  .main-controls .listening-control > .voice-toggle-container {
+  /* UPDATED: This now targets the specific button and container */
+  .start-stop-btn,
+  .voice-toggle-container {
     flex: 1; /* Make them take up equal space */
   }
-
-  /* This rule was removed to prevent it from affecting the upload button */
   
   .voice-activate-btn {
     width: 100%; /* Make button fill its container */

@@ -448,7 +448,7 @@ function App() {
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
       });
-      mediaRecorderRef.current.start(1000);
+      mediaRecorderRef.current.start(1000); // Create a chunk every second
 
       const checkForSilence = () => {
         analyser.getByteFrequencyData(dataArray);
@@ -602,12 +602,34 @@ function App() {
     };
   };
 
+  // UPDATED: This function now respects the duration slider and trims the trigger word.
   const handleLiveFlashIt = () => {
-    if (audioChunksRef.current.length === 0) {
-      setNotification('Not enough audio captured yet.');
+    // We need at least 2 seconds of audio to reliably trim the last second.
+    if (audioChunksRef.current.length < 2) {
+      setNotification('Not enough audio captured yet. Speak for a bit longer.');
       return;
     }
-    const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+    
+    // Determine how many chunks (seconds) to grab, capped by what's available.
+    // We subtract 1 from the total length to make sure we can trim the final second.
+    const availableDuration = audioChunksRef.current.length - 1;
+    const chunksToGrab = Math.min(availableDuration, duration);
+
+    if (chunksToGrab < 1) {
+        setNotification('Not enough audio captured to process.');
+        return;
+    }
+
+    // Get the relevant slice of audio chunks.
+    // We go from `-(chunksToGrab + 1)` up to `-1` to get the desired duration *before* the final second.
+    const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
+
+    if (audioSlice.length === 0) {
+        setNotification('Could not create an audio slice. Please try again.');
+        return;
+    }
+
+    const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
   };
 
@@ -963,7 +985,8 @@ function App() {
         {appMode === 'live' ? (
           <>
             <div className="listening-control">
-              <button onClick={isListening ? stopListening : startListening}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
+              {/* UPDATED: Added a specific class to this button */}
+              <button onClick={isListening ? stopListening : startListening} className="start-stop-btn">{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
               <div className="voice-toggle-container">
                   <button 
                       onClick={() => setVoiceActivated(!voiceActivated)}
