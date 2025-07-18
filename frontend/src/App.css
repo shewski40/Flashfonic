@@ -155,30 +155,22 @@ body {
   margin-top: 1.5rem;
 }
 
-.slider-label-group {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 0 5%;
-  margin-bottom: 0.5rem;
-}
-
-.slider-label-group label {
+/* --- MODIFIED: Styles for the new centered slider labels --- */
+.slider-label {
   font-size: 1em;
   color: var(--text-soft);
   font-weight: 500;
+  margin-bottom: 0.5rem;
+  text-align: center;
 }
 
 .slider-value {
-  font-size: 1em;
   font-weight: 600;
-  color: var(--secondary-pink); /* Changed color to pink */
-  background-color: var(--dark-bg);
-  padding: 0.2em 0.6em;
-  border-radius: 6px;
-  border: 1px solid var(--border-color);
+  color: var(--secondary-pink);
+  background-color: transparent; /* Removed background */
+  padding: 0 0.2em; /* Adjusted padding */
+  border-radius: 0;
+  border: none; /* Removed border */
 }
 
 

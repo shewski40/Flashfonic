@@ -368,7 +368,7 @@ function App() {
   const [appMode, setAppMode] = useState('live');
   const [isListening, setIsListening] = useState(false);
   const [notification, setNotification] = useState('');
-  const [duration, setDuration] = useState(15); // Default capture duration set to 15
+  const [duration, setDuration] = useState(15);
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
   const [folders, setFolders] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
@@ -386,7 +386,7 @@ function App() {
   const [promptModalConfig, setPromptModalConfig] = useState(null);
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
-  const [listeningDuration, setListeningDuration] = useState(1); // Default to 1 minute
+  const [listeningDuration, setListeningDuration] = useState(1);
 
 
   const audioChunksRef = useRef([]);
@@ -424,12 +424,11 @@ function App() {
       setIsListening(true);
       setNotification('Listening... click "Flash It" or use voice trigger.');
 
-      // Set a timeout to stop listening
       if (listeningDuration > 0) {
         listeningTimeoutRef.current = setTimeout(() => {
           setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
           stopListening();
-        }, listeningDuration * 60 * 1000); // Convert minutes to milliseconds
+        }, listeningDuration * 60 * 1000);
       }
 
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -503,7 +502,6 @@ function App() {
   };
 
   const stopListening = () => {
-    // Clear the auto-stop timer if it's running
     if (listeningTimeoutRef.current) {
       clearTimeout(listeningTimeoutRef.current);
       listeningTimeoutRef.current = null;
@@ -679,12 +677,12 @@ function App() {
 
   const startEditing = (card, source, folderName = null) => {
     setEditingCard({ ...card, source, folderName });
-    setMovingCard(null); // Exit moving mode if entering editing mode
+    setMovingCard(null);
   };
 
   const startMove = (card, folderName) => {
     setMovingCard({ id: card.id, folderName });
-    setEditingCard(null); // Exit editing mode if entering moving mode
+    setEditingCard(null);
   };
 
   const saveEdit = () => {
@@ -716,13 +714,11 @@ function App() {
     const { id, folderName: sourceFolder } = movingCard;
     const cardToMove = folders[sourceFolder].find(c => c.id === id);
 
-    if (!cardToMove) return; // Should not happen
+    if (!cardToMove) return;
 
     setFolders(prevFolders => {
         const newFolders = { ...prevFolders };
-        // Remove from source folder
         newFolders[sourceFolder] = newFolders[sourceFolder].filter(c => c.id !== id);
-        // Add to destination folder
         newFolders[destinationFolder] = [...newFolders[destinationFolder], cardToMove];
         return newFolders;
     });
@@ -913,7 +909,6 @@ function App() {
     );
   };
 
-  // Helper function to format the listening duration for display
   const formatListeningDuration = (minutes) => {
     if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
     const hours = Math.floor(minutes / 60);
@@ -922,14 +917,12 @@ function App() {
     return `${hours} hour${hours > 1 ? 's' : ''} ${remainingMinutes} minutes`;
   };
 
-  // Helper to convert slider value to minutes
   const sliderValueToMinutes = (value) => {
-    if (value <= 5) return value; // 1-5 minutes
-    if (value <= 16) return 5 + (value - 5) * 5; // 10, 15, ... 60 minutes
-    return 60 + (value - 16) * 10; // 70, 80, ... 120 minutes
+    if (value <= 5) return value;
+    if (value <= 16) return 5 + (value - 5) * 5;
+    return 60 + (value - 16) * 10;
   };
 
-  // Helper to convert minutes back to a slider value
   const minutesToSliderValue = (minutes) => {
     if (minutes <= 5) return minutes;
     if (minutes <= 60) return 5 + (minutes - 5) / 5;
@@ -983,15 +976,14 @@ function App() {
             {voiceActivated && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
             
             <div className="slider-container">
-              <div className="slider-label-group">
-                <label htmlFor="timer-slider">Listening Duration</label>
-                <span className="slider-value">{formatListeningDuration(listeningDuration)}</span>
-              </div>
+              <label htmlFor="timer-slider" className="slider-label">
+                Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span>
+              </label>
               <input 
                 id="timer-slider" 
                 type="range" 
                 min="1" 
-                max="22" // 1=1min, 5=5mins, 16=60mins, 22=120mins
+                max="22"
                 step="1" 
                 value={minutesToSliderValue(listeningDuration)} 
                 onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} 
@@ -1000,10 +992,9 @@ function App() {
             </div>
 
             <div className="slider-container">
-              <div className="slider-label-group">
-                  <label htmlFor="duration-slider">Capture Last</label>
-                  <span className="slider-value">{duration} seconds</span>
-              </div>
+              <label htmlFor="duration-slider" className="slider-label">
+                Capture Last: <span className="slider-value">{duration} seconds</span>
+              </label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
 
@@ -1033,10 +1024,9 @@ function App() {
               </div>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
-              <div className="slider-label-group">
-                  <label htmlFor="duration-slider-upload">Capture Last</label>
-                  <span className="slider-value">{duration} seconds</span>
-              </div>
+              <label htmlFor="duration-slider-upload" className="slider-label">
+                  Capture Last: <span className="slider-value">{duration} seconds</span>
+              </label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
              <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
@@ -1080,7 +1070,6 @@ function App() {
           {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
             <details key={name} className="folder">
               <summary onClick={(e) => {
-                // Prevent summary click from toggling if a button inside was clicked
                 if (e.target.closest('button')) {
                   e.preventDefault();
                 }
