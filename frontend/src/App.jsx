@@ -176,8 +176,6 @@ const MainApp = () => {
     };
   }, [isListening]);
 
-  // ✅ FIX: Implemented the user-provided solution to restart the MediaRecorder
-  // after each flashcard generation to allow for subsequent captures.
   const handleLiveFlashIt = useCallback(() => {
     if (isGeneratingRef.current) {
       return;
@@ -205,41 +203,50 @@ const MainApp = () => {
   
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
   
-    // This logic stops the current recorder instance. In the `onstop` event,
-    // it clears the old audio chunks and restarts the recorder, allowing a new
-    // set of chunks to be captured for the next "Flash It" click.
     if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
       mediaRecorderRef.current.onstop = () => {
-        // Only restart if the user hasn't manually stopped the entire session.
         if (isListening) {
-          audioChunksRef.current = []; // Clear old chunks for a fresh start.
-          // Ensure the recorder instance exists and the media stream is still active.
+          audioChunksRef.current = []; 
           if (mediaRecorderRef.current && streamRef.current?.active) {
-              mediaRecorderRef.current.start(1000); // Restart recording.
+              mediaRecorderRef.current.start(1000); 
           }
         }
-        // Clean up the event handler to prevent it from being called unexpectedly later.
         mediaRecorderRef.current.onstop = null;
       };
       mediaRecorderRef.current.stop();
     }
   
     generateFlashcard(audioBlob);
-  }, [duration, generateFlashcard, isListening]); // Added `isListening` to dependency array.
+  }, [duration, generateFlashcard, isListening]);
 
+  // ✅ FIX: Implemented the user-provided solution for the Auto-Flash feature.
+  // This adds an initial delay to prevent a race condition on startup.
   useEffect(() => {
+    // Clear any existing timers when the effect re-runs
     if (autoFlashTimerRef.current) {
       clearInterval(autoFlashTimerRef.current);
     }
     autoFlashTimerRef.current = null;
+    let firstTimeout;
 
     if (isListening && isAutoFlashOn) {
-      autoFlashTimerRef.current = setInterval(() => {
-        handleLiveFlashIt();
-      }, autoFlashInterval * 1000);
+      // Wait for a couple of seconds before the first auto-flash to allow audio buffer to fill.
+      firstTimeout = setTimeout(() => {
+        handleLiveFlashIt(); // Fire the first one.
+        
+        // Then, set up the interval for all subsequent flashes.
+        autoFlashTimerRef.current = setInterval(() => {
+          handleLiveFlashIt();
+        }, autoFlashInterval * 1000);
+      }, 2000); // 2-second initial delay.
     }
 
+    // Cleanup function to clear all timers when the component unmounts
+    // or when dependencies change.
     return () => {
+      if (firstTimeout) {
+        clearTimeout(firstTimeout);
+      }
       if (autoFlashTimerRef.current) {
         clearInterval(autoFlashTimerRef.current);
       }
