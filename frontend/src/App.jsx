@@ -71,6 +71,16 @@ const LandingPage = ({ onEnter }) => {
   );
 };
 
+// --- HELPER FUNCTIONS ---
+
+// FIX: Moved formatTime before MainApp to prevent ReferenceError
+const formatTime = (time) => {
+  if (isNaN(time) || time === 0) return '00:00';
+  const minutes = Math.floor(time / 60);
+  const seconds = Math.floor(time % 60);
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
+
 
 // --- MAIN APP COMPONENT ---
 const MainApp = () => {
@@ -111,19 +121,32 @@ const MainApp = () => {
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  // BUG FIX: Use a ref to track the generating state to avoid stale closures in callbacks.
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
     isGeneratingRef.current = isGenerating;
   }, [isGenerating]);
 
+  // Load folders from localStorage on initial render
   useEffect(() => {
-    const storedFolders = localStorage.getItem('flashfonic-folders');
-    if (storedFolders) setFolders(JSON.parse(storedFolders));
+    try {
+      const storedFolders = localStorage.getItem('flashfonic-folders');
+      if (storedFolders) {
+        setFolders(JSON.parse(storedFolders));
+      }
+    } catch (error) {
+      console.error("Failed to load folders from localStorage:", error);
+      setNotification("Could not load saved folders.");
+    }
   }, []);
 
+  // Save folders to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
+    try {
+      localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
+    } catch (error) {
+      console.error("Failed to save folders to localStorage:", error);
+      setNotification("Could not save folders.");
+    }
   }, [folders]);
 
   const generateFlashcard = useCallback(async (audioBlob) => {
@@ -156,7 +179,6 @@ const MainApp = () => {
   }, [isListening]);
 
   const handleLiveFlashIt = useCallback(() => {
-    // BUG FIX: Check the ref for the most up-to-date state.
     if (isGeneratingRef.current) {
         return;
     }
@@ -767,7 +789,7 @@ const MainApp = () => {
   );
 };
 
-// --- HELPER COMPONENTS AND FUNCTIONS ---
+// --- HELPER COMPONENTS ---
 const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [deck, setDeck] = useState([...cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1015,12 +1037,6 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
       </div>
     </div>
   );
-};
-const formatTime = (time) => {
-  if (isNaN(time) || time === 0) return '00:00';
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
 // --- FINAL APP COMPONENT ---
