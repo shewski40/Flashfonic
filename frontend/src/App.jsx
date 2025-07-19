@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
-import './App.css';
+// Note: You will need to create and link an App.css file for the styles.
 
-// --- Flashcard Viewer Component (No Changes) ---
+// --- Flashcard Viewer Component ---
 const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [deck, setDeck] = useState([...cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -10,17 +10,21 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [flaggedCards, setFlaggedCards] = useState({});
   const [reviewMode, setReviewMode] = useState('all');
+
   const [isReading, setIsReading] = useState(false);
   const [speechRate, setSpeechRate] = useState(1);
   const [speechDelay, setSpeechDelay] = useState(3);
   const [voices, setVoices] = useState([]);
   const [selectedVoice, setSelectedVoice] = useState('');
   const speechTimeoutRef = useRef(null);
+
   const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
   const voiceDropdownRef = useRef(null);
+
   const studyDeck = reviewMode === 'flagged' 
     ? deck.filter(card => flaggedCards[card.id]) 
     : deck;
+
   const currentCard = studyDeck[currentIndex];
 
   useEffect(() => {
@@ -33,6 +37,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
@@ -42,8 +47,10 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
         setSelectedVoice(englishVoices[0].name);
       }
     };
+
     window.speechSynthesis.onvoiceschanged = loadVoices;
     loadVoices();
+
     return () => {
       window.speechSynthesis.onvoiceschanged = null;
     };
@@ -52,7 +59,9 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const speak = (text, onEnd) => {
     const utterance = new SpeechSynthesisUtterance(text);
     const voice = voices.find(v => v.name === selectedVoice);
-    if (voice) utterance.voice = voice;
+    if (voice) {
+      utterance.voice = voice;
+    }
     utterance.rate = speechRate;
     utterance.onend = onEnd;
     window.speechSynthesis.cancel();
@@ -62,14 +71,20 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const stopReading = () => {
     setIsReading(false);
     window.speechSynthesis.cancel();
-    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
   };
 
   useEffect(() => {
-    if (!isReading || !currentCard) return;
+    if (!isReading || !currentCard) {
+      return;
+    }
+
     const readCardSequence = () => {
       setIsFlipped(false);
       const questionText = `Question: ${currentCard.question}`;
+      
       speak(questionText, () => {
         speechTimeoutRef.current = setTimeout(() => {
           setIsFlipped(true);
@@ -80,7 +95,9 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
         }, speechDelay * 1000);
       });
     };
+
     readCardSequence();
+
     return () => {
       window.speechSynthesis.cancel();
       clearTimeout(speechTimeoutRef.current);
@@ -118,8 +135,11 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const toggleFlag = (cardId) => {
     setFlaggedCards(prev => {
       const newFlags = {...prev};
-      if (newFlags[cardId]) delete newFlags[cardId];
-      else newFlags[cardId] = true;
+      if (newFlags[cardId]) {
+        delete newFlags[cardId];
+      } else {
+        newFlags[cardId] = true;
+      }
       return newFlags;
     });
   };
@@ -131,7 +151,9 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
     setIsFlipped(false);
   };
 
-  const handleDragStart = (e, index) => e.dataTransfer.setData("cardIndex", index);
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.setData("cardIndex", index);
+  };
 
   const handleDrop = (e, dropIndex) => {
     const dragIndex = e.dataTransfer.getData("cardIndex");
@@ -151,16 +173,29 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
         <h2>Studying: {folderName} {reviewMode === 'flagged' ? `(Flagged)` : ''}</h2>
         <button onClick={onClose} className="viewer-close-btn">&times;</button>
       </div>
+
       <div className="viewer-controls">
         <button onClick={scrambleDeck}>Scramble</button>
-        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>{isArrangeMode ? 'Study' : 'Arrange'}</button>
-        <button onClick={toggleReviewMode}>{reviewMode === 'all' ? `Review Flagged (${Object.keys(flaggedCards).length})` : 'Review All'}</button>
+        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>
+          {isArrangeMode ? 'Study' : 'Arrange'}
+        </button>
+        <button onClick={toggleReviewMode}>
+          {reviewMode === 'all' ? `Review Flagged (${Object.keys(flaggedCards).length})` : 'Review All'}
+        </button>
       </div>
+
       {isArrangeMode ? (
         <div className="arrange-container">
           <h3>Drag and drop to reorder</h3>
           {deck.map((card, index) => (
-            <div key={card.id} className="arrange-card" draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, index)}>
+            <div 
+              key={card.id} 
+              className="arrange-card"
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, index)}
+            >
               {index + 1}. {card.question}
             </div>
           ))}
@@ -172,15 +207,20 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               <div className="viewer-main" onClick={handleCardClick}>
                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                   <div className="card-face card-front">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
+                      &#9873;
+                    </button>
                     <p>{currentCard?.question}</p>
                   </div>
                   <div className="card-face card-back">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
+                      &#9873;
+                    </button>
                     <p>{currentCard?.answer}</p>
                   </div>
                 </div>
               </div>
+
               <div className="viewer-nav">
                 <button onClick={goToPrev}>&larr; Prev</button>
                 <span>{currentIndex + 1} / {studyDeck.length}</span>
@@ -194,17 +234,29 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
             </div>
           )}
           <div className="tts-controls">
-            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
+            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">
+              {isReading ? '■ Stop Audio' : '▶ Play Audio'}
+            </button>
             <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
               <label>Voice</label>
-              <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+              <div 
+                className="custom-select-trigger"
+                onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
+              >
                 {selectedVoice || 'Select a voice...'}
                 <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
               </div>
               {isVoiceDropdownOpen && (
                 <div className="custom-select-options">
                   {voices.map(voice => (
-                    <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                    <div 
+                      key={voice.name} 
+                      className="custom-select-option"
+                      onClick={() => {
+                        setSelectedVoice(voice.name);
+                        setIsVoiceDropdownOpen(false);
+                      }}
+                    >
                       {voice.name} ({voice.lang})
                     </div>
                   ))}
@@ -213,11 +265,27 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
             </div>
             <div className="tts-slider-group">
               <label>Delay: {speechDelay}s</label>
-              <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading}/>
+              <input 
+                type="range" 
+                min="1" 
+                max="10" 
+                step="1" 
+                value={speechDelay} 
+                onChange={(e) => setSpeechDelay(Number(e.target.value))}
+                disabled={isReading}
+              />
             </div>
             <div className="tts-slider-group">
               <label>Speed: {speechRate}x</label>
-              <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading}/>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value={speechRate} 
+                onChange={(e) => setSpeechRate(Number(e.target.value))}
+                disabled={isReading}
+              />
             </div>
           </div>
         </>
@@ -226,19 +294,30 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   );
 };
 
-// --- Create Folder Modal Component (No Changes) ---
+// --- Create Folder Modal Component ---
 const CreateFolderModal = ({ onClose, onCreate }) => {
   const [folderName, setFolderName] = useState('');
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (folderName.trim()) onCreate(folderName.trim());
+    if (folderName.trim()) {
+      onCreate(folderName.trim());
+    }
   };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content">
         <h2>Create New Folder</h2>
         <form onSubmit={handleSubmit}>
-          <input type="text" className="modal-input" placeholder="Enter folder name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus/>
+          <input
+            type="text"
+            className="modal-input"
+            placeholder="Enter folder name..."
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            autoFocus
+          />
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
             <button type="submit" className="modal-create-btn">Create</button>
@@ -249,20 +328,30 @@ const CreateFolderModal = ({ onClose, onCreate }) => {
   );
 };
 
-// --- Reusable Prompt Modal (No Changes) ---
+// --- Reusable Prompt Modal ---
 const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
   const [value, setValue] = useState(defaultValue || '');
+
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (value) onConfirm(value);
+    if (value) {
+      onConfirm(value);
+    }
   };
+
   return (
     <div className="modal-overlay">
       <div className="modal-content">
         <h2>{title}</h2>
         <p className="modal-message">{message}</p>
         <form onSubmit={handleSubmit}>
-          <input type="number" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus/>
+          <input
+            type="number"
+            className="modal-input"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            autoFocus
+          />
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
             <button type="submit" className="modal-create-btn">Confirm</button>
@@ -298,6 +387,8 @@ function App() {
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
 
+  // --- REFS ---
+  const isGeneratingRef = useRef(false); // Correct: useRef for synchronous lock
   const audioChunksRef = useRef([]);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
@@ -318,68 +409,6 @@ function App() {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  // --- REFACTORED: Speech Recognition Lifecycle Management ---
-  // This effect now manages the entire lifecycle of the speech recognition service.
-  useEffect(() => {
-    // Only set up recognition if the feature is supported and activated.
-    if (isListening && voiceActivated && 'webkitSpeechRecognition' in window) {
-      if (!recognitionRef.current) {
-        console.log("Setting up speech recognition for the first time.");
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.interimResults = true;
-        recognition.lang = 'en-US';
-
-        recognition.onresult = (event) => {
-          for (let i = event.resultIndex; i < event.results.length; ++i) {
-            if (event.results[i].isFinal) {
-              const transcript = event.results[i][0].transcript.trim().toLowerCase();
-              if (transcript.includes('flash')) {
-                console.log('Voice command "flash" detected.');
-                handleLiveFlashIt(true);
-              }
-            }
-          }
-        };
-
-        recognition.onerror = (event) => {
-          console.error('Speech recognition error:', event.error);
-        };
-
-        recognition.onend = () => {
-          console.log("Speech recognition service ended.");
-          // It will only restart if the conditions are still met.
-          if (isListening && voiceActivated) {
-            console.log("Restarting speech recognition service.");
-            recognition.start();
-          }
-        };
-        
-        recognition.start();
-        recognitionRef.current = recognition;
-      }
-    } else {
-      // If conditions are not met, ensure recognition is torn down.
-      if (recognitionRef.current) {
-        console.log("Tearing down speech recognition.");
-        recognitionRef.current.onend = null; // Prevent restart loop
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-    }
-
-    // Cleanup function for when the component unmounts or dependencies change.
-    return () => {
-      if (recognitionRef.current) {
-        console.log("Cleaning up speech recognition on unmount/dependency change.");
-        recognitionRef.current.onend = null;
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-      }
-    };
-  }, [isListening, voiceActivated]); // Correctly depends on listening and activation state
-
-
   const handleModeChange = (mode) => {
     if (isListening) {
       stopListening();
@@ -388,10 +417,11 @@ function App() {
     setNotification('');
   };
 
-  // --- REFACTORED: startListening now only handles the audio stream ---
   const startListening = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+      setIsListening(true);
+      setNotification('Listening... click "Flash It" or use voice trigger.');
 
       if (listeningDuration > 0) {
         listeningTimeoutRef.current = setTimeout(() => {
@@ -402,6 +432,7 @@ function App() {
 
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+      
       const destination = audioContextRef.current.createMediaStreamDestination();
       source.connect(destination);
       mediaRecorderRef.current = new MediaRecorder(destination.stream);
@@ -413,19 +444,18 @@ function App() {
       const dataArray = new Uint8Array(bufferLength);
 
       audioChunksRef.current = [];
-      mediaRecorderRef.current.ondataavailable = (event) => {
+      mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
-      };
-      mediaRecorderRef.current.start(1000);
+      });
+      mediaRecorderRef.current.start(1000); // Create a chunk every second
 
       const checkForSilence = () => {
-        if (!analyser) return;
         analyser.getByteFrequencyData(dataArray);
         let sum = dataArray.reduce((a, b) => a + b, 0);
+
         if (sum < 5) {
           if (!silenceTimeoutRef.current) {
             silenceTimeoutRef.current = setTimeout(() => {
-              if (isGenerating) return;
               stopListening();
               setNotification('Stopped listening due to silence.');
             }, 15000);
@@ -439,28 +469,51 @@ function App() {
         animationFrameRef.current = requestAnimationFrame(checkForSilence);
       };
       checkForSilence();
-      
-      setIsListening(true); // This state change triggers the useEffect for speech recognition
-      setNotification('Listening... click "Flash It" or use voice trigger.');
 
-    } catch (err) {
+      if (voiceActivated && 'webkitSpeechRecognition' in window) {
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+
+        recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+          if (transcript.includes('flash')) {
+            handleLiveFlashIt();
+          }
+        };
+
+        recognition.onerror = (e) => console.error('Voice trigger error:', e);
+        
+        recognition.onend = () => {
+            if (voiceActivated && isListening) {
+                recognition.start();
+            }
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
+    } catch (err)   {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
     }
   };
 
-  // --- REFACTORED: stopListening now only handles the audio stream ---
   const stopListening = () => {
     if (listeningTimeoutRef.current) {
       clearTimeout(listeningTimeoutRef.current);
       listeningTimeoutRef.current = null;
     }
 
-    if (mediaRecorderRef.current?.state !== 'inactive') {
-        mediaRecorderRef.current.onend = null;
-        mediaRecorderRef.current.stop();
-    }
+    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
+    setIsListening(false);
+    
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
     
     if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
@@ -470,15 +523,10 @@ function App() {
         clearTimeout(silenceTimeoutRef.current);
         silenceTimeoutRef.current = null;
     }
-    if (audioContextRef.current?.state !== 'closed') {
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
         audioContextRef.current.close();
     }
-    
-    mediaRecorderRef.current = null;
-    streamRef.current = null;
-    audioContextRef.current = null;
 
-    setIsListening(false); // This state change triggers the useEffect to tear down speech recognition
     setNotification('');
   };
 
@@ -523,6 +571,8 @@ function App() {
   };
 
   const generateFlashcard = async (audioBlob) => {
+    // Correct: Set both the ref lock and the UI state
+    isGeneratingRef.current = true;
     setIsGenerating(true);
     setNotification('Sending audio to server...');
 
@@ -530,46 +580,50 @@ function App() {
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1];
+
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ audio_data: base64Audio })
             });
+
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to generate flashcard.');
+            
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
+            setNotification('');
         } catch (error) {
             console.error("Error:", error);
             setNotification("Failed to process audio. Please try again");
         } finally {
+            // Correct: Release both the ref lock and the UI state here
+            isGeneratingRef.current = false;
             setIsGenerating(false);
-            if(isListening) {
-                 setNotification('Listening... click "Flash It" or use voice trigger.');
-            } else {
-                 setNotification('');
-            }
         }
     };
   };
 
-  // --- REFACTORED: handleLiveFlashIt is now much simpler ---
-  const handleLiveFlashIt = (triggeredByVoice = false) => {
-    if (isGenerating || !isListening) return;
-
+  const handleLiveFlashIt = () => {
+    // Correct: Guard clause checks the ref immediately
+    if (isGeneratingRef.current) return;
+    
     if (audioChunksRef.current.length < 2) {
-      setNotification('Not enough audio captured. Speak longer.');
-      setTimeout(() => {
-        if(isListening) setNotification('Listening... click "Flash It" or use voice trigger.');
-      }, 2000);
+      setNotification('Not enough audio captured yet. Speak for a bit longer.');
       return;
     }
-
+    
     const availableDuration = audioChunksRef.current.length - 1;
     const chunksToGrab = Math.min(availableDuration, duration);
+
+    if (chunksToGrab < 1) {
+        setNotification('Not enough audio captured to process.');
+        return;
+    }
+
     const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
-    
+
     if (audioSlice.length === 0) {
         setNotification('Could not create an audio slice. Please try again.');
         return;
@@ -577,16 +631,16 @@ function App() {
 
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
-
-    // CRITICAL FIX: Clear the audio buffer, keeping the last chunk for continuity.
-    audioChunksRef.current = audioChunksRef.current.slice(-1);
-    
-    const message = triggeredByVoice ? 'Voice command processed!' : 'Flashcard sent!';
-    setNotification(`${message} Still listening...`);
   };
 
   const handleUploadFlashIt = async () => {
-    if (!uploadedFile || isGenerating) return;
+    // Correct: Guard clause checks the ref immediately
+    if (isGeneratingRef.current) return;
+
+    if (!uploadedFile) {
+      setNotification('Please select a file first.');
+      return;
+    }
     generateFlashcard(uploadedFile);
   };
   
@@ -615,7 +669,11 @@ function App() {
       setNotification("Please check the cards you want to move.");
       return;
     }
-    setFolders(prev => ({ ...prev, [selectedFolderForMove]: [...(prev[selectedFolderForMove] || []), ...cardsToMove] }));
+
+    setFolders(prev => ({
+        ...prev,
+        [selectedFolderForMove]: [...(prev[selectedFolderForMove] || []), ...cardsToMove]
+    }));
     setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
     setCheckedCards({});
     setSelectedFolderForMove('');
@@ -632,7 +690,10 @@ function App() {
   };
 
   const deleteCardFromFolder = (folderName, cardId) => {
-    setFolders(prevFolders => ({...prevFolders, [folderName]: prevFolders[folderName].filter(card => card.id !== cardId)}));
+    setFolders(prevFolders => ({
+      ...prevFolders,
+      [folderName]: prevFolders[folderName].filter(card => card.id !== cardId)
+    }));
   };
 
   const deleteFromQueue = (cardId) => {
@@ -651,11 +712,20 @@ function App() {
 
   const saveEdit = () => {
     if (!editingCard) return;
+
     const { id, question, answer, source, folderName } = editingCard;
+
     if (source === 'queue') {
-      setGeneratedFlashcards(prev => prev.map(card => card.id === id ? { ...card, question, answer } : card));
+      setGeneratedFlashcards(prev => 
+        prev.map(card => card.id === id ? { ...card, question, answer } : card)
+      );
     } else if (source === 'folder' && folderName) {
-      setFolders(prev => ({...prev, [folderName]: prev[folderName].map(card => card.id === id ? { ...card, question, answer } : card)}));
+      setFolders(prev => ({
+        ...prev,
+        [folderName]: prev[folderName].map(card => 
+          card.id === id ? { ...card, question, answer } : card
+        )
+      }));
     }
     setEditingCard(null);
   };
@@ -665,9 +735,12 @@ function App() {
         setMovingCard(null);
         return;
     };
+
     const { id, folderName: sourceFolder } = movingCard;
     const cardToMove = folders[sourceFolder].find(c => c.id === id);
+
     if (!cardToMove) return;
+
     setFolders(prevFolders => {
         const newFolders = { ...prevFolders };
         newFolders[sourceFolder] = newFolders[sourceFolder].filter(c => c.id !== id);
@@ -676,6 +749,7 @@ function App() {
     });
     setMovingCard(null);
   };
+
 
   const exportFolderToPDF = (folderName) => {
     setPromptModalConfig({
@@ -688,60 +762,78 @@ function App() {
           alert("Invalid number. Please choose 6, 8, or 10.");
           return;
         }
+        
         const doc = new jsPDF();
         const cards = folders[folderName];
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
-        const layoutConfig = { 6: { rows: 3, cols: 2, fontSize: 12 }, 8: { rows: 4, cols: 2, fontSize: 10 }, 10: { rows: 5, cols: 2, fontSize: 9 } };
+
+        const layoutConfig = {
+          6: { rows: 3, cols: 2, fontSize: 12 },
+          8: { rows: 4, cols: 2, fontSize: 10 },
+          10: { rows: 5, cols: 2, fontSize: 9 },
+        };
         const config = layoutConfig[cardsPerPage];
         const margin = 15;
         const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
         const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
+
         const drawHeader = () => {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(30);
             doc.setTextColor("#8B5CF6");
             doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+            
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(16);
             doc.setTextColor("#1F2937");
             doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
         };
+
         for (let i = 0; i < cards.length; i += cardsPerPage) {
           const pageCards = cards.slice(i, i + cardsPerPage);
+
           if (i > 0) doc.addPage();
           drawHeader();
+          
           pageCards.forEach((card, index) => {
             const row = Math.floor(index / config.cols);
             const col = index % config.cols;
             const cardX = margin + (col * (cardW + margin));
             const cardY = 40 + (row * (cardH + margin));
+
             doc.setLineWidth(0.5);
             doc.setDrawColor(0);
             doc.setTextColor("#000000");
             doc.rect(cardX, cardY, cardW, cardH);
+
             doc.setFontSize(config.fontSize);
             const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
             const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
             doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
           });
+
           doc.addPage();
           drawHeader();
+
           pageCards.forEach((card, index) => {
             const row = Math.floor(index / config.cols);
             const col = index % config.cols;
             const cardX = margin + (col * (cardW + margin));
             const cardY = 40 + (row * (cardH + margin));
+
             doc.setLineWidth(0.5);
             doc.setDrawColor(0);
             doc.setTextColor("#000000");
             doc.rect(cardX, cardY, cardW, cardH);
+
             doc.setFontSize(config.fontSize);
             const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
             const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
             doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
           });
         }
+        
         doc.save(`${folderName}-flashcards.pdf`);
         setPromptModalConfig(null);
       },
@@ -760,14 +852,17 @@ function App() {
             alert("Invalid number.");
             return;
         }
+      
         const cards = folders[folderName].slice(0, numCards);
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "FlashFonic\nListen. Flash it. Learn.\n\n";
         csvContent += "Question,Answer\n";
+      
         cards.forEach(card => {
             const row = `"${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`;
             csvContent += row + "\n";
         });
+      
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -785,8 +880,16 @@ function App() {
     if (editingCard && editingCard.id === card.id) {
       return (
         <div className="edit-mode">
-          <textarea className="edit-textarea" value={editingCard.question} onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })}/>
-          <textarea className="edit-textarea" value={editingCard.answer} onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })}/>
+          <textarea
+            className="edit-textarea"
+            value={editingCard.question}
+            onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })}
+          />
+          <textarea
+            className="edit-textarea"
+            value={editingCard.answer}
+            onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })}
+          />
           <div className="edit-actions">
             <button onClick={saveEdit} className="edit-save-btn">Save</button>
             <button onClick={() => setEditingCard(null)} className="edit-cancel-btn">Cancel</button>
@@ -794,6 +897,7 @@ function App() {
         </div>
       );
     }
+
     if (movingCard && movingCard.id === card.id) {
         const otherFolders = Object.keys(folders).filter(f => f !== folderName);
         return (
@@ -801,16 +905,23 @@ function App() {
                 <p>Move to:</p>
                 {otherFolders.length > 0 ? (
                     <div className="move-controls">
-                        <select className="folder-select" defaultValue="" onChange={(e) => handleConfirmMove(e.target.value)}>
+                        <select
+                            className="folder-select"
+                            defaultValue=""
+                            onChange={(e) => handleConfirmMove(e.target.value)}
+                        >
                             <option value="" disabled>Select a folder...</option>
                             {otherFolders.map(f => <option key={f} value={f}>{f}</option>)}
                         </select>
                         <button onClick={() => setMovingCard(null)} className="move-cancel-btn">Cancel</button>
                     </div>
-                ) : ( <p className="subtle-text">No other folders to move to.</p> )}
+                ) : (
+                    <p className="subtle-text">No other folders to move to.</p>
+                )}
             </div>
         );
     }
+    
     return (
       <>
         <div className="card-top-actions">
@@ -824,6 +935,7 @@ function App() {
   };
 
   const formatListeningDuration = (minutes) => {
+    if (minutes <= 0) return 'Timer Off';
     if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''}`;
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
@@ -832,12 +944,14 @@ function App() {
   };
 
   const sliderValueToMinutes = (value) => {
+    if (value === 0) return 0;
     if (value <= 5) return value;
     if (value <= 16) return 5 + (value - 5) * 5;
     return 60 + (value - 16) * 10;
   };
 
   const minutesToSliderValue = (minutes) => {
+    if (minutes === 0) return 0;
     if (minutes <= 5) return minutes;
     if (minutes <= 60) return 5 + (minutes - 5) / 5;
     return 16 + (minutes - 60) / 10;
@@ -846,34 +960,71 @@ function App() {
 
   return (
     <>
-      {studyingFolder && (<FlashcardViewer folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={() => setStudyingFolder(null)}/>)}
-      {isCreateFolderModalOpen && (<CreateFolderModal onClose={() => setIsCreateFolderModalOpen(false)} onCreate={handleCreateFolder}/>)}
+      {studyingFolder && (
+        <FlashcardViewer 
+          folderName={studyingFolder.name} 
+          cards={studyingFolder.cards} 
+          onClose={() => setStudyingFolder(null)} 
+        />
+      )}
+
+      {isCreateFolderModalOpen && (
+        <CreateFolderModal 
+          onClose={() => setIsCreateFolderModalOpen(false)}
+          onCreate={handleCreateFolder}
+        />
+      )}
+
       {promptModalConfig && <PromptModal {...promptModalConfig} />}
+
       <div className="header">
         <h1>FlashFonic</h1>
         <h2 className="subheading">Listen. Flash it. Learn.</h2>
       </div>
+
       <div className="mode-selector">
         <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
         <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
       </div>
+
       <div className="card main-controls">
         {appMode === 'live' ? (
           <>
             <div className="listening-control">
               <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
-              <button onClick={() => setVoiceActivated(prev => !prev)} className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}>Voice Activate</button>
+              <button 
+                  onClick={() => setVoiceActivated(!voiceActivated)}
+                  className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
+              >
+                  Voice Activate
+              </button>
             </div>
             {voiceActivated && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
+            
             <div className="slider-container">
-              <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
-              <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening}/>
+              <label htmlFor="timer-slider" className="slider-label">
+                Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span>
+              </label>
+              <input 
+                  id="timer-slider" 
+                  type="range" 
+                  min="0" 
+                  max="22"
+                  step="1" 
+                  value={minutesToSliderValue(listeningDuration)} 
+                  onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} 
+                  disabled={isListening} 
+              />
             </div>
+
             <div className="slider-container">
-              <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
+              <label htmlFor="duration-slider" className="slider-label">
+                Capture Last: <span className="slider-value">{duration} seconds</span>
+              </label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
-            <button onClick={() => handleLiveFlashIt(false)} className="flash-it-button" disabled={!isListening || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
+
+            <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         ) : (
           <>
@@ -898,52 +1049,71 @@ function App() {
                 <span className="time-display">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
               </div>
             )}
-            <div className="slider-container" style={{ marginTop: '1rem' }}>
-              <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
+            <div className="slider-container" style={{ marginTop: '1rem', visibility: 'hidden' }}>
+              <label htmlFor="duration-slider-upload" className="slider-label">
+                  Capture Last: <span className="slider-value">{duration} seconds</span>
+              </label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
              <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         )}
       </div>
+
       {notification && <p className="notification">{notification}</p>}
+      
       {generatedFlashcards.length > 0 && (
           <div className="card generated-cards-queue">
               <div className="queue-header">
-                <h3>Review Queue</h3>
-                <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
+                  <h3>Review Queue</h3>
+                  <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
               </div>
               {generatedFlashcards.map(card => (
                   <div key={card.id} className="card generated-card">
                       <div className="card-selection">
-                        <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
+                          <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
                       </div>
                       <div className="card-content">
-                        {renderCardContent(card, 'queue')}
-                        <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
+                          {renderCardContent(card, 'queue')}
+                          <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
                       </div>
                   </div>
               ))}
               <div className="folder-actions">
-                  <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
-                      <option value="" disabled>Select a folder...</option>
-                      {Object.keys(folders).map(name => <option key={name} value={name}>{name}</option>)}
-                  </select>
-                  <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
+                      <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                          <option value="" disabled>Select a folder...</option>
+                          {Object.keys(folders).map(name => <option key={name} value={name}>{name}</option>)}
+                      </select>
+                      <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
               </div>
           </div>
       )}
+
       <div className="card folders-container">
         <h2 className="section-heading">Your Folders</h2>
         <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
         <div className="folder-list">
           {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
             <details key={name} className="folder">
-              <summary onClick={(e) => { if (e.target.closest('button')) e.preventDefault(); }}>
+              <summary onClick={(e) => {
+                  if (e.target.closest('button')) {
+                      e.preventDefault();
+                  }
+              }}>
                 <div className="folder-summary">
                     <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
                     <div className="folder-export-buttons">
-                        <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name, cards: folders[name] }); }} className="study-btn">Study</button>
+                        <button 
+                            onClick={() => {
+                              if (isListening) {
+                                  stopListening();
+                              }
+                              setStudyingFolder({ name, cards: folders[name] });
+                            }} 
+                            className="study-btn"
+                        >
+                            Study
+                        </button>
                         <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
                         <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
                     </div>
