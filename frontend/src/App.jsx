@@ -72,8 +72,6 @@ const LandingPage = ({ onEnter }) => {
 };
 
 // --- HELPER FUNCTIONS ---
-
-// FIX: Moved formatTime before MainApp to prevent ReferenceError
 const formatTime = (time) => {
   if (isNaN(time) || time === 0) return '00:00';
   const minutes = Math.floor(time / 60);
@@ -178,34 +176,56 @@ const MainApp = () => {
     };
   }, [isListening]);
 
+  // ✅ FIX: Implemented the user-provided solution to restart the MediaRecorder
+  // after each flashcard generation to allow for subsequent captures.
   const handleLiveFlashIt = useCallback(() => {
     if (isGeneratingRef.current) {
-        return;
+      return;
     }
-
+  
     if (audioChunksRef.current.length < 2) {
       setNotification('Not enough audio captured yet. Speak for a bit longer.');
       return;
     }
-    
+  
     const availableDuration = audioChunksRef.current.length - 1;
     const chunksToGrab = Math.min(availableDuration, duration);
-
+  
     if (chunksToGrab < 1) {
-        setNotification('Not enough audio captured to process.');
-        return;
+      setNotification('Not enough audio captured to process.');
+      return;
     }
-
+  
     const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
-
+  
     if (audioSlice.length === 0) {
-        setNotification('Could not create an audio slice. Please try again.');
-        return;
+      setNotification('Could not create an audio slice. Please try again.');
+      return;
     }
-
+  
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
+  
+    // This logic stops the current recorder instance. In the `onstop` event,
+    // it clears the old audio chunks and restarts the recorder, allowing a new
+    // set of chunks to be captured for the next "Flash It" click.
+    if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+      mediaRecorderRef.current.onstop = () => {
+        // Only restart if the user hasn't manually stopped the entire session.
+        if (isListening) {
+          audioChunksRef.current = []; // Clear old chunks for a fresh start.
+          // Ensure the recorder instance exists and the media stream is still active.
+          if (mediaRecorderRef.current && streamRef.current?.active) {
+              mediaRecorderRef.current.start(1000); // Restart recording.
+          }
+        }
+        // Clean up the event handler to prevent it from being called unexpectedly later.
+        mediaRecorderRef.current.onstop = null;
+      };
+      mediaRecorderRef.current.stop();
+    }
+  
     generateFlashcard(audioBlob);
-  }, [duration, generateFlashcard]);
+  }, [duration, generateFlashcard, isListening]); // Added `isListening` to dependency array.
 
   useEffect(() => {
     if (autoFlashTimerRef.current) {
