@@ -181,6 +181,9 @@ const MainApp = () => {
 
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
+
+    // ✅ Clear used chunks so fresh ones are collected
+    audioChunksRef.current = [];
   }, [duration, generateFlashcard]);
 
   useEffect(() => {
