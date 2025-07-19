@@ -75,7 +75,6 @@ body {
   gap: 1rem; 
 }
 
-/* UPDATED: This now targets only the start/stop button */
 .start-stop-btn {
   padding: 0.8em 1.5em;
   font-size: 1em; /* Mobile button font size */
@@ -87,6 +86,7 @@ body {
   background-color: var(--primary-purple);
   color: white;
   width: 100%; 
+  box-sizing: border-box; /* Added for consistent sizing */
 }
 
 .mode-selector {
@@ -212,14 +212,14 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0.8em 1.5em;
     font-size: 1em; /* Mobile font size */
     font-weight: bold;
-    border: none;
+    border: 2px solid var(--secondary-pink);
     border-radius: 30px;
     cursor: pointer;
     transition: all 0.2s ease;
     background-color: var(--content-bg);
-    border: 2px solid var(--secondary-pink);
     color: var(--secondary-pink);
     width: 100%;
+    box-sizing: border-box; /* Added for consistent sizing */
 }
 
 .voice-activate-btn.active {
@@ -1016,7 +1016,6 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 1rem; /* Add a gap for desktop */
   }
   
-  /* UPDATED: This now targets the specific button and container */
   .start-stop-btn,
   .voice-toggle-container {
     flex: 1; /* Make them take up equal space */
