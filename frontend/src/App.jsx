@@ -164,7 +164,7 @@ const MainApp = () => {
       return;
     }
     
-    const availableDuration = audioChunksRef.current.length - 1;
+    const availableDuration = audioChunksRef.current.length;
     const chunksToGrab = Math.min(availableDuration, duration);
 
     if (chunksToGrab < 1) {
@@ -172,7 +172,8 @@ const MainApp = () => {
         return;
     }
 
-    const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
+    // Slice from the end of the array to get the most recent chunks
+    const audioSlice = audioChunksRef.current.slice(-chunksToGrab);
 
     if (audioSlice.length === 0) {
         setNotification('Could not create an audio slice. Please try again.');
@@ -181,9 +182,9 @@ const MainApp = () => {
 
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
+    
+    // NOTE: The buffer is no longer cleared here. It's managed as a rolling buffer.
 
-    // ✅ Clear used chunks so fresh ones are collected
-    audioChunksRef.current = [];
   }, [duration, generateFlashcard]);
 
   useEffect(() => {
@@ -253,6 +254,10 @@ const MainApp = () => {
       audioChunksRef.current = [];
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
+        // ✅ BUG FIX: Create a rolling buffer that keeps the last 60 seconds of audio.
+        if (audioChunksRef.current.length > 60) {
+            audioChunksRef.current.shift(); // Remove the oldest chunk
+        }
       });
       mediaRecorderRef.current.start(1000);
 
