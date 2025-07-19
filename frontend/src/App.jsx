@@ -164,7 +164,7 @@ const MainApp = () => {
       return;
     }
     
-    const availableDuration = audioChunksRef.current.length;
+    const availableDuration = audioChunksRef.current.length - 1;
     const chunksToGrab = Math.min(availableDuration, duration);
 
     if (chunksToGrab < 1) {
@@ -172,7 +172,8 @@ const MainApp = () => {
         return;
     }
 
-    const audioSlice = audioChunksRef.current.slice(-chunksToGrab);
+    // ✅ REVERTED TO ORIGINAL, WORKING SLICE LOGIC
+    const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
 
     if (audioSlice.length === 0) {
         setNotification('Could not create an audio slice. Please try again.');
@@ -181,9 +182,6 @@ const MainApp = () => {
 
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
-
-    // ✅ BUG FIX: Clear the buffer after using it to ensure the next capture is fresh.
-    audioChunksRef.current = [];
 
   }, [duration, generateFlashcard]);
 
@@ -251,7 +249,7 @@ const MainApp = () => {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      // Ensure buffer is clear at the start of a new session
+      // ✅ REVERTED TO ORIGINAL, WORKING BUFFER LOGIC
       audioChunksRef.current = [];
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
