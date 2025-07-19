@@ -284,7 +284,8 @@ const MainApp = () => {
                 const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ audio_data: base64Audio })
+                    // ✅ FIX: Changed `audio_data` back to `audio` to match backend expectation
+                    body: JSON.stringify({ audio: base64Audio })
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || 'Failed to generate flashcard.');
