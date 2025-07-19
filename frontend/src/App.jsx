@@ -156,7 +156,7 @@ const MainApp = () => {
 
   const handleLiveFlashIt = useCallback(() => {
     if (isGeneratingRef.current) {
-        return;
+      return;
     }
 
     if (audioChunksRef.current.length < 2) {
@@ -172,7 +172,6 @@ const MainApp = () => {
         return;
     }
 
-    // Slice from the end of the array to get the most recent chunks
     const audioSlice = audioChunksRef.current.slice(-chunksToGrab);
 
     if (audioSlice.length === 0) {
@@ -182,8 +181,9 @@ const MainApp = () => {
 
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
-    
-    // NOTE: The buffer is no longer cleared here. It's managed as a rolling buffer.
+
+    // ✅ BUG FIX: Clear the buffer after using it to ensure the next capture is fresh.
+    audioChunksRef.current = [];
 
   }, [duration, generateFlashcard]);
 
@@ -251,13 +251,10 @@ const MainApp = () => {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
+      // Ensure buffer is clear at the start of a new session
       audioChunksRef.current = [];
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
-        // ✅ BUG FIX: Create a rolling buffer that keeps the last 60 seconds of audio.
-        if (audioChunksRef.current.length > 60) {
-            audioChunksRef.current.shift(); // Remove the oldest chunk
-        }
       });
       mediaRecorderRef.current.start(1000);
 
