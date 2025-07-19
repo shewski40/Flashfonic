@@ -75,7 +75,6 @@ body {
   gap: 1rem; 
 }
 
-/* UPDATED: Combined rules for perfect symmetry */
 .start-stop-btn,
 .voice-activate-btn {
   padding: 0.8em 1.5em;
@@ -204,12 +203,7 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: center;
 }
 
-.voice-toggle-container {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-}
+/* REMOVED .voice-toggle-container rule as it is no longer used */
 
 .voice-activate-btn.active,
 .start-stop-btn.active {
@@ -1006,14 +1000,10 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 1rem; /* Add a gap for desktop */
   }
   
-  .start-stop-btn,
-  .voice-toggle-container {
-    flex: 1; /* Make them take up equal space */
-  }
-  
-  /* UPDATED: Combined rule for desktop font size */
+  /* UPDATED: This now targets the buttons directly */
   .start-stop-btn,
   .voice-activate-btn {
+    flex: 1; /* Make them take up equal space */
     font-size: 1.1em; /* Restore desktop font size */
   }
 
