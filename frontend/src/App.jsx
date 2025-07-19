@@ -159,21 +159,30 @@ const MainApp = () => {
       return;
     }
 
-    if (audioChunksRef.current.length < 2) {
+    // 1. Take a snapshot of the current audio chunks.
+    const currentChunks = [...audioChunksRef.current];
+
+    // 2. Immediately reset the main buffer for continuous recording.
+    // We keep the very last chunk to ensure a smooth transition into the next recording.
+    audioChunksRef.current = currentChunks.length > 0 ? [currentChunks[currentChunks.length - 1]] : [];
+
+
+    if (currentChunks.length < 2) {
       setNotification('Not enough audio captured yet. Speak for a bit longer.');
       return;
     }
     
-    const availableDuration = audioChunksRef.current.length - 1;
+    // 3. Process the snapshot to create the card.
+    const availableDuration = currentChunks.length - 1;
     const chunksToGrab = Math.min(availableDuration, duration);
 
     if (chunksToGrab < 1) {
         setNotification('Not enough audio captured to process.');
         return;
     }
-
-    // ✅ REVERTED TO ORIGINAL, WORKING SLICE LOGIC
-    const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
+    
+    // Use the snapshot to create the slice, excluding the last chunk (which contains the "flash" trigger).
+    const audioSlice = currentChunks.slice(-(chunksToGrab + 1), -1);
 
     if (audioSlice.length === 0) {
         setNotification('Could not create an audio slice. Please try again.');
@@ -249,7 +258,6 @@ const MainApp = () => {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      // ✅ REVERTED TO ORIGINAL, WORKING BUFFER LOGIC
       audioChunksRef.current = [];
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
