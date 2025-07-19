@@ -1123,9 +1123,13 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .nav-logo {
+  font-family: 'Poppins', sans-serif;
   font-weight: 700;
   font-size: 1.5rem;
-  color: var(--text-light);
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-image: var(--brand-gradient);
 }
 
 .nav-cta {
@@ -1205,9 +1209,11 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .steps-container {
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: 1fr;
   gap: 2rem;
+  max-width: 1000px;
+  margin: 0 auto;
 }
 
 .step {
@@ -1236,8 +1242,9 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .step p {
-  color: var(--text-dark);
+  color: var(--text-soft);
   line-height: 1.5;
+  font-size: 1.1rem;
 }
 
 .features-grid {
@@ -1252,7 +1259,7 @@ input[type="range"]::-webkit-slider-thumb {
   background-color: var(--dark-bg);
   padding: 2rem;
   border-radius: 16px;
-  text-align: left;
+  text-align: center; /* User request: Centered text */
   border: 1px solid var(--border-color);
 }
 
@@ -1261,7 +1268,6 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--secondary-pink);
   margin-top: 0;
   margin-bottom: 1rem;
-  text-align: center; /* User request: Centered header */
 }
 
 .feature-card p {
@@ -1295,11 +1301,7 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 1.25rem;
   }
   .steps-container {
-    flex-direction: row;
-    justify-content: space-evenly; /* User request: Evenly space columns */
-    max-width: 1000px;
-    margin: 0 auto;
-    width: 100%;
+    grid-template-columns: repeat(3, 1fr); /* User request: Evenly space columns */
   }
   .features-grid {
     grid-template-columns: 1fr 1fr;

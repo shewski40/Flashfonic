@@ -3,7 +3,6 @@ import jsPDF from 'jspdf';
 import './App.css';
 
 // --- LANDING PAGE COMPONENT ---
-// This is the new landing page component.
 const LandingPage = ({ onEnter }) => {
   return (
     <div className="landing-page">
@@ -73,10 +72,8 @@ const LandingPage = ({ onEnter }) => {
 };
 
 
-// --- YOUR ORIGINAL APP CODE, WRAPPED IN A NEW COMPONENT ---
-// I've moved all your original code into this "MainApp" component.
+// --- MAIN APP COMPONENT ---
 const MainApp = () => {
-  // All the original state and functions from your App component go here
   const [appMode, setAppMode] = useState('live');
   const [isListening, setIsListening] = useState(false);
   const [notification, setNotification] = useState('');
@@ -99,7 +96,6 @@ const MainApp = () => {
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
-  
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
 
@@ -111,10 +107,15 @@ const MainApp = () => {
   const recognitionRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
   const autoFlashTimerRef = useRef(null);
-  
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
+  
+  // BUG FIX: Use a ref to track the generating state to avoid stale closures in callbacks.
+  const isGeneratingRef = useRef(isGenerating);
+  useEffect(() => {
+    isGeneratingRef.current = isGenerating;
+  }, [isGenerating]);
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
@@ -155,8 +156,8 @@ const MainApp = () => {
   }, [isListening]);
 
   const handleLiveFlashIt = useCallback(() => {
-    if (isGenerating) {
-        console.log("Generation already in progress. Skipping.");
+    // BUG FIX: Check the ref for the most up-to-date state.
+    if (isGeneratingRef.current) {
         return;
     }
 
@@ -182,13 +183,13 @@ const MainApp = () => {
 
     const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
-  }, [isGenerating, duration, generateFlashcard]);
+  }, [duration, generateFlashcard]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) {
       clearInterval(autoFlashTimerRef.current);
-      autoFlashTimerRef.current = null;
     }
+    autoFlashTimerRef.current = null;
 
     if (isListening && isAutoFlashOn) {
       autoFlashTimerRef.current = setInterval(() => {
@@ -203,34 +204,16 @@ const MainApp = () => {
     };
   }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
 
-
   const stopListening = () => {
-    if (listeningTimeoutRef.current) {
-      clearTimeout(listeningTimeoutRef.current);
-      listeningTimeoutRef.current = null;
-    }
-    
+    if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
+    if (recognitionRef.current) recognitionRef.current.stop();
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') audioContextRef.current.close();
+    
     setIsListening(false);
-    
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    
-    if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-    }
-    if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-        silenceTimeoutRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-    }
-
     setNotification('');
   };
 
@@ -247,7 +230,6 @@ const MainApp = () => {
       }
       setNotification(initialNotification);
 
-
       if (listeningDuration > 0) {
         listeningTimeoutRef.current = setTimeout(() => {
           setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
@@ -257,7 +239,6 @@ const MainApp = () => {
 
       audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
       const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
-      
       const destination = audioContextRef.current.createMediaStreamDestination();
       source.connect(destination);
       mediaRecorderRef.current = new MediaRecorder(destination.stream);
@@ -277,7 +258,6 @@ const MainApp = () => {
       const checkForSilence = () => {
         analyser.getByteFrequencyData(dataArray);
         let sum = dataArray.reduce((a, b) => a + b, 0);
-
         if (sum < 5) {
           if (!silenceTimeoutRef.current) {
             silenceTimeoutRef.current = setTimeout(() => {
@@ -300,35 +280,23 @@ const MainApp = () => {
         recognition.continuous = true;
         recognition.lang = 'en-US';
         recognition.interimResults = false;
-
         recognition.onresult = (event) => {
           const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-          if (transcript.includes('flash')) {
-            handleLiveFlashIt();
-          }
+          if (transcript.includes('flash')) handleLiveFlashIt();
         };
-
         recognition.onerror = (e) => console.error('Voice trigger error:', e);
-        
-        recognition.onend = () => {
-            if (voiceActivated && isListening) {
-                recognition.start();
-            }
-        };
-
+        recognition.onend = () => { if (voiceActivated && isListening) recognition.start(); };
         recognition.start();
         recognitionRef.current = recognition;
       }
-    } catch (err)     {
+    } catch (err) {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
     }
   };
 
   const handleModeChange = (mode) => {
-    if (isListening) {
-      stopListening();
-    }
+    if (isListening) stopListening();
     setAppMode(mode);
     setNotification('');
   };
@@ -449,9 +417,7 @@ const MainApp = () => {
 
   const saveEdit = () => {
     if (!editingCard) return;
-
     const { id, question, answer, source, folderName } = editingCard;
-
     if (source === 'queue') {
       setGeneratedFlashcards(prev => 
         prev.map(card => card.id === id ? { ...card, question, answer } : card)
@@ -472,12 +438,9 @@ const MainApp = () => {
         setMovingCard(null);
         return;
     };
-
     const { id, folderName: sourceFolder } = movingCard;
     const cardToMove = folders[sourceFolder].find(c => c.id === id);
-
     if (!cardToMove) return;
-
     setFolders(prevFolders => {
         const newFolders = { ...prevFolders };
         newFolders[sourceFolder] = newFolders[sourceFolder].filter(c => c.id !== id);
@@ -498,12 +461,10 @@ const MainApp = () => {
           alert("Invalid number. Please choose 6, 8, or 10.");
           return;
         }
-        
         const doc = new jsPDF();
         const cards = folders[folderName];
         const pageW = doc.internal.pageSize.getWidth();
         const pageH = doc.internal.pageSize.getHeight();
-
         const layoutConfig = {
           6: { rows: 3, cols: 2, fontSize: 12 },
           8: { rows: 4, cols: 2, fontSize: 10 },
@@ -513,63 +474,51 @@ const MainApp = () => {
         const margin = 15;
         const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
         const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
-
         const drawHeader = () => {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(30);
             doc.setTextColor("#8B5CF6");
             doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
-            
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(16);
             doc.setTextColor("#1F2937");
             doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
         };
-
         for (let i = 0; i < cards.length; i += cardsPerPage) {
           const pageCards = cards.slice(i, i + cardsPerPage);
-
           if (i > 0) doc.addPage();
           drawHeader();
-          
           pageCards.forEach((card, index) => {
             const row = Math.floor(index / config.cols);
             const col = index % config.cols;
             const cardX = margin + (col * (cardW + margin));
             const cardY = 40 + (row * (cardH + margin));
-
             doc.setLineWidth(0.5);
             doc.setDrawColor(0);
             doc.setTextColor("#000000");
             doc.rect(cardX, cardY, cardW, cardH);
-
             doc.setFontSize(config.fontSize);
             const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
             const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
             doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
           });
-
           doc.addPage();
           drawHeader();
-
           pageCards.forEach((card, index) => {
             const row = Math.floor(index / config.cols);
             const col = index % config.cols;
             const cardX = margin + (col * (cardW + margin));
             const cardY = 40 + (row * (cardH + margin));
-
             doc.setLineWidth(0.5);
             doc.setDrawColor(0);
             doc.setTextColor("#000000");
             doc.rect(cardX, cardY, cardW, cardH);
-
             doc.setFontSize(config.fontSize);
             const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
             const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
             doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
           });
         }
-        
         doc.save(`${folderName}-flashcards.pdf`);
         setPromptModalConfig(null);
       },
@@ -588,17 +537,14 @@ const MainApp = () => {
             alert("Invalid number.");
             return;
         }
-    
         const cards = folders[folderName].slice(0, numCards);
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "FlashFonic\nListen. Flash it. Learn.\n\n";
         csvContent += "Question,Answer\n";
-    
         cards.forEach(card => {
             const row = `"${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`;
             csvContent += row + "\n";
         });
-    
         const encodedUri = encodeURI(csvContent);
         const link = document.createElement("a");
         link.setAttribute("href", encodedUri);
@@ -616,16 +562,8 @@ const MainApp = () => {
     if (editingCard && editingCard.id === card.id) {
       return (
         <div className="edit-mode">
-          <textarea
-            className="edit-textarea"
-            value={editingCard.question}
-            onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })}
-          />
-          <textarea
-            className="edit-textarea"
-            value={editingCard.answer}
-            onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })}
-          />
+          <textarea className="edit-textarea" value={editingCard.question} onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })} />
+          <textarea className="edit-textarea" value={editingCard.answer} onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })} />
           <div className="edit-actions">
             <button onClick={saveEdit} className="edit-save-btn">Save</button>
             <button onClick={() => setEditingCard(null)} className="edit-cancel-btn">Cancel</button>
@@ -633,7 +571,6 @@ const MainApp = () => {
         </div>
       );
     }
-
     if (movingCard && movingCard.id === card.id) {
         const otherFolders = Object.keys(folders).filter(f => f !== folderName);
         return (
@@ -641,23 +578,16 @@ const MainApp = () => {
                 <p>Move to:</p>
                 {otherFolders.length > 0 ? (
                     <div className="move-controls">
-                        <select
-                            className="folder-select"
-                            defaultValue=""
-                            onChange={(e) => handleConfirmMove(e.target.value)}
-                        >
+                        <select className="folder-select" defaultValue="" onChange={(e) => handleConfirmMove(e.target.value)}>
                             <option value="" disabled>Select a folder...</option>
                             {otherFolders.map(f => <option key={f} value={f}>{f}</option>)}
                         </select>
                         <button onClick={() => setMovingCard(null)} className="move-cancel-btn">Cancel</button>
                     </div>
-                ) : (
-                    <p className="subtle-text">No other folders to move to.</p>
-                )}
+                ) : ( <p className="subtle-text">No other folders to move to.</p> )}
             </div>
         );
     }
-    
     return (
       <>
         <div className="card-top-actions">
@@ -697,8 +627,8 @@ const MainApp = () => {
   }
 
   const sliderToInterval = (value) => {
-    if (value <= 4) return 20 + (value * 10); // 20, 30, 40, 50, 60
-    return 60 + (value - 4) * 30; // 90, 120, 150...
+    if (value <= 4) return 20 + (value * 10);
+    return 60 + (value - 4) * 30;
   };
 
   const intervalToSlider = (seconds) => {
@@ -706,36 +636,19 @@ const MainApp = () => {
     return 4 + (seconds - 60) / 30;
   };
 
-
   return (
-    <div className="main-app-container">
-      {studyingFolder && (
-        <FlashcardViewer 
-          folderName={studyingFolder.name} 
-          cards={studyingFolder.cards} 
-          onClose={() => setStudyingFolder(null)} 
-        />
-      )}
-
-      {isCreateFolderModalOpen && (
-        <CreateFolderModal 
-          onClose={() => setIsCreateFolderModalOpen(false)}
-          onCreate={handleCreateFolder}
-        />
-      )}
-
+    <>
+      {studyingFolder && ( <FlashcardViewer folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={() => setStudyingFolder(null)} /> )}
+      {isCreateFolderModalOpen && ( <CreateFolderModal onClose={() => setIsCreateFolderModalOpen(false)} onCreate={handleCreateFolder} /> )}
       {promptModalConfig && <PromptModal {...promptModalConfig} />}
-
       <div className="header">
         <h1>FlashFonic</h1>
         <h2 className="subheading">Listen. Flash it. Learn.</h2>
       </div>
-
       <div className="mode-selector">
         <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
         <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
       </div>
-
       <div className="card main-controls">
         {appMode === 'live' ? (
           <>
@@ -743,65 +656,25 @@ const MainApp = () => {
               <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
             </div>
             <div className="listening-modes">
-                <button 
-                    onClick={() => setVoiceActivated(!voiceActivated)}
-                    className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
-                    disabled={isAutoFlashOn}
-                >
-                    Voice Activate
-                </button>
-                <button 
-                    onClick={() => setIsAutoFlashOn(!isAutoFlashOn)}
-                    className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}
-                    disabled={voiceActivated}
-                >
-                    Auto-Flash <span className="beta-tag">Beta</span>
-                </button>
+                <button onClick={() => setVoiceActivated(!voiceActivated)} className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`} disabled={isAutoFlashOn}>Voice Activate</button>
+                <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`} disabled={voiceActivated}>Auto-Flash <span className="beta-tag">Beta</span></button>
             </div>
             {voiceActivated && !isAutoFlashOn && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
             {isAutoFlashOn && !voiceActivated && <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>}
-            
             <div className="slider-container">
-              <label htmlFor="timer-slider" className="slider-label">
-                Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span>
-              </label>
-              <input 
-                id="timer-slider" 
-                type="range" 
-                min="1" 
-                max="22"
-                step="1" 
-                value={minutesToSliderValue(listeningDuration)} 
-                onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} 
-                disabled={isListening} 
-              />
+              <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
+              <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening} />
             </div>
-
             {isAutoFlashOn && (
                 <div className="slider-container">
-                <label htmlFor="autoflash-slider" className="slider-label">
-                    Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span>
-                </label>
-                <input 
-                    id="autoflash-slider" 
-                    type="range" 
-                    min="0"
-                    max="8"
-                    step="1" 
-                    value={intervalToSlider(autoFlashInterval)} 
-                    onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} 
-                    disabled={isListening} 
-                />
+                <label htmlFor="autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span></label>
+                <input id="autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(autoFlashInterval)} onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isListening} />
                 </div>
             )}
-
             <div className="slider-container">
-              <label htmlFor="duration-slider" className="slider-label">
-                Capture Last: <span className="slider-value">{duration} seconds</span>
-              </label>
+              <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
-
             <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating || isAutoFlashOn}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         ) : (
@@ -828,18 +701,14 @@ const MainApp = () => {
               </div>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
-              <label htmlFor="duration-slider-upload" className="slider-label">
-                  Capture Last: <span className="slider-value">{duration} seconds</span>
-              </label>
+              <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
              <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         )}
       </div>
-
       {notification && <p className="notification">{notification}</p>}
-      
       {generatedFlashcards.length > 0 && (
           <div className="card generated-cards-queue">
               <div className="queue-header">
@@ -866,32 +735,17 @@ const MainApp = () => {
               </div>
           </div>
       )}
-
       <div className="card folders-container">
         <h2 className="section-heading">Your Folders</h2>
         <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
         <div className="folder-list">
           {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
             <details key={name} className="folder">
-              <summary onClick={(e) => {
-                if (e.target.closest('button')) {
-                  e.preventDefault();
-                }
-              }}>
+              <summary onClick={(e) => { if (e.target.closest('button')) e.preventDefault(); }}>
                 <div className="folder-summary">
                     <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
                     <div className="folder-export-buttons">
-                        <button 
-                          onClick={() => {
-                            if (isListening) {
-                              stopListening();
-                            }
-                            setStudyingFolder({ name, cards: folders[name] });
-                          }} 
-                          className="study-btn"
-                        >
-                          Study
-                        </button>
+                        <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name, cards: folders[name] }); }} className="study-btn">Study</button>
                         <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
                         <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
                     </div>
@@ -909,10 +763,9 @@ const MainApp = () => {
           )) : <p className="subtle-text">No folders created yet.</p>}
         </div>
       </div>
-    </div>
+    </>
   );
 };
-
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
 const FlashcardViewer = ({ folderName, cards, onClose }) => {
@@ -961,9 +814,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const speak = (text, onEnd) => {
     const utterance = new SpeechSynthesisUtterance(text);
     const voice = voices.find(v => v.name === selectedVoice);
-    if (voice) {
-      utterance.voice = voice;
-    }
+    if (voice) utterance.voice = voice;
     utterance.rate = speechRate;
     utterance.onend = onEnd;
     window.speechSynthesis.cancel();
@@ -972,18 +823,13 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const stopReading = () => {
     setIsReading(false);
     window.speechSynthesis.cancel();
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-    }
+    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
   };
   useEffect(() => {
-    if (!isReading || !currentCard) {
-      return;
-    }
+    if (!isReading || !currentCard) return;
     const readCardSequence = () => {
       setIsFlipped(false);
       const questionText = `Question: ${currentCard.question}`;
-      
       speak(questionText, () => {
         speechTimeoutRef.current = setTimeout(() => {
           setIsFlipped(true);
@@ -1027,11 +873,8 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const toggleFlag = (cardId) => {
     setFlaggedCards(prev => {
       const newFlags = {...prev};
-      if (newFlags[cardId]) {
-        delete newFlags[cardId];
-      } else {
-        newFlags[cardId] = true;
-      }
+      if (newFlags[cardId]) delete newFlags[cardId];
+      else newFlags[cardId] = true;
       return newFlags;
     });
   };
@@ -1041,9 +884,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
     setCurrentIndex(0);
     setIsFlipped(false);
   };
-  const handleDragStart = (e, index) => {
-    e.dataTransfer.setData("cardIndex", index);
-  };
+  const handleDragStart = (e, index) => e.dataTransfer.setData("cardIndex", index);
   const handleDrop = (e, dropIndex) => {
     const dragIndex = e.dataTransfer.getData("cardIndex");
     const newDeck = [...deck];
@@ -1051,9 +892,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
     newDeck.splice(dropIndex, 0, draggedItem);
     setDeck(newDeck);
   };
-  useEffect(() => {
-    return () => stopReading();
-  }, []);
+  useEffect(() => { return () => stopReading(); }, []);
   return (
     <div className="viewer-overlay">
       <div className="viewer-header">
@@ -1062,25 +901,14 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
       </div>
       <div className="viewer-controls">
         <button onClick={scrambleDeck}>Scramble</button>
-        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>
-          {isArrangeMode ? 'Study' : 'Arrange'}
-        </button>
-        <button onClick={toggleReviewMode}>
-          {reviewMode === 'all' ? `Review Flagged (${Object.keys(flaggedCards).length})` : 'Review All'}
-        </button>
+        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>{isArrangeMode ? 'Study' : 'Arrange'}</button>
+        <button onClick={toggleReviewMode}>{reviewMode === 'all' ? `Review Flagged (${Object.keys(flaggedCards).length})` : 'Review All'}</button>
       </div>
       {isArrangeMode ? (
         <div className="arrange-container">
           <h3>Drag and drop to reorder</h3>
           {deck.map((card, index) => (
-            <div 
-              key={card.id} 
-              className="arrange-card"
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDrop(e, index)}
-            >
+            <div key={card.id} className="arrange-card" draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, index)}>
               {index + 1}. {card.question}
             </div>
           ))}
@@ -1092,15 +920,11 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               <div className="viewer-main" onClick={handleCardClick}>
                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                   <div className="card-face card-front">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
-                      &#9873;
-                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
                     <p>{currentCard?.question}</p>
                   </div>
                   <div className="card-face card-back">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
-                      &#9873;
-                    </button>
+                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
                     <p>{currentCard?.answer}</p>
                   </div>
                 </div>
@@ -1118,29 +942,17 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
             </div>
           )}
           <div className="tts-controls">
-            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">
-              {isReading ? '■ Stop Audio' : '▶ Play Audio'}
-            </button>
+            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
             <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
               <label>Voice</label>
-              <div 
-                className="custom-select-trigger"
-                onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
-              >
+              <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
                 {selectedVoice || 'Select a voice...'}
                 <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
               </div>
               {isVoiceDropdownOpen && (
                 <div className="custom-select-options">
                   {voices.map(voice => (
-                    <div 
-                      key={voice.name} 
-                      className="custom-select-option"
-                      onClick={() => {
-                        setSelectedVoice(voice.name);
-                        setIsVoiceDropdownOpen(false);
-                      }}
-                    >
+                    <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
                       {voice.name} ({voice.lang})
                     </div>
                   ))}
@@ -1149,27 +961,11 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
             </div>
             <div className="tts-slider-group">
               <label>Delay: {speechDelay}s</label>
-              <input 
-                type="range" 
-                min="1" 
-                max="10" 
-                step="1" 
-                value={speechDelay} 
-                onChange={(e) => setSpeechDelay(Number(e.target.value))}
-                disabled={isReading}
-              />
+              <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
             </div>
             <div className="tts-slider-group">
               <label>Speed: {speechRate}x</label>
-              <input 
-                type="range" 
-                min="0.5" 
-                max="2" 
-                step="0.1" 
-                value={speechRate} 
-                onChange={(e) => setSpeechRate(Number(e.target.value))}
-                disabled={isReading}
-              />
+              <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
             </div>
           </div>
         </>
@@ -1181,23 +977,14 @@ const CreateFolderModal = ({ onClose, onCreate }) => {
   const [folderName, setFolderName] = useState('');
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (folderName.trim()) {
-      onCreate(folderName.trim());
-    }
+    if (folderName.trim()) onCreate(folderName.trim());
   };
   return (
     <div className="modal-overlay">
       <div className="modal-content">
         <h2>Create New Folder</h2>
         <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="modal-input"
-            placeholder="Enter folder name..."
-            value={folderName}
-            onChange={(e) => setFolderName(e.target.value)}
-            autoFocus
-          />
+          <input type="text" className="modal-input" placeholder="Enter folder name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
             <button type="submit" className="modal-create-btn">Create</button>
@@ -1211,9 +998,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
   const [value, setValue] = useState(defaultValue || '');
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (value) {
-      onConfirm(value);
-    }
+    if (value) onConfirm(value);
   };
   return (
     <div className="modal-overlay">
@@ -1221,13 +1006,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
         <h2>{title}</h2>
         <p className="modal-message">{message}</p>
         <form onSubmit={handleSubmit}>
-          <input
-            type="number"
-            className="modal-input"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            autoFocus
-          />
+          <input type="number" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
           <div className="modal-actions">
             <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
             <button type="submit" className="modal-create-btn">Confirm</button>
@@ -1243,7 +1022,6 @@ const formatTime = (time) => {
   const seconds = Math.floor(time % 60);
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
-
 
 // --- FINAL APP COMPONENT ---
 function App() {
