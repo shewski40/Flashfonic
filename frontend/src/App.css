@@ -75,9 +75,11 @@ body {
   gap: 1rem; 
 }
 
-.start-stop-btn {
+/* UPDATED: Combined rules for perfect symmetry */
+.start-stop-btn,
+.voice-activate-btn {
   padding: 0.8em 1.5em;
-  font-size: 1em; /* Mobile button font size */
+  font-size: 1em;
   font-weight: bold;
   border: none;
   border-radius: 30px;
@@ -209,22 +211,6 @@ input[type="range"]::-webkit-slider-thumb {
     width: 100%;
 }
 
-/* UPDATED: Default state now matches start button */
-.voice-activate-btn {
-    padding: 0.8em 1.5em;
-    font-size: 1em;
-    font-weight: bold;
-    border: none; /* Removed border */
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    background-color: var(--primary-purple); /* Changed to purple */
-    color: white; /* Changed to white */
-    width: 100%;
-    box-sizing: border-box;
-}
-
-/* UPDATED: Active state for both buttons is now pink */
 .voice-activate-btn.active,
 .start-stop-btn.active {
     background-color: var(--secondary-pink);
@@ -422,7 +408,6 @@ input[type="range"]::-webkit-slider-thumb {
     cursor: pointer;
 }
 
-/* UPDATED: Made study button larger */
 .study-btn {
     background-color: var(--success-green) !important;
     border-color: var(--success-green) !important;
@@ -1026,8 +1011,9 @@ input[type="range"]::-webkit-slider-thumb {
     flex: 1; /* Make them take up equal space */
   }
   
+  /* UPDATED: Combined rule for desktop font size */
+  .start-stop-btn,
   .voice-activate-btn {
-    width: 100%; /* Make button fill its container */
     font-size: 1.1em; /* Restore desktop font size */
   }
 
