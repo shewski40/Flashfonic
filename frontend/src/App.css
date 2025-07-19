@@ -86,7 +86,7 @@ body {
   background-color: var(--primary-purple);
   color: white;
   width: 100%; 
-  box-sizing: border-box; /* Added for consistent sizing */
+  box-sizing: border-box;
 }
 
 .mode-selector {
@@ -208,21 +208,25 @@ input[type="range"]::-webkit-slider-thumb {
     justify-content: center;
     width: 100%;
 }
+
+/* UPDATED: Default state now matches start button */
 .voice-activate-btn {
     padding: 0.8em 1.5em;
-    font-size: 1em; /* Mobile font size */
+    font-size: 1em;
     font-weight: bold;
-    border: 2px solid var(--secondary-pink);
+    border: none; /* Removed border */
     border-radius: 30px;
     cursor: pointer;
     transition: all 0.2s ease;
-    background-color: var(--content-bg);
-    color: var(--secondary-pink);
+    background-color: var(--primary-purple); /* Changed to purple */
+    color: white; /* Changed to white */
     width: 100%;
-    box-sizing: border-box; /* Added for consistent sizing */
+    box-sizing: border-box;
 }
 
-.voice-activate-btn.active {
+/* UPDATED: Active state for both buttons is now pink */
+.voice-activate-btn.active,
+.start-stop-btn.active {
     background-color: var(--secondary-pink);
     color: white;
 }
@@ -418,12 +422,13 @@ input[type="range"]::-webkit-slider-thumb {
     cursor: pointer;
 }
 
+/* UPDATED: Made study button larger */
 .study-btn {
     background-color: var(--success-green) !important;
     border-color: var(--success-green) !important;
-    padding: 0.6em 1.2em !important; /* Larger padding */
-    font-size: 0.9em !important; /* Larger font */
-    font-weight: 600 !important; /* Bolder text */
+    padding: 0.8em 1.5em !important;
+    font-size: 1em !important;
+    font-weight: 700 !important;
 }
 
 .saved-card-in-folder {
