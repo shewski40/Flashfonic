@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import './App.css';
 
@@ -7,12 +7,17 @@ import './App.css';
 const LandingPage = ({ onEnter }) => {
   return (
     <div className="landing-page">
+      <nav className="landing-nav">
+        <div className="nav-logo">FlashFonic</div>
+        <button onClick={onEnter} className="nav-cta">Enter Beta</button>
+      </nav>
+
       <header className="landing-hero">
         <h1 className="landing-h1">The Future of Studying is Listening.</h1>
         <p className="landing-p">
-          Introducing FlashFonic, the world's first app that uses AI to instantly turn your spoken words, lectures, and audio notes into powerful flashcards.
+          Introducing <span className="brand-bling">FlashFonic</span>, the world's first app that uses AI to instantly turn your spoken words, lectures, and audio notes into powerful flashcards.
         </p>
-        <button onClick={onEnter} className="landing-cta">Enter the Beta</button>
+        <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
       </header>
 
       <section className="how-it-works">
@@ -95,9 +100,8 @@ const MainApp = () => {
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
   
-  // --- NEW STATE FOR AUTO-FLASH ---
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
-  const [autoFlashInterval, setAutoFlashInterval] = useState(20); // Default to 20 seconds
+  const [autoFlashInterval, setAutoFlashInterval] = useState(20);
 
   const audioChunksRef = useRef([]);
   const mediaRecorderRef = useRef(null);
@@ -106,7 +110,7 @@ const MainApp = () => {
   const audioPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
-  const autoFlashTimerRef = useRef(null); // Ref to hold the interval ID
+  const autoFlashTimerRef = useRef(null);
   
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
@@ -121,37 +125,112 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  // --- NEW EFFECT FOR AUTO-FLASH LOGIC ---
+  const generateFlashcard = useCallback(async (audioBlob) => {
+    setIsGenerating(true);
+    setNotification('Sending audio to server...');
+
+    const reader = new FileReader();
+    reader.readAsDataURL(audioBlob);
+    reader.onloadend = async () => {
+        const base64Audio = reader.result.split(',')[1];
+        try {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audio_data: base64Audio })
+            });
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to generate flashcard.');
+            
+            const newCard = { ...data, id: Date.now() };
+            setGeneratedFlashcards(prev => [newCard, ...prev]);
+            setNotification(isListening ? `Card generated! Still listening...` : 'Card generated!');
+        } catch (error) {
+            console.error("Error:", error);
+            setNotification("Failed to process audio. Please try again");
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+  }, [isListening]);
+
+  const handleLiveFlashIt = useCallback(() => {
+    if (isGenerating) {
+        console.log("Generation already in progress. Skipping.");
+        return;
+    }
+
+    if (audioChunksRef.current.length < 2) {
+      setNotification('Not enough audio captured yet. Speak for a bit longer.');
+      return;
+    }
+    
+    const availableDuration = audioChunksRef.current.length - 1;
+    const chunksToGrab = Math.min(availableDuration, duration);
+
+    if (chunksToGrab < 1) {
+        setNotification('Not enough audio captured to process.');
+        return;
+    }
+
+    const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
+
+    if (audioSlice.length === 0) {
+        setNotification('Could not create an audio slice. Please try again.');
+        return;
+    }
+
+    const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
+    generateFlashcard(audioBlob);
+  }, [isGenerating, duration, generateFlashcard]);
+
   useEffect(() => {
-    // Clear any existing interval
     if (autoFlashTimerRef.current) {
       clearInterval(autoFlashTimerRef.current);
       autoFlashTimerRef.current = null;
     }
 
-    // If we are listening and auto-flash is on, start a new interval
     if (isListening && isAutoFlashOn) {
       autoFlashTimerRef.current = setInterval(() => {
-        // We call handleLiveFlashIt directly here
         handleLiveFlashIt();
       }, autoFlashInterval * 1000);
     }
 
-    // Cleanup function to clear the interval when the component unmounts
-    // or when dependencies change before the effect re-runs.
     return () => {
       if (autoFlashTimerRef.current) {
         clearInterval(autoFlashTimerRef.current);
       }
     };
-  }, [isListening, isAutoFlashOn, autoFlashInterval, duration]); // Rerun when these change
+  }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
 
 
-  const handleModeChange = (mode) => {
-    if (isListening) {
-      stopListening();
+  const stopListening = () => {
+    if (listeningTimeoutRef.current) {
+      clearTimeout(listeningTimeoutRef.current);
+      listeningTimeoutRef.current = null;
     }
-    setAppMode(mode);
+    
+    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    setIsListening(false);
+    
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+    }
+    
+    if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+    }
+    if (silenceTimeoutRef.current) {
+        clearTimeout(silenceTimeoutRef.current);
+        silenceTimeoutRef.current = null;
+    }
+    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
+        audioContextRef.current.close();
+    }
+
     setNotification('');
   };
 
@@ -193,7 +272,7 @@ const MainApp = () => {
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
       });
-      mediaRecorderRef.current.start(1000); // Create a chunk every second
+      mediaRecorderRef.current.start(1000);
 
       const checkForSilence = () => {
         analyser.getByteFrequencyData(dataArray);
@@ -246,36 +325,11 @@ const MainApp = () => {
     }
   };
 
-  const stopListening = () => {
-    if (listeningTimeoutRef.current) {
-      clearTimeout(listeningTimeoutRef.current);
-      listeningTimeoutRef.current = null;
+  const handleModeChange = (mode) => {
+    if (isListening) {
+      stopListening();
     }
-    
-    // The useEffect cleanup will handle clearing the auto-flash interval
-    // when isListening becomes false.
-
-    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
-    streamRef.current?.getTracks().forEach(track => track.stop());
-    setIsListening(false);
-    
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-      recognitionRef.current = null;
-    }
-    
-    if (animationFrameRef.current) {
-        cancelAnimationFrame(animationFrameRef.current);
-        animationFrameRef.current = null;
-    }
-    if (silenceTimeoutRef.current) {
-        clearTimeout(silenceTimeoutRef.current);
-        silenceTimeoutRef.current = null;
-    }
-    if (audioContextRef.current && audioContextRef.current.state !== 'closed') {
-        audioContextRef.current.close();
-    }
-
+    setAppMode(mode);
     setNotification('');
   };
 
@@ -317,65 +371,6 @@ const MainApp = () => {
   const handleSeek = (e) => {
     const seekTime = (e.nativeEvent.offsetX / e.target.clientWidth) * audioDuration;
     audioPlayerRef.current.currentTime = seekTime;
-  };
-
-  const generateFlashcard = async (audioBlob) => {
-    setIsGenerating(true);
-    setNotification('Sending audio to server...');
-
-    const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
-    reader.onloadend = async () => {
-        const base64Audio = reader.result.split(',')[1];
-
-        try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audio_data: base64Audio })
-            });
-
-            const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to generate flashcard.');
-            
-            const newCard = { ...data, id: Date.now() };
-            setGeneratedFlashcards(prev => [newCard, ...prev]);
-            setNotification(isListening ? `Card generated! Still listening...` : 'Card generated!');
-        } catch (error) {
-            console.error("Error:", error);
-            setNotification("Failed to process audio. Please try again");
-        } finally {
-            setIsGenerating(false);
-        }
-    };
-  };
-
-  const handleLiveFlashIt = () => {
-    // Prevent multiple generations from firing at once
-    if (isGenerating) return;
-
-    if (audioChunksRef.current.length < 2) {
-      setNotification('Not enough audio captured yet. Speak for a bit longer.');
-      return;
-    }
-    
-    const availableDuration = audioChunksRef.current.length - 1;
-    const chunksToGrab = Math.min(availableDuration, duration);
-
-    if (chunksToGrab < 1) {
-        setNotification('Not enough audio captured to process.');
-        return;
-    }
-
-    const audioSlice = audioChunksRef.current.slice(-(chunksToGrab + 1), -1);
-
-    if (audioSlice.length === 0) {
-        setNotification('Could not create an audio slice. Please try again.');
-        return;
-    }
-
-    const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
-    generateFlashcard(audioBlob);
   };
 
   const handleUploadFlashIt = async () => {
@@ -695,7 +690,6 @@ const MainApp = () => {
     return 16 + (minutes - 60) / 10;
   };
 
-  // --- NEW HELPER FUNCTIONS FOR AUTO-FLASH SLIDER ---
   const formatAutoFlashInterval = (seconds) => {
     if (seconds < 60) return `${seconds}s`;
     const minutes = seconds / 60;
@@ -714,7 +708,7 @@ const MainApp = () => {
 
 
   return (
-    <>
+    <div className="main-app-container">
       {studyingFolder && (
         <FlashcardViewer 
           folderName={studyingFolder.name} 
@@ -765,7 +759,7 @@ const MainApp = () => {
                 </button>
             </div>
             {voiceActivated && !isAutoFlashOn && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
-            {isAutoFlashOn && !voiceActivated && <p className="voice-hint">⚡ Automatically creating a card every {autoFlashInterval} seconds.</p>}
+            {isAutoFlashOn && !voiceActivated && <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>}
             
             <div className="slider-container">
               <label htmlFor="timer-slider" className="slider-label">
@@ -783,7 +777,6 @@ const MainApp = () => {
               />
             </div>
 
-            {/* --- NEW AUTO-FLASH SLIDER --- */}
             {isAutoFlashOn && (
                 <div className="slider-container">
                 <label htmlFor="autoflash-slider" className="slider-label">
@@ -792,8 +785,8 @@ const MainApp = () => {
                 <input 
                     id="autoflash-slider" 
                     type="range" 
-                    min="0" // 20s
-                    max="8" // 210s (3.5min)
+                    min="0"
+                    max="8"
                     step="1" 
                     value={intervalToSlider(autoFlashInterval)} 
                     onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} 
@@ -916,14 +909,12 @@ const MainApp = () => {
           )) : <p className="subtle-text">No folders created yet.</p>}
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
-// No changes needed to these helpers.
-
 const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [deck, setDeck] = useState([...cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1008,7 +999,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
       window.speechSynthesis.cancel();
       clearTimeout(speechTimeoutRef.current);
     };
-  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice]);
+  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice, currentCard]);
   const handleCardClick = () => {
     if (studyDeck.length === 0) return;
     stopReading();
@@ -1255,12 +1246,15 @@ const formatTime = (time) => {
 
 
 // --- FINAL APP COMPONENT ---
-// This is the main component that decides whether to show the Landing Page or the Main App.
 function App() {
   const [showApp, setShowApp] = useState(false);
 
   if (showApp) {
-    return <MainApp />;
+    return (
+      <div className="main-app-container">
+        <MainApp />
+      </div>
+    );
   } else {
     return <LandingPage onEnter={() => setShowApp(true)} />;
   }
