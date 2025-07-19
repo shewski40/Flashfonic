@@ -156,40 +156,34 @@ const MainApp = () => {
 
   const handleLiveFlashIt = useCallback(() => {
     if (isGeneratingRef.current) {
+      setNotification('Please wait for the current card to generate.');
       return;
     }
 
-    // 1. Take a snapshot of the current audio chunks.
-    const currentChunks = [...audioChunksRef.current];
+    // 1. Take a snapshot of all audio captured so far.
+    const capturedChunks = [...audioChunksRef.current];
+    
+    // 2. Immediately reset the buffer to start clean for the next capture.
+    audioChunksRef.current = [];
 
-    // 2. Immediately reset the main buffer for continuous recording.
-    // We keep the very last chunk to ensure a smooth transition into the next recording.
-    audioChunksRef.current = currentChunks.length > 0 ? [currentChunks[currentChunks.length - 1]] : [];
-
-
-    if (currentChunks.length < 2) {
+    // 3. Check if we had enough audio in the snapshot.
+    if (capturedChunks.length < 2) {
       setNotification('Not enough audio captured yet. Speak for a bit longer.');
+      // Put the chunks back if we're not using them, so we don't lose the audio.
+      audioChunksRef.current = capturedChunks;
       return;
     }
     
-    // 3. Process the snapshot to create the card.
-    const availableDuration = currentChunks.length - 1;
-    const chunksToGrab = Math.min(availableDuration, duration);
+    // 4. Process the snapshot to get the last N seconds.
+    // We can just take the tail of the array.
+    const chunksToProcess = capturedChunks.slice(-duration); // Grabs up to the last 'duration' seconds of chunks
 
-    if (chunksToGrab < 1) {
-        setNotification('Not enough audio captured to process.');
-        return;
-    }
-    
-    // Use the snapshot to create the slice, excluding the last chunk (which contains the "flash" trigger).
-    const audioSlice = currentChunks.slice(-(chunksToGrab + 1), -1);
-
-    if (audioSlice.length === 0) {
+    if (chunksToProcess.length === 0) {
         setNotification('Could not create an audio slice. Please try again.');
         return;
     }
 
-    const audioBlob = new Blob(audioSlice, { type: 'audio/webm' });
+    const audioBlob = new Blob(chunksToProcess, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
 
   }, [duration, generateFlashcard]);
