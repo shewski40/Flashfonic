@@ -24,17 +24,10 @@ body {
 }
 
 #root {
-  max-width: 100%; /* Changed for full-width landing page */
+  max-width: 700px;
   margin: 0 auto;
-  padding: 0; /* Changed for full-width landing page */
+  padding: 2rem 1rem; /* Mobile first padding */
   text-align: center;
-}
-
-/* Added wrapper for app padding */
-.main-app-container { 
-    max-width: 700px;
-    margin: 0 auto;
-    padding: 2rem 1rem;
 }
 
 .header {
@@ -209,6 +202,8 @@ input[type="range"]::-webkit-slider-thumb {
   min-height: 1.2em;
   text-align: center;
 }
+
+/* REMOVED .voice-toggle-container rule as it is no longer used */
 
 .voice-activate-btn.active,
 .start-stop-btn.active {
@@ -982,37 +977,39 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* --- MEDIA QUERIES FOR RESPONSIVENESS --- */
+/* Apply these styles for screens wider than 768px (tablets and desktops) */
 @media (min-width: 768px) {
-  .main-app-container {
-      padding: 2rem;
+  #root {
+    padding: 2rem; /* Restore original padding */
   }
 
   .header h1 {
-    font-size: 3.5rem;
+    font-size: 3.5rem; /* Restore original font size */
   }
 
   .subheading {
-    font-size: 1.4rem;
+    font-size: 1.4rem; /* Restore original font size */
   }
 
   .card {
-    padding: 1.5em 2em;
+    padding: 1.5em 2em; /* Restore original padding */
   }
 
   .main-controls .listening-control {
-    flex-direction: row;
-    gap: 1rem;
+    flex-direction: row; /* Side-by-side buttons on desktop */
+    gap: 1rem; /* Add a gap for desktop */
   }
   
+  /* UPDATED: This now targets the buttons directly */
   .start-stop-btn,
   .voice-activate-btn {
-    flex: 1;
-    font-size: 1.1em;
+    flex: 1; /* Make them take up equal space */
+    font-size: 1.1em; /* Restore desktop font size */
   }
 
   .mode-selector button {
-    padding: 0.8em 1em;
-    font-size: 1em;
+    padding: 0.8em 1em; /* Restore padding */
+    font-size: 1em; /* Restore font size */
   }
 
   .flash-it-button {
@@ -1021,41 +1018,41 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .section-heading {
-    font-size: 1.8rem;
+    font-size: 1.8rem; /* Restore desktop font size */
   }
 
   .generated-cards-queue .queue-header {
-    flex-direction: row;
+    flex-direction: row; /* Side-by-side on desktop */
   }
   
   .generated-cards-queue h3 {
-    font-size: 1.5rem;
+    font-size: 1.5rem; /* Restore desktop font size */
   }
 
   .card-content p {
-    font-size: 1rem;
+    font-size: 1rem; /* Restore desktop font size */
   }
   
   .folder-actions {
-    flex-direction: row;
+    flex-direction: row; /* Side-by-side on desktop */
     align-items: center;
   }
 
   .folder-summary {
-    flex-direction: row;
+    flex-direction: row; /* Side-by-side on desktop */
     align-items: center;
   }
   
   .folder-export-buttons button {
-    margin-left: 10px;
+    margin-left: 10px; /* Restore desktop margin */
   }
 
   .upload-button-container button {
-    font-size: 1.1em;
+    font-size: 1.1em; /* Restore desktop size */
   }
 
   .audio-player {
-    gap: 1rem;
+    gap: 1rem; /* Restore desktop gap */
   }
 
   .play-pause-btn {
@@ -1069,311 +1066,40 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .stop-listening-bar {
-    flex-direction: row;
+    flex-direction: row; /* Side-by-side on desktop */
     text-align: left;
   }
 
   .viewer-header h2 {
-    font-size: 1.5rem;
+    font-size: 1.5rem; /* Restore desktop font size */
   }
 
   .viewer-close-btn {
-    font-size: 2.5rem;
+    font-size: 2.5rem; /* Restore desktop font size */
   }
 
   .viewer-controls button {
-    font-size: 1em;
+    font-size: 1em; /* Restore desktop font size */
   }
 
   .viewer-main {
-    height: 350px;
+    height: 350px; /* Restore original height */
   }
 
   .card-face {
-    font-size: 1.8rem;
-    padding: 2rem;
+    font-size: 1.8rem; /* Restore font size */
+    padding: 2rem; /* Restore padding */
   }
   
   .viewer-empty {
-    height: 400px;
+    height: 400px; /* Restore height */
   }
 
   .viewer-empty p {
-    font-size: 1.2rem;
+    font-size: 1.2rem; /* Restore desktop font size */
   }
 
   .modal-content h2 {
-    font-size: 1.75rem;
+    font-size: 1.75rem; /* Restore desktop font size */
   }
-}
-
-/* --- LANDING PAGE STYLES --- */
-.landing-page {
-  max-width: 100%;
-  padding: 0;
-}
-
-.landing-nav {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1rem 2rem;
-  background-color: var(--dark-bg);
-  border-bottom: 1px solid var(--border-color);
-}
-
-.nav-logo {
-  font-family: 'Poppins', sans-serif;
-  font-weight: 700;
-  font-size: 1.5rem;
-  color: transparent;
-  background-clip: text;
-  -webkit-background-clip: text;
-  background-image: var(--brand-gradient);
-}
-
-.nav-cta {
-  padding: 0.5em 1.5em;
-  font-size: 1em;
-  font-weight: bold;
-  border: 1px solid var(--primary-purple);
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background-color: transparent;
-  color: var(--primary-purple);
-}
-
-.nav-cta:hover {
-  background-color: var(--primary-purple);
-  color: white;
-}
-
-.landing-hero {
-  text-align: center;
-  padding: 4rem 2rem 6rem 2rem;
-  background-color: var(--dark-bg);
-}
-
-.landing-h1 {
-  font-family: 'Poppins', sans-serif;
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: transparent;
-  background-clip: text;
-  -webkit-background-clip: text;
-  background-image: var(--brand-gradient);
-  margin-bottom: 1rem;
-}
-
-.landing-p {
-  font-size: 1.1rem;
-  color: var(--text-soft);
-  max-width: 650px;
-  margin: 0 auto 2rem auto;
-  line-height: 1.6;
-}
-
-.landing-cta {
-  padding: 1em 2.5em;
-  font-size: 1.1em;
-  font-weight: bold;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  background: var(--brand-gradient);
-  color: white;
-  box-shadow: 0 10px 20px -10px var(--primary-purple);
-}
-
-.landing-cta:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 10px 25px -5px var(--primary-purple);
-}
-
-.how-it-works, .features-section {
-  text-align: center;
-  padding: 4rem 2rem;
-}
-
-.features-section {
-    background-color: var(--content-bg);
-}
-
-.how-it-works h2, .features-section h2 {
-  font-size: 2rem;
-  color: var(--text-light);
-  margin-bottom: 3rem;
-  font-family: 'Poppins', sans-serif;
-}
-
-.steps-container {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-  max-width: 1000px;
-  margin: 0 auto;
-}
-
-.step {
-  max-width: 300px;
-  margin: 0 auto;
-}
-
-.step-number {
-  width: 50px;
-  height: 50px;
-  border-radius: 50%;
-  border: 2px solid var(--primary-purple);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: var(--primary-purple);
-  margin: 0 auto 1rem auto;
-}
-
-.step h3 {
-  font-size: 1.2rem;
-  color: var(--text-light);
-  margin-bottom: 0.5rem;
-}
-
-.step p {
-  color: var(--text-soft);
-  line-height: 1.5;
-  font-size: 1.1rem;
-}
-
-.features-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  max-width: 900px;
-  margin: 0 auto;
-}
-
-.feature-card {
-  background-color: var(--dark-bg);
-  padding: 2rem;
-  border-radius: 16px;
-  text-align: center; /* User request: Centered text */
-  border: 1px solid var(--border-color);
-}
-
-.feature-card h3 {
-  font-size: 1.2rem;
-  color: var(--secondary-pink);
-  margin-top: 0;
-  margin-bottom: 1rem;
-}
-
-.feature-card p {
-  color: var(--text-soft);
-  line-height: 1.6;
-  margin-bottom: 0;
-}
-
-.landing-footer {
-  text-align: center;
-  padding: 4rem 2rem;
-}
-
-.landing-footer h2 {
-  font-size: 2rem;
-  margin-bottom: 2rem;
-  color: var(--text-light);
-}
-
-.footer-credit {
-    margin-top: 3rem;
-    color: var(--text-dark);
-    font-size: 0.9rem;
-}
-
-@media (min-width: 768px) {
-  .landing-h1 {
-    font-size: 3.5rem;
-  }
-  .landing-p {
-    font-size: 1.25rem;
-  }
-  .steps-container {
-    grid-template-columns: repeat(3, 1fr); /* User request: Evenly space columns */
-  }
-  .features-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-/* --- NEW AUTO-FLASH STYLES --- */
-.listening-modes {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  justify-content: space-around;
-}
-
-.autoflash-btn {
-  padding: 0.8em 1.5em;
-  font-size: 1em;
-  font-weight: bold;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: var(--primary-purple);
-  color: white;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5em;
-}
-
-.autoflash-btn.active {
-  background-color: var(--success-green);
-  color: white;
-}
-
-.autoflash-btn:disabled,
-.voice-activate-btn:disabled {
-    background-color: var(--border-color) !important;
-    color: var(--text-dark) !important;
-    cursor: not-allowed;
-    box-shadow: none;
-}
-
-.beta-tag {
-  font-size: 0.7em;
-  font-weight: bold;
-  background-color: var(--secondary-pink);
-  color: white;
-  padding: 0.2em 0.5em;
-  border-radius: 6px;
-  vertical-align: middle;
-}
-
-@media (min-width: 768px) {
-  .autoflash-btn {
-    font-size: 1.1em;
-  }
-}
-
-/* --- NEW BLING STYLES --- */
-@keyframes shimmer {
-  0% { background-position: -500% 0; }
-  100% { background-position: 500% 0; }
-}
-
-.brand-bling {
-  font-weight: 700;
-  color: transparent;
-  background-clip: text;
-  -webkit-background-clip: text;
-  background-image: linear-gradient(to right, #EC4899, #F9FAFB, #8B5CF6, #F9FAFB, #EC4899);
-  background-size: 200% auto;
-  animation: shimmer 5s linear infinite;
 }
