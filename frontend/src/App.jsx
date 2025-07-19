@@ -2,369 +2,76 @@ import React, { useState, useRef, useEffect } from 'react';
 import jsPDF from 'jspdf';
 import './App.css';
 
-// --- Flashcard Viewer Component ---
-const FlashcardViewer = ({ folderName, cards, onClose }) => {
-  const [deck, setDeck] = useState([...cards]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [isArrangeMode, setIsArrangeMode] = useState(false);
-  const [flaggedCards, setFlaggedCards] = useState({});
-  const [reviewMode, setReviewMode] = useState('all');
-
-  const [isReading, setIsReading] = useState(false);
-  const [speechRate, setSpeechRate] = useState(1);
-  const [speechDelay, setSpeechDelay] = useState(3);
-  const [voices, setVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState('');
-  const speechTimeoutRef = useRef(null);
-
-  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
-  const voiceDropdownRef = useRef(null);
-
-  const studyDeck = reviewMode === 'flagged' 
-    ? deck.filter(card => flaggedCards[card.id]) 
-    : deck;
-
-  const currentCard = studyDeck[currentIndex];
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (voiceDropdownRef.current && !voiceDropdownRef.current.contains(event.target)) {
-        setIsVoiceDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
-      setVoices(englishVoices);
-      if (englishVoices.length > 0 && !selectedVoice) {
-        setSelectedVoice(englishVoices[0].name);
-      }
-    };
-
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, [selectedVoice]);
-
-  const speak = (text, onEnd) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voice = voices.find(v => v.name === selectedVoice);
-    if (voice) {
-      utterance.voice = voice;
-    }
-    utterance.rate = speechRate;
-    utterance.onend = onEnd;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const stopReading = () => {
-    setIsReading(false);
-    window.speechSynthesis.cancel();
-    if (speechTimeoutRef.current) {
-      clearTimeout(speechTimeoutRef.current);
-    }
-  };
-
-  useEffect(() => {
-    if (!isReading || !currentCard) {
-      return;
-    }
-
-    const readCardSequence = () => {
-      setIsFlipped(false);
-      const questionText = `Question: ${currentCard.question}`;
-      
-      speak(questionText, () => {
-        speechTimeoutRef.current = setTimeout(() => {
-          setIsFlipped(true);
-          const answerText = `Answer: ${currentCard.answer}`;
-          speak(answerText, () => {
-            setCurrentIndex(prev => (prev + 1) % studyDeck.length);
-          });
-        }, speechDelay * 1000);
-      });
-    };
-
-    readCardSequence();
-
-    return () => {
-      window.speechSynthesis.cancel();
-      clearTimeout(speechTimeoutRef.current);
-    };
-  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice]);
-
-  const handleCardClick = () => {
-    if (studyDeck.length === 0) return;
-    stopReading();
-    setIsFlipped(prev => !prev);
-  };
-
-  const goToNext = () => {
-    if (studyDeck.length === 0) return;
-    stopReading();
-    setIsFlipped(false);
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % studyDeck.length);
-  };
-
-  const goToPrev = () => {
-    if (studyDeck.length === 0) return;
-    stopReading();
-    setIsFlipped(false);
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + studyDeck.length) % studyDeck.length);
-  };
-
-  const scrambleDeck = () => {
-    stopReading();
-    const newDeckOrder = [...deck].sort(() => Math.random() - 0.5);
-    setDeck(newDeckOrder);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-  };
-
-  const toggleFlag = (cardId) => {
-    setFlaggedCards(prev => {
-      const newFlags = {...prev};
-      if (newFlags[cardId]) {
-        delete newFlags[cardId];
-      } else {
-        newFlags[cardId] = true;
-      }
-      return newFlags;
-    });
-  };
-
-  const toggleReviewMode = () => {
-    stopReading();
-    setReviewMode(prev => prev === 'all' ? 'flagged' : 'all');
-    setCurrentIndex(0);
-    setIsFlipped(false);
-  };
-
-  const handleDragStart = (e, index) => {
-    e.dataTransfer.setData("cardIndex", index);
-  };
-
-  const handleDrop = (e, dropIndex) => {
-    const dragIndex = e.dataTransfer.getData("cardIndex");
-    const newDeck = [...deck];
-    const [draggedItem] = newDeck.splice(dragIndex, 1);
-    newDeck.splice(dropIndex, 0, draggedItem);
-    setDeck(newDeck);
-  };
-  
-  useEffect(() => {
-    return () => stopReading();
-  }, []);
-
+// --- LANDING PAGE COMPONENT ---
+// This is the new landing page component.
+const LandingPage = ({ onEnter }) => {
   return (
-    <div className="viewer-overlay">
-      <div className="viewer-header">
-        <h2>Studying: {folderName} {reviewMode === 'flagged' ? `(Flagged)` : ''}</h2>
-        <button onClick={onClose} className="viewer-close-btn">&times;</button>
-      </div>
+    <div className="landing-page">
+      <header className="landing-hero">
+        <h1 className="landing-h1">The Future of Studying is Listening.</h1>
+        <p className="landing-p">
+          Introducing FlashFonic, the world's first app that uses AI to instantly turn your spoken words, lectures, and audio notes into powerful flashcards.
+        </p>
+        <button onClick={onEnter} className="landing-cta">Enter the Beta</button>
+      </header>
 
-      <div className="viewer-controls">
-        <button onClick={scrambleDeck}>Scramble</button>
-        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>
-          {isArrangeMode ? 'Study' : 'Arrange'}
-        </button>
-        <button onClick={toggleReviewMode}>
-          {reviewMode === 'all' ? `Review Flagged (${Object.keys(flaggedCards).length})` : 'Review All'}
-        </button>
-      </div>
-
-      {isArrangeMode ? (
-        <div className="arrange-container">
-          <h3>Drag and drop to reorder</h3>
-          {deck.map((card, index) => (
-            <div 
-              key={card.id} 
-              className="arrange-card"
-              draggable
-              onDragStart={(e) => handleDragStart(e, index)}
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => handleDrop(e, index)}
-            >
-              {index + 1}. {card.question}
-            </div>
-          ))}
+      <section className="how-it-works">
+        <h2>How It Works</h2>
+        <div className="steps-container">
+          <div className="step">
+            <div className="step-number">1</div>
+            <h3>CAPTURE</h3>
+            <p>Record live audio or upload a file.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">2</div>
+            <h3>AI GENERATE</h3>
+            <p>Our AI transcribes and creates a Q&A flashcard.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">3</div>
+            <h3>STUDY</h3>
+            <p>Master your material with our advanced study tools.</p>
+          </div>
         </div>
-      ) : (
-        <>
-          {studyDeck.length > 0 ? (
-            <>
-              <div className="viewer-main" onClick={handleCardClick}>
-                <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
-                  <div className="card-face card-front">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
-                      &#9873;
-                    </button>
-                    <p>{currentCard?.question}</p>
-                  </div>
-                  <div className="card-face card-back">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
-                      &#9873;
-                    </button>
-                    <p>{currentCard?.answer}</p>
-                  </div>
-                </div>
-              </div>
+      </section>
 
-              <div className="viewer-nav">
-                <button onClick={goToPrev}>&larr; Prev</button>
-                <span>{currentIndex + 1} / {studyDeck.length}</span>
-                <button onClick={goToNext} >Next &rarr;</button>
-              </div>
-          </>
-          ) : (
-            <div className="viewer-empty">
-              <p>No cards to display in this mode.</p>
-              {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
-            </div>
-          )}
-          <div className="tts-controls">
-            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">
-              {isReading ? '■ Stop Audio' : '▶ Play Audio'}
-            </button>
-              {/* --- Custom Voice Selector --- */}
-            <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
-              <label>Voice</label>
-              <div 
-                className="custom-select-trigger"
-                onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
-              >
-                {selectedVoice || 'Select a voice...'}
-                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
-              </div>
-              {isVoiceDropdownOpen && (
-                <div className="custom-select-options">
-                  {voices.map(voice => (
-                    <div 
-                      key={voice.name} 
-                      className="custom-select-option"
-                      onClick={() => {
-                        setSelectedVoice(voice.name);
-                        setIsVoiceDropdownOpen(false);
-                      }}
-                    >
-                      {voice.name} ({voice.lang})
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="tts-slider-group">
-              <label>Delay: {speechDelay}s</label>
-              <input 
-                type="range" 
-                min="1" 
-                max="10" 
-                step="1" 
-                value={speechDelay} 
-                onChange={(e) => setSpeechDelay(Number(e.target.value))}
-                disabled={isReading}
-              />
-            </div>
-            <div className="tts-slider-group">
-              <label>Speed: {speechRate}x</label>
-              <input 
-                type="range" 
-                min="0.5" 
-                max="2" 
-                step="0.1" 
-                value={speechRate} 
-                onChange={(e) => setSpeechRate(Number(e.target.value))}
-                disabled={isReading}
-              />
-            </div>
+      <section className="features-section">
+        <h2>A Smarter Way to Learn</h2>
+        <div className="features-grid">
+          <div className="feature-card">
+            <h3>🤖 Revolutionary Audio-to-Card AI</h3>
+            <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
           </div>
-        </>
-      )}
-    </div>
-  );
-};
-
-// --- Create Folder Modal Component ---
-const CreateFolderModal = ({ onClose, onCreate }) => {
-  const [folderName, setFolderName] = useState('');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (folderName.trim()) {
-      onCreate(folderName.trim());
-    }
-  };
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Create New Folder</h2>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            className="modal-input"
-            placeholder="Enter folder name..."
-            value={folderName}
-            onChange={(e) => setFolderName(e.target.value)}
-            autoFocus
-          />
-          <div className="modal-actions">
-            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
-            <button type="submit" className="modal-create-btn">Create</button>
+          <div className="feature-card">
+            <h3>⚡️ Hands-Free Capture Modes</h3>
+            <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
           </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-// --- Reusable Prompt Modal ---
-const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
-  const [value, setValue] = useState(defaultValue || '');
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (value) {
-      onConfirm(value);
-    }
-  };
-
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{title}</h2>
-        <p className="modal-message">{message}</p>
-        <form onSubmit={handleSubmit}>
-          <input
-            type="number"
-            className="modal-input"
-            value={value}
-            onChange={(e) => setValue(e.target.value)}
-            autoFocus
-          />
-          <div className="modal-actions">
-            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
-            <button type="submit" className="modal-create-btn">Confirm</button>
+          <div className="feature-card">
+            <h3>📚 Advanced Study Suite</h3>
+            <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
           </div>
-        </form>
-      </div>
+          <div className="feature-card">
+            <h3>📂 Organize & Export with Ease</h3>
+            <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer className="landing-footer">
+        <h2>Ready to change the way you learn?</h2>
+        <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
+         <p className="footer-credit">Welcome to the FlashFonic Beta</p>
+      </footer>
     </div>
   );
 };
 
 
-function App() {
+// --- YOUR ORIGINAL APP CODE, WRAPPED IN A NEW COMPONENT ---
+// I've moved all your original code into this "MainApp" component.
+const MainApp = () => {
+  // All the original state and functions from your App component go here
   const [appMode, setAppMode] = useState('live');
   const [isListening, setIsListening] = useState(false);
   const [notification, setNotification] = useState('');
@@ -387,7 +94,10 @@ function App() {
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
-
+  
+  // --- NEW STATE FOR AUTO-FLASH ---
+  const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
+  const [autoFlashInterval, setAutoFlashInterval] = useState(20); // Default to 20 seconds
 
   const audioChunksRef = useRef([]);
   const mediaRecorderRef = useRef(null);
@@ -396,6 +106,7 @@ function App() {
   const audioPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
+  const autoFlashTimerRef = useRef(null); // Ref to hold the interval ID
   
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
@@ -410,6 +121,32 @@ function App() {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
+  // --- NEW EFFECT FOR AUTO-FLASH LOGIC ---
+  useEffect(() => {
+    // Clear any existing interval
+    if (autoFlashTimerRef.current) {
+      clearInterval(autoFlashTimerRef.current);
+      autoFlashTimerRef.current = null;
+    }
+
+    // If we are listening and auto-flash is on, start a new interval
+    if (isListening && isAutoFlashOn) {
+      autoFlashTimerRef.current = setInterval(() => {
+        // We call handleLiveFlashIt directly here
+        handleLiveFlashIt();
+      }, autoFlashInterval * 1000);
+    }
+
+    // Cleanup function to clear the interval when the component unmounts
+    // or when dependencies change before the effect re-runs.
+    return () => {
+      if (autoFlashTimerRef.current) {
+        clearInterval(autoFlashTimerRef.current);
+      }
+    };
+  }, [isListening, isAutoFlashOn, autoFlashInterval, duration]); // Rerun when these change
+
+
   const handleModeChange = (mode) => {
     if (isListening) {
       stopListening();
@@ -422,7 +159,15 @@ function App() {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
-      setNotification('Listening... click "Flash It" or use voice trigger.');
+      
+      let initialNotification = 'Listening...';
+      if (isAutoFlashOn) {
+        initialNotification = `Listening... Auto-Flash enabled for every ${autoFlashInterval}s.`
+      } else if (voiceActivated) {
+        initialNotification = 'Listening... click "Flash It" or use voice trigger.'
+      }
+      setNotification(initialNotification);
+
 
       if (listeningDuration > 0) {
         listeningTimeoutRef.current = setTimeout(() => {
@@ -495,7 +240,7 @@ function App() {
         recognition.start();
         recognitionRef.current = recognition;
       }
-    } catch (err)      {
+    } catch (err)     {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
     }
@@ -506,6 +251,9 @@ function App() {
       clearTimeout(listeningTimeoutRef.current);
       listeningTimeoutRef.current = null;
     }
+    
+    // The useEffect cleanup will handle clearing the auto-flash interval
+    // when isListening becomes false.
 
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
@@ -592,7 +340,7 @@ function App() {
             
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
-            setNotification('');
+            setNotification(isListening ? `Card generated! Still listening...` : 'Card generated!');
         } catch (error) {
             console.error("Error:", error);
             setNotification("Failed to process audio. Please try again");
@@ -603,6 +351,9 @@ function App() {
   };
 
   const handleLiveFlashIt = () => {
+    // Prevent multiple generations from firing at once
+    if (isGenerating) return;
+
     if (audioChunksRef.current.length < 2) {
       setNotification('Not enough audio captured yet. Speak for a bit longer.');
       return;
@@ -740,7 +491,6 @@ function App() {
     });
     setMovingCard(null);
   };
-
 
   const exportFolderToPDF = (folderName) => {
     setPromptModalConfig({
@@ -945,6 +695,23 @@ function App() {
     return 16 + (minutes - 60) / 10;
   };
 
+  // --- NEW HELPER FUNCTIONS FOR AUTO-FLASH SLIDER ---
+  const formatAutoFlashInterval = (seconds) => {
+    if (seconds < 60) return `${seconds}s`;
+    const minutes = seconds / 60;
+    return `${minutes}min`;
+  }
+
+  const sliderToInterval = (value) => {
+    if (value <= 4) return 20 + (value * 10); // 20, 30, 40, 50, 60
+    return 60 + (value - 4) * 30; // 90, 120, 150...
+  };
+
+  const intervalToSlider = (seconds) => {
+    if (seconds <= 60) return (seconds - 20) / 10;
+    return 4 + (seconds - 60) / 30;
+  };
+
 
   return (
     <>
@@ -979,18 +746,26 @@ function App() {
         {appMode === 'live' ? (
           <>
             <div className="listening-control">
-              {/* UPDATED: Added active class for styling when listening */}
               <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
-              <div className="voice-toggle-container">
-                  <button 
-                      onClick={() => setVoiceActivated(!voiceActivated)}
-                      className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
-                  >
-                      Voice Activate
-                  </button>
-              </div>
             </div>
-            {voiceActivated && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
+            <div className="listening-modes">
+                <button 
+                    onClick={() => setVoiceActivated(!voiceActivated)}
+                    className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
+                    disabled={isAutoFlashOn}
+                >
+                    Voice Activate
+                </button>
+                <button 
+                    onClick={() => setIsAutoFlashOn(!isAutoFlashOn)}
+                    className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}
+                    disabled={voiceActivated}
+                >
+                    Auto-Flash <span className="beta-tag">Beta</span>
+                </button>
+            </div>
+            {voiceActivated && !isAutoFlashOn && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
+            {isAutoFlashOn && !voiceActivated && <p className="voice-hint">⚡ Automatically creating a card every {autoFlashInterval} seconds.</p>}
             
             <div className="slider-container">
               <label htmlFor="timer-slider" className="slider-label">
@@ -1008,6 +783,25 @@ function App() {
               />
             </div>
 
+            {/* --- NEW AUTO-FLASH SLIDER --- */}
+            {isAutoFlashOn && (
+                <div className="slider-container">
+                <label htmlFor="autoflash-slider" className="slider-label">
+                    Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span>
+                </label>
+                <input 
+                    id="autoflash-slider" 
+                    type="range" 
+                    min="0" // 20s
+                    max="8" // 210s (3.5min)
+                    step="1" 
+                    value={intervalToSlider(autoFlashInterval)} 
+                    onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} 
+                    disabled={isListening} 
+                />
+                </div>
+            )}
+
             <div className="slider-container">
               <label htmlFor="duration-slider" className="slider-label">
                 Capture Last: <span className="slider-value">{duration} seconds</span>
@@ -1015,7 +809,7 @@ function App() {
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
 
-            <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
+            <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating || isAutoFlashOn}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         ) : (
           <>
@@ -1124,13 +918,352 @@ function App() {
       </div>
     </>
   );
-}
+};
 
+
+// --- HELPER COMPONENTS AND FUNCTIONS ---
+// No changes needed to these helpers.
+
+const FlashcardViewer = ({ folderName, cards, onClose }) => {
+  const [deck, setDeck] = useState([...cards]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isFlipped, setIsFlipped] = useState(false);
+  const [isArrangeMode, setIsArrangeMode] = useState(false);
+  const [flaggedCards, setFlaggedCards] = useState({});
+  const [reviewMode, setReviewMode] = useState('all');
+  const [isReading, setIsReading] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1);
+  const [speechDelay, setSpeechDelay] = useState(3);
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const speechTimeoutRef = useRef(null);
+  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
+  const voiceDropdownRef = useRef(null);
+  const studyDeck = reviewMode === 'flagged' 
+    ? deck.filter(card => flaggedCards[card.id]) 
+    : deck;
+  const currentCard = studyDeck[currentIndex];
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (voiceDropdownRef.current && !voiceDropdownRef.current.contains(event.target)) {
+        setIsVoiceDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+      setVoices(englishVoices);
+      if (englishVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(englishVoices[0].name);
+      }
+    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+    return () => {
+      window.speechSynthesis.onvoiceschanged = null;
+    };
+  }, [selectedVoice]);
+  const speak = (text, onEnd) => {
+    const utterance = new SpeechSynthesisUtterance(text);
+    const voice = voices.find(v => v.name === selectedVoice);
+    if (voice) {
+      utterance.voice = voice;
+    }
+    utterance.rate = speechRate;
+    utterance.onend = onEnd;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+  };
+  const stopReading = () => {
+    setIsReading(false);
+    window.speechSynthesis.cancel();
+    if (speechTimeoutRef.current) {
+      clearTimeout(speechTimeoutRef.current);
+    }
+  };
+  useEffect(() => {
+    if (!isReading || !currentCard) {
+      return;
+    }
+    const readCardSequence = () => {
+      setIsFlipped(false);
+      const questionText = `Question: ${currentCard.question}`;
+      
+      speak(questionText, () => {
+        speechTimeoutRef.current = setTimeout(() => {
+          setIsFlipped(true);
+          const answerText = `Answer: ${currentCard.answer}`;
+          speak(answerText, () => {
+            setCurrentIndex(prev => (prev + 1) % studyDeck.length);
+          });
+        }, speechDelay * 1000);
+      });
+    };
+    readCardSequence();
+    return () => {
+      window.speechSynthesis.cancel();
+      clearTimeout(speechTimeoutRef.current);
+    };
+  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice]);
+  const handleCardClick = () => {
+    if (studyDeck.length === 0) return;
+    stopReading();
+    setIsFlipped(prev => !prev);
+  };
+  const goToNext = () => {
+    if (studyDeck.length === 0) return;
+    stopReading();
+    setIsFlipped(false);
+    setCurrentIndex((prevIndex) => (prevIndex + 1) % studyDeck.length);
+  };
+  const goToPrev = () => {
+    if (studyDeck.length === 0) return;
+    stopReading();
+    setIsFlipped(false);
+    setCurrentIndex((prevIndex) => (prevIndex - 1 + studyDeck.length) % studyDeck.length);
+  };
+  const scrambleDeck = () => {
+    stopReading();
+    const newDeckOrder = [...deck].sort(() => Math.random() - 0.5);
+    setDeck(newDeckOrder);
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  };
+  const toggleFlag = (cardId) => {
+    setFlaggedCards(prev => {
+      const newFlags = {...prev};
+      if (newFlags[cardId]) {
+        delete newFlags[cardId];
+      } else {
+        newFlags[cardId] = true;
+      }
+      return newFlags;
+    });
+  };
+  const toggleReviewMode = () => {
+    stopReading();
+    setReviewMode(prev => prev === 'all' ? 'flagged' : 'all');
+    setCurrentIndex(0);
+    setIsFlipped(false);
+  };
+  const handleDragStart = (e, index) => {
+    e.dataTransfer.setData("cardIndex", index);
+  };
+  const handleDrop = (e, dropIndex) => {
+    const dragIndex = e.dataTransfer.getData("cardIndex");
+    const newDeck = [...deck];
+    const [draggedItem] = newDeck.splice(dragIndex, 1);
+    newDeck.splice(dropIndex, 0, draggedItem);
+    setDeck(newDeck);
+  };
+  useEffect(() => {
+    return () => stopReading();
+  }, []);
+  return (
+    <div className="viewer-overlay">
+      <div className="viewer-header">
+        <h2>Studying: {folderName} {reviewMode === 'flagged' ? `(Flagged)` : ''}</h2>
+        <button onClick={onClose} className="viewer-close-btn">&times;</button>
+      </div>
+      <div className="viewer-controls">
+        <button onClick={scrambleDeck}>Scramble</button>
+        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>
+          {isArrangeMode ? 'Study' : 'Arrange'}
+        </button>
+        <button onClick={toggleReviewMode}>
+          {reviewMode === 'all' ? `Review Flagged (${Object.keys(flaggedCards).length})` : 'Review All'}
+        </button>
+      </div>
+      {isArrangeMode ? (
+        <div className="arrange-container">
+          <h3>Drag and drop to reorder</h3>
+          {deck.map((card, index) => (
+            <div 
+              key={card.id} 
+              className="arrange-card"
+              draggable
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => handleDrop(e, index)}
+            >
+              {index + 1}. {card.question}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <>
+          {studyDeck.length > 0 ? (
+            <>
+              <div className="viewer-main" onClick={handleCardClick}>
+                <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
+                  <div className="card-face card-front">
+                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
+                      &#9873;
+                    </button>
+                    <p>{currentCard?.question}</p>
+                  </div>
+                  <div className="card-face card-back">
+                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>
+                      &#9873;
+                    </button>
+                    <p>{currentCard?.answer}</p>
+                  </div>
+                </div>
+              </div>
+              <div className="viewer-nav">
+                <button onClick={goToPrev}>&larr; Prev</button>
+                <span>{currentIndex + 1} / {studyDeck.length}</span>
+                <button onClick={goToNext} >Next &rarr;</button>
+              </div>
+          </>
+          ) : (
+            <div className="viewer-empty">
+              <p>No cards to display in this mode.</p>
+              {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
+            </div>
+          )}
+          <div className="tts-controls">
+            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">
+              {isReading ? '■ Stop Audio' : '▶ Play Audio'}
+            </button>
+            <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+              <label>Voice</label>
+              <div 
+                className="custom-select-trigger"
+                onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}
+              >
+                {selectedVoice || 'Select a voice...'}
+                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+              </div>
+              {isVoiceDropdownOpen && (
+                <div className="custom-select-options">
+                  {voices.map(voice => (
+                    <div 
+                      key={voice.name} 
+                      className="custom-select-option"
+                      onClick={() => {
+                        setSelectedVoice(voice.name);
+                        setIsVoiceDropdownOpen(false);
+                      }}
+                    >
+                      {voice.name} ({voice.lang})
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="tts-slider-group">
+              <label>Delay: {speechDelay}s</label>
+              <input 
+                type="range" 
+                min="1" 
+                max="10" 
+                step="1" 
+                value={speechDelay} 
+                onChange={(e) => setSpeechDelay(Number(e.target.value))}
+                disabled={isReading}
+              />
+            </div>
+            <div className="tts-slider-group">
+              <label>Speed: {speechRate}x</label>
+              <input 
+                type="range" 
+                min="0.5" 
+                max="2" 
+                step="0.1" 
+                value={speechRate} 
+                onChange={(e) => setSpeechRate(Number(e.target.value))}
+                disabled={isReading}
+              />
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+const CreateFolderModal = ({ onClose, onCreate }) => {
+  const [folderName, setFolderName] = useState('');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (folderName.trim()) {
+      onCreate(folderName.trim());
+    }
+  };
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Create New Folder</h2>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="text"
+            className="modal-input"
+            placeholder="Enter folder name..."
+            value={folderName}
+            onChange={(e) => setFolderName(e.target.value)}
+            autoFocus
+          />
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
+            <button type="submit" className="modal-create-btn">Create</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
+  const [value, setValue] = useState(defaultValue || '');
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    if (value) {
+      onConfirm(value);
+    }
+  };
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>{title}</h2>
+        <p className="modal-message">{message}</p>
+        <form onSubmit={handleSubmit}>
+          <input
+            type="number"
+            className="modal-input"
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            autoFocus
+          />
+          <div className="modal-actions">
+            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
+            <button type="submit" className="modal-create-btn">Confirm</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
 const formatTime = (time) => {
   if (isNaN(time) || time === 0) return '00:00';
   const minutes = Math.floor(time / 60);
   const seconds = Math.floor(time % 60);
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
+
+
+// --- FINAL APP COMPONENT ---
+// This is the main component that decides whether to show the Landing Page or the Main App.
+function App() {
+  const [showApp, setShowApp] = useState(false);
+
+  if (showApp) {
+    return <MainApp />;
+  } else {
+    return <LandingPage onEnter={() => setShowApp(true)} />;
+  }
+}
 
 export default App;
