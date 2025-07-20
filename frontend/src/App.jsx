@@ -587,10 +587,11 @@ const MainApp = () => {
     return 16 + (minutes - 60) / 10;
   };
 
+  // --- UI FIX: Updated function to use full words ---
   const formatAutoFlashInterval = (seconds) => {
-    if (seconds < 60) return `${seconds}s`;
+    if (seconds < 60) return `${seconds} seconds`;
     const minutes = seconds / 60;
-    return `${minutes}min`;
+    return `${minutes} minute${minutes > 1 ? 's' : ''}`;
   }
 
   const sliderToInterval = (value) => {
@@ -643,7 +644,8 @@ const MainApp = () => {
                 </div>
             )}
             <div className="slider-container">
-              <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
+              {/* --- UI FIX: Added "of audio" for clarity --- */}
+              <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
             <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating || isAutoFlashOn}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
@@ -679,7 +681,8 @@ const MainApp = () => {
               </>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
-              <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
+              {/* --- UI FIX: Added "of audio" for clarity --- */}
+              <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
              <button onClick={handleUploadFlash} className="flash-it-button" disabled={!uploadedFile || isGenerating || (isUploadAutoFlashOn && isPlaying)}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
