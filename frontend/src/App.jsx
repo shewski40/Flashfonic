@@ -156,31 +156,34 @@ const MainApp = () => {
 
   const handleLiveFlashIt = useCallback(() => {
   if (isGeneratingRef.current) {
-    setNotification('Please wait for the current card to generate.');
+    setNotification('Please wait for the current card to finish generating.');
     return;
   }
 
-  // Add a small delay (e.g., 500ms) to ensure fresh chunks are available
+  // Delay to let a final audio chunk complete
   setTimeout(() => {
-    const capturedChunks = [...audioChunksRef.current];
+    const chunks = [...audioChunksRef.current];
+    const availableChunks = chunks.length;
 
-    if (capturedChunks.length < 2) {
-      setNotification('Not enough audio captured yet. Speak for a bit longer.');
+    if (availableChunks < 3) {
+      setNotification('Not enough audio captured yet. Speak a bit longer.');
       return;
     }
 
-    const chunksToProcess = capturedChunks.slice(-duration); // last N seconds
-    if (chunksToProcess.length === 0) {
-      setNotification('Could not create an audio slice. Please try again.');
+    const grab = Math.min(duration, availableChunks - 1);
+    const slice = chunks.slice(-grab - 1, -1); // exclude last second (assumed "flash" trigger)
+    
+    if (slice.length === 0) {
+      setNotification('Audio slice failed. Try again.');
       return;
     }
 
-    const audioBlob = new Blob(chunksToProcess, { type: 'audio/webm' });
+    const audioBlob = new Blob(slice, { type: 'audio/webm' });
     generateFlashcard(audioBlob);
 
-    // Reset AFTER sending to server — not before.
-    audioChunksRef.current = [];
-  }, 500); // slight buffer delay helps reduce race conditions
+    // Optional: purge old chunks to avoid memory buildup
+    audioChunksRef.current = chunks.slice(-30); // Keep last 30 for rolling buffer
+  }, 300); // slight delay to ensure chunk availability
 }, [duration, generateFlashcard]);
 
   useEffect(() => {
@@ -224,11 +227,7 @@ const MainApp = () => {
       if (isAutoFlashOn) {
         initialNotification = `Listening... Auto-Flash enabled for every ${autoFlashInterval}s.`
       } else if (voiceActivated) {
-        initialNotification = 'Listening... voice trigger active.'
-      }
-
-      if (voiceActivated && isAutoFlashOn) {
-        initialNotification += ` Auto-Flash every ${autoFlashInterval}s also active.`;
+        initialNotification = 'Listening... click "Flash It" or use voice trigger.'
       }
       setNotification(initialNotification);
 
@@ -255,7 +254,7 @@ const MainApp = () => {
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         audioChunksRef.current.push(event.data);
       });
-      mediaRecorderRef.current.start(250);
+      mediaRecorderRef.current.start(1000);
 
       const checkForSilence = () => {
         analyser.getByteFrequencyData(dataArray);
@@ -658,8 +657,12 @@ const MainApp = () => {
               <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
             </div>
             <div className="listening-modes">
-                <button onClick={() => setVoiceActivated(!voiceActivated)} className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}></button>
-                <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`} disabled={voiceActivated}>Auto-Flash <span className="beta-tag">Beta</span></button>
+              <button onClick={() => setVoiceActivated(!voiceActivated)} className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}>
+                Voice Activate
+              </button>
+              <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}>
+                Auto-Flash <span className="beta-tag">Beta</span>
+              </button>
             </div>
             {voiceActivated && !isAutoFlashOn && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
             {isAutoFlashOn && !voiceActivated && <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>}
