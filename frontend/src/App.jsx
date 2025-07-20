@@ -133,6 +133,9 @@ const MainApp = () => {
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1];
+        
+        console.log("Sending audio blob size:", audioBlob.size);
+
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
