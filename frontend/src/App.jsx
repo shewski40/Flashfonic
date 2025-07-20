@@ -100,7 +100,6 @@ const MainApp = () => {
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
 
   const audioChunksRef = useRef([]);
-  // *** FIX: Create a ref to store the audio header chunk ***
   const headerChunkRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
@@ -144,9 +143,8 @@ const MainApp = () => {
         }
 
         try {
-            // Use environment variable for backend URL, fallback for local dev
-            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
-            const response = await fetch(`${backendUrl}/generate-flashcard`, {
+            // *** FIX: Reverted to the correct, hardcoded backend URL to resolve "failed to fetch" error ***
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ audio_data: base64Audio })
@@ -176,7 +174,6 @@ const MainApp = () => {
         return;
     }
 
-    // *** FIX: Check if the header has been captured ***
     if (!headerChunkRef.current) {
         setNotification('Audio not ready. Please wait a moment and try again.');
         return;
@@ -191,7 +188,6 @@ const MainApp = () => {
     }
 
     const grab = Math.min(duration, availableChunks);
-    // Grab the last 'grab' number of chunks.
     const slice = chunks.slice(-grab); 
     
     if (slice.length === 0) {
@@ -199,12 +195,9 @@ const MainApp = () => {
         return;
     }
 
-    // *** FIX: Prepend the stored header chunk to the slice to create a valid file ***
     const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: 'audio/webm' });
     generateFlashcard(audioBlob);
 
-    // Optional: purge old chunks to avoid memory buildup
-    // Keep more chunks to ensure the header isn't accidentally purged
     audioChunksRef.current = chunks.slice(-60); 
 }, [duration, generateFlashcard]);
 
@@ -266,7 +259,6 @@ const MainApp = () => {
       const destination = audioContextRef.current.createMediaStreamDestination();
       source.connect(destination);
       
-      // Use a common MIME type if webm is problematic
       const mimeType = 'audio/webm; codecs=opus';
       mediaRecorderRef.current = new MediaRecorder(destination.stream, { mimeType });
       
@@ -276,13 +268,11 @@ const MainApp = () => {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
-      // *** FIX: Reset refs on each new listening session ***
       audioChunksRef.current = [];
       headerChunkRef.current = null;
 
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
-            // *** FIX: Store the first chunk as the header ***
             if (!headerChunkRef.current) {
                 headerChunkRef.current = event.data;
             }
