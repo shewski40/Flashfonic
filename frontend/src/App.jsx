@@ -129,7 +129,6 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  // --- REVISED: A single, smarter function to send audio to the backend ---
   const sendAudioForProcessing = useCallback(async (payload) => {
     setIsGenerating(true);
     setNotification('Sending audio to server...');
@@ -143,10 +142,9 @@ const MainApp = () => {
         
         const requestBody = {
             audio_data: base64Audio,
-            is_live_capture: isLive, // Let backend know the source
+            is_live_capture: isLive,
         };
 
-        // Only add timing info if it's an uploaded file segment
         if (!isLive) {
             requestBody.startTime = startTime;
             requestBody.duration = duration;
@@ -198,12 +196,11 @@ const MainApp = () => {
     audioChunksRef.current = chunks.slice(-60);
   }, [duration, sendAudioForProcessing]);
 
-  // --- REVISED: Upload "Flash It" and Auto-Flash now use the new robust system ---
   const handleUploadFlash = useCallback(() => {
     if (!uploadedFile || isGeneratingRef.current) return;
 
     sendAudioForProcessing({
-        audioBlob: uploadedFile, // Send the WHOLE file
+        audioBlob: uploadedFile,
         isLive: false,
         startTime: audioPlayerRef.current.currentTime,
         duration: duration,
@@ -251,7 +248,6 @@ const MainApp = () => {
       setIsListening(true);
       setNotification('Listening...');
 
-      // Other setup...
       const mimeType = 'audio/webm; codecs=opus';
       mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
       
