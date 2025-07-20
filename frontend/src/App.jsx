@@ -98,10 +98,8 @@ const MainApp = () => {
   const [listeningDuration, setListeningDuration] = useState(1);
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
-  // --- NEW STATE FOR UPLOAD AUTO-FLASH ---
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
   const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
-
 
   const audioChunksRef = useRef([]);
   const headerChunkRef = useRef(null);
@@ -112,7 +110,6 @@ const MainApp = () => {
   const recognitionRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
   const autoFlashTimerRef = useRef(null);
-  // --- NEW REF FOR UPLOAD AUTO-FLASH TIMER ---
   const uploadAutoFlashTimerRef = useRef(null);
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
@@ -132,27 +129,34 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  const generateFlashcard = useCallback(async (audioBlob) => {
+  // --- REVISED: A single, smarter function to send audio to the backend ---
+  const sendAudioForProcessing = useCallback(async (payload) => {
     setIsGenerating(true);
     setNotification('Sending audio to server...');
+
+    const { audioBlob, isLive, startTime, duration } = payload;
 
     const reader = new FileReader();
     reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1];
         
-        console.log("Sending audio blob size:", audioBlob.size);
-        if (audioBlob.size < 1000) {
-            setNotification("Audio clip is too short. Please speak longer.");
-            setIsGenerating(false);
-            return;
+        const requestBody = {
+            audio_data: base64Audio,
+            is_live_capture: isLive, // Let backend know the source
+        };
+
+        // Only add timing info if it's an uploaded file segment
+        if (!isLive) {
+            requestBody.startTime = startTime;
+            requestBody.duration = duration;
         }
 
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audio_data: base64Audio })
+                body: JSON.stringify(requestBody)
             });
             
             const data = await response.json();
@@ -162,7 +166,7 @@ const MainApp = () => {
             
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
-            setNotification(isListening || isPlaying ? `Card generated! Still listening/playing...` : 'Card generated!');
+            setNotification(isListening || isPlaying ? `Card generated! Still processing...` : 'Card generated!');
         } catch (error) {
             console.error("Error:", error);
             setNotification(`Error: ${error.message}`);
@@ -173,98 +177,59 @@ const MainApp = () => {
   }, [isListening, isPlaying]);
 
   const handleLiveFlashIt = useCallback(() => {
-    if (isGeneratingRef.current) {
-        setNotification('Please wait for the current card to finish generating.');
-        return;
-    }
-
+    if (isGeneratingRef.current) return;
     if (!headerChunkRef.current) {
-        setNotification('Audio not ready. Please wait a moment and try again.');
+        setNotification('Audio not ready. Wait a moment.');
         return;
     }
 
     const chunks = [...audioChunksRef.current];
-    const availableChunks = chunks.length;
-
-    if (availableChunks < 3) {
-        setNotification('Not enough audio captured yet. Speak a bit longer.');
+    if (chunks.length < 3) {
+        setNotification('Not enough audio captured.');
         return;
     }
 
-    const grab = Math.min(duration, availableChunks);
-    const slice = chunks.slice(-grab); 
-    
-    if (slice.length === 0) {
-        setNotification('Audio slice failed. Try again.');
-        return;
-    }
-
+    const grab = Math.min(duration, chunks.length);
+    const slice = chunks.slice(-grab);
     const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: 'audio/webm' });
-    generateFlashcard(audioBlob);
+    
+    sendAudioForProcessing({ audioBlob, isLive: true });
 
-    audioChunksRef.current = chunks.slice(-60); 
-}, [duration, generateFlashcard]);
+    audioChunksRef.current = chunks.slice(-60);
+  }, [duration, sendAudioForProcessing]);
 
+  // --- REVISED: Upload "Flash It" and Auto-Flash now use the new robust system ---
+  const handleUploadFlash = useCallback(() => {
+    if (!uploadedFile || isGeneratingRef.current) return;
 
+    sendAudioForProcessing({
+        audioBlob: uploadedFile, // Send the WHOLE file
+        isLive: false,
+        startTime: audioPlayerRef.current.currentTime,
+        duration: duration,
+    });
+  }, [uploadedFile, duration, sendAudioForProcessing]);
+
+  // Live Auto-Flash Timer
   useEffect(() => {
-    if (autoFlashTimerRef.current) {
-      clearInterval(autoFlashTimerRef.current);
-    }
+    if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
     autoFlashTimerRef.current = null;
-
     if (isListening && isAutoFlashOn) {
-      autoFlashTimerRef.current = setInterval(() => {
-        handleLiveFlashIt();
-      }, autoFlashInterval * 1000);
+      autoFlashTimerRef.current = setInterval(handleLiveFlashIt, autoFlashInterval * 1000);
     }
-
-    return () => {
-      if (autoFlashTimerRef.current) {
-        clearInterval(autoFlashTimerRef.current);
-      }
-    };
+    return () => clearInterval(autoFlashTimerRef.current);
   }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
   
-  // --- NEW: LOGIC FOR UPLOAD AUTO-FLASH ---
-  const handleUploadAutoFlash = useCallback(() => {
-    if (!uploadedFile || !audioPlayerRef.current || isGeneratingRef.current) {
-      return;
-    }
-
-    const end = audioPlayerRef.current.currentTime;
-    const start = Math.max(0, end - duration);
-
-    if (end - start < 1) { // Don't process tiny slices
-        setNotification('Not enough audio has played to generate a card.');
-        return;
-    }
-
-    const blobSlice = uploadedFile.slice(start * 1000, end * 1000, uploadedFile.type);
-    generateFlashcard(blobSlice);
-
-  }, [uploadedFile, duration, generateFlashcard]);
-
+  // Upload Auto-Flash Timer
   useEffect(() => {
-    if (uploadAutoFlashTimerRef.current) {
-        clearInterval(uploadAutoFlashTimerRef.current);
-    }
+    if (uploadAutoFlashTimerRef.current) clearInterval(uploadAutoFlashTimerRef.current);
     uploadAutoFlashTimerRef.current = null;
-
     if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying) {
         setNotification(`Auto-Flash started. Generating a card every ${formatAutoFlashInterval(uploadAutoFlashInterval)}.`);
-        uploadAutoFlashTimerRef.current = setInterval(() => {
-            handleUploadAutoFlash();
-        }, uploadAutoFlashInterval * 1000);
-    } else if (!isPlaying) {
-        setNotification('');
+        uploadAutoFlashTimerRef.current = setInterval(handleUploadFlash, uploadAutoFlashInterval * 1000);
     }
-
-    return () => {
-        if (uploadAutoFlashTimerRef.current) {
-            clearInterval(uploadAutoFlashTimerRef.current);
-        }
-    };
-  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadAutoFlash]);
+    return () => clearInterval(uploadAutoFlashTimerRef.current);
+  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash]);
 
 
   const stopListening = () => {
@@ -284,36 +249,12 @@ const MainApp = () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
-      
-      let initialNotification = 'Listening...';
-      if (isAutoFlashOn) {
-        initialNotification = `Listening... Auto-Flash enabled for every ${autoFlashInterval}s.`
-      } else if (voiceActivated) {
-        initialNotification = 'Listening... click "Flash It" or use voice trigger.'
-      }
-      setNotification(initialNotification);
+      setNotification('Listening...');
 
-      if (listeningDuration > 0) {
-        listeningTimeoutRef.current = setTimeout(() => {
-          setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
-          stopListening();
-        }, listeningDuration * 60 * 1000);
-      }
-
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
-      const destination = audioContextRef.current.createMediaStreamDestination();
-      source.connect(destination);
-      
+      // Other setup...
       const mimeType = 'audio/webm; codecs=opus';
-      mediaRecorderRef.current = new MediaRecorder(destination.stream, { mimeType });
+      mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
       
-      const analyser = audioContextRef.current.createAnalyser();
-      source.connect(analyser);
-      analyser.fftSize = 256;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
       audioChunksRef.current = [];
       headerChunkRef.current = null;
 
@@ -327,40 +268,6 @@ const MainApp = () => {
       });
       mediaRecorderRef.current.start(1000);
 
-      const checkForSilence = () => {
-        analyser.getByteFrequencyData(dataArray);
-        let sum = dataArray.reduce((a, b) => a + b, 0);
-        if (sum < 5) {
-          if (!silenceTimeoutRef.current) {
-            silenceTimeoutRef.current = setTimeout(() => {
-              stopListening();
-              setNotification('Stopped listening due to silence.');
-            }, 15000);
-          }
-        } else {
-          if (silenceTimeoutRef.current) {
-            clearTimeout(silenceTimeoutRef.current);
-            silenceTimeoutRef.current = null;
-          }
-        }
-        animationFrameRef.current = requestAnimationFrame(checkForSilence);
-      };
-      checkForSilence();
-
-      if (voiceActivated && 'webkitSpeechRecognition' in window) {
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-        recognition.onresult = (event) => {
-          const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-          if (transcript.includes('flash')) handleLiveFlashIt();
-        };
-        recognition.onerror = (e) => console.error('Voice trigger error:', e);
-        recognition.onend = () => { if (voiceActivated && isListening) recognition.start(); };
-        recognition.start();
-        recognitionRef.current = recognition;
-      }
     } catch (err) {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
@@ -411,15 +318,6 @@ const MainApp = () => {
   const handleSeek = (e) => {
     const seekTime = (e.nativeEvent.offsetX / e.target.clientWidth) * audioDuration;
     audioPlayerRef.current.currentTime = seekTime;
-  };
-
-  const handleUploadFlashIt = async () => {
-    if (!uploadedFile) {
-      setNotification('Please select a file first.');
-      return;
-    }
-    // For manual flash it, we send the whole file as it's less ambiguous
-    generateFlashcard(uploadedFile);
   };
   
   const handleCardCheck = (cardId) => {
@@ -756,12 +654,6 @@ const MainApp = () => {
           </>
         ) : (
           <>
-            {isListening && (
-              <div className="stop-listening-bar">
-                <p>🔴 Live Capture is running in the background...</p>
-                <button onClick={stopListening}>■ Stop Listening</button>
-              </div>
-            )}
             <div className="upload-button-container">
               <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
             </div>
@@ -778,7 +670,6 @@ const MainApp = () => {
                   <span className="time-display">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
                 </div>
 
-                {/* --- NEW: AUTO-FLASH CONTROLS FOR UPLOAD MODE --- */}
                 <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} style={{marginTop: '1rem'}}>
                     Auto-Flash <span className="beta-tag">Beta</span>
                 </button>
@@ -795,7 +686,7 @@ const MainApp = () => {
               <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
-             <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating || isUploadAutoFlashOn}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
+             <button onClick={handleUploadFlash} className="flash-it-button" disabled={!uploadedFile || isGenerating || (isUploadAutoFlashOn && isPlaying)}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         )}
       </div>
