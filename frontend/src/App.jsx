@@ -98,6 +98,10 @@ const MainApp = () => {
   const [listeningDuration, setListeningDuration] = useState(1);
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
+  // --- NEW STATE FOR UPLOAD AUTO-FLASH ---
+  const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
+
 
   const audioChunksRef = useRef([]);
   const headerChunkRef = useRef(null);
@@ -108,6 +112,8 @@ const MainApp = () => {
   const recognitionRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
   const autoFlashTimerRef = useRef(null);
+  // --- NEW REF FOR UPLOAD AUTO-FLASH TIMER ---
+  const uploadAutoFlashTimerRef = useRef(null);
   const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
@@ -143,7 +149,6 @@ const MainApp = () => {
         }
 
         try {
-            // *** FIX: Reverted to the correct, hardcoded backend URL to resolve "failed to fetch" error ***
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -152,13 +157,12 @@ const MainApp = () => {
             
             const data = await response.json();
             if (!response.ok) {
-                // Display the specific error from the backend
                 throw new Error(data.error || 'Failed to generate flashcard.');
             }
             
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
-            setNotification(isListening ? `Card generated! Still listening...` : 'Card generated!');
+            setNotification(isListening || isPlaying ? `Card generated! Still listening/playing...` : 'Card generated!');
         } catch (error) {
             console.error("Error:", error);
             setNotification(`Error: ${error.message}`);
@@ -166,7 +170,7 @@ const MainApp = () => {
             setIsGenerating(false);
         }
     };
-  }, [isListening]);
+  }, [isListening, isPlaying]);
 
   const handleLiveFlashIt = useCallback(() => {
     if (isGeneratingRef.current) {
@@ -220,6 +224,48 @@ const MainApp = () => {
       }
     };
   }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
+  
+  // --- NEW: LOGIC FOR UPLOAD AUTO-FLASH ---
+  const handleUploadAutoFlash = useCallback(() => {
+    if (!uploadedFile || !audioPlayerRef.current || isGeneratingRef.current) {
+      return;
+    }
+
+    const end = audioPlayerRef.current.currentTime;
+    const start = Math.max(0, end - duration);
+
+    if (end - start < 1) { // Don't process tiny slices
+        setNotification('Not enough audio has played to generate a card.');
+        return;
+    }
+
+    const blobSlice = uploadedFile.slice(start * 1000, end * 1000, uploadedFile.type);
+    generateFlashcard(blobSlice);
+
+  }, [uploadedFile, duration, generateFlashcard]);
+
+  useEffect(() => {
+    if (uploadAutoFlashTimerRef.current) {
+        clearInterval(uploadAutoFlashTimerRef.current);
+    }
+    uploadAutoFlashTimerRef.current = null;
+
+    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying) {
+        setNotification(`Auto-Flash started. Generating a card every ${formatAutoFlashInterval(uploadAutoFlashInterval)}.`);
+        uploadAutoFlashTimerRef.current = setInterval(() => {
+            handleUploadAutoFlash();
+        }, uploadAutoFlashInterval * 1000);
+    } else if (!isPlaying) {
+        setNotification('');
+    }
+
+    return () => {
+        if (uploadAutoFlashTimerRef.current) {
+            clearInterval(uploadAutoFlashTimerRef.current);
+        }
+    };
+  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadAutoFlash]);
+
 
   const stopListening = () => {
     if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
@@ -372,6 +418,7 @@ const MainApp = () => {
       setNotification('Please select a file first.');
       return;
     }
+    // For manual flash it, we send the whole file as it's less ambiguous
     generateFlashcard(uploadedFile);
   };
   
@@ -721,20 +768,34 @@ const MainApp = () => {
             <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*,video/*" style={{ display: 'none' }} />
             {fileName && <p className="file-name-display">Selected: {fileName}</p>}
             {audioSrc && (
-              <div className="audio-player">
-                <audio ref={audioPlayerRef} src={audioSrc} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
-                <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                <div className="progress-bar-container" onClick={handleSeek}>
-                  <div className="progress-bar" style={{ width: `${(currentTime / audioDuration) * 100}%` }}></div>
+              <>
+                <div className="audio-player">
+                  <audio ref={audioPlayerRef} src={audioSrc} onPlay={() => setIsPlaying(true)} onPause={() => setIsPlaying(false)} />
+                  <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                  <div className="progress-bar-container" onClick={handleSeek}>
+                    <div className="progress-bar" style={{ width: `${(currentTime / audioDuration) * 100}%` }}></div>
+                  </div>
+                  <span className="time-display">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
                 </div>
-                <span className="time-display">{formatTime(currentTime)} / {formatTime(audioDuration)}</span>
-              </div>
+
+                {/* --- NEW: AUTO-FLASH CONTROLS FOR UPLOAD MODE --- */}
+                <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} style={{marginTop: '1rem'}}>
+                    Auto-Flash <span className="beta-tag">Beta</span>
+                </button>
+                
+                {isUploadAutoFlashOn && (
+                    <div className="slider-container">
+                        <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
+                        <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
+                    </div>
+                )}
+              </>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
               <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
-             <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
+             <button onClick={handleUploadFlashIt} className="flash-it-button" disabled={!uploadedFile || isGenerating || isUploadAutoFlashOn}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
           </>
         )}
       </div>
