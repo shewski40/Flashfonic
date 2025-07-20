@@ -587,7 +587,6 @@ const MainApp = () => {
     return 16 + (minutes - 60) / 10;
   };
 
-  // --- UI FIX: Updated function to use full words ---
   const formatAutoFlashInterval = (seconds) => {
     if (seconds < 60) return `${seconds} seconds`;
     const minutes = seconds / 60;
@@ -631,8 +630,24 @@ const MainApp = () => {
                 Auto-Flash <span className="beta-tag">Beta</span>
               </button>
             </div>
-            {voiceActivated && !isAutoFlashOn && <p className="voice-hint">🎤 Say "flash" to create a card.</p>}
-            {isAutoFlashOn && !voiceActivated && <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>}
+            
+            {/* --- UI FIX: New logic for combined captions --- */}
+            {(() => {
+              if (voiceActivated && isAutoFlashOn) {
+                return (
+                  <div className="voice-hint">
+                    <p>🎤 Say "flash" to create a card.</p>
+                    <p>⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>
+                  </div>
+                );
+              } else if (voiceActivated) {
+                return <p className="voice-hint">🎤 Say "flash" to create a card.</p>;
+              } else if (isAutoFlashOn) {
+                return <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>;
+              }
+              return null;
+            })()}
+
             <div className="slider-container">
               <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
               <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening} />
@@ -644,7 +659,6 @@ const MainApp = () => {
                 </div>
             )}
             <div className="slider-container">
-              {/* --- UI FIX: Added "of audio" for clarity --- */}
               <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
@@ -681,7 +695,6 @@ const MainApp = () => {
               </>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
-              {/* --- UI FIX: Added "of audio" for clarity --- */}
               <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
