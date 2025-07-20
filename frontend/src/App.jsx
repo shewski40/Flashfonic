@@ -100,6 +100,8 @@ const MainApp = () => {
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
 
   const audioChunksRef = useRef([]);
+  // *** FIX: Create a ref to store the audio header chunk ***
+  const headerChunkRef = useRef(null);
   const mediaRecorderRef = useRef(null);
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -135,22 +137,33 @@ const MainApp = () => {
         const base64Audio = reader.result.split(',')[1];
         
         console.log("Sending audio blob size:", audioBlob.size);
+        if (audioBlob.size < 1000) {
+            setNotification("Audio clip is too short. Please speak longer.");
+            setIsGenerating(false);
+            return;
+        }
 
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
+            // Use environment variable for backend URL, fallback for local dev
+            const backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:3000';
+            const response = await fetch(`${backendUrl}/generate-flashcard`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ audio_data: base64Audio })
             });
+            
             const data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Failed to generate flashcard.');
+            if (!response.ok) {
+                // Display the specific error from the backend
+                throw new Error(data.error || 'Failed to generate flashcard.');
+            }
             
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
             setNotification(isListening ? `Card generated! Still listening...` : 'Card generated!');
         } catch (error) {
             console.error("Error:", error);
-            setNotification("Failed to process audio. Please try again");
+            setNotification(`Error: ${error.message}`);
         } finally {
             setIsGenerating(false);
         }
@@ -158,36 +171,43 @@ const MainApp = () => {
   }, [isListening]);
 
   const handleLiveFlashIt = useCallback(() => {
-  if (isGeneratingRef.current) {
-    setNotification('Please wait for the current card to finish generating.');
-    return;
-  }
+    if (isGeneratingRef.current) {
+        setNotification('Please wait for the current card to finish generating.');
+        return;
+    }
 
-  // Delay to let a final audio chunk complete
-  setTimeout(() => {
+    // *** FIX: Check if the header has been captured ***
+    if (!headerChunkRef.current) {
+        setNotification('Audio not ready. Please wait a moment and try again.');
+        return;
+    }
+
     const chunks = [...audioChunksRef.current];
     const availableChunks = chunks.length;
 
     if (availableChunks < 3) {
-      setNotification('Not enough audio captured yet. Speak a bit longer.');
-      return;
+        setNotification('Not enough audio captured yet. Speak a bit longer.');
+        return;
     }
 
-    const grab = Math.min(duration, availableChunks - 1);
-    const slice = chunks.slice(-grab - 1, -1); // exclude last second (assumed "flash" trigger)
+    const grab = Math.min(duration, availableChunks);
+    // Grab the last 'grab' number of chunks.
+    const slice = chunks.slice(-grab); 
     
     if (slice.length === 0) {
-      setNotification('Audio slice failed. Try again.');
-      return;
+        setNotification('Audio slice failed. Try again.');
+        return;
     }
 
-    const audioBlob = new Blob(slice, { type: 'audio/webm' });
+    // *** FIX: Prepend the stored header chunk to the slice to create a valid file ***
+    const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: 'audio/webm' });
     generateFlashcard(audioBlob);
 
     // Optional: purge old chunks to avoid memory buildup
-    audioChunksRef.current = chunks.slice(-30); // Keep last 30 for rolling buffer
-  }, 300); // slight delay to ensure chunk availability
+    // Keep more chunks to ensure the header isn't accidentally purged
+    audioChunksRef.current = chunks.slice(-60); 
 }, [duration, generateFlashcard]);
+
 
   useEffect(() => {
     if (autoFlashTimerRef.current) {
@@ -245,7 +265,10 @@ const MainApp = () => {
       const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
       const destination = audioContextRef.current.createMediaStreamDestination();
       source.connect(destination);
-      mediaRecorderRef.current = new MediaRecorder(destination.stream);
+      
+      // Use a common MIME type if webm is problematic
+      const mimeType = 'audio/webm; codecs=opus';
+      mediaRecorderRef.current = new MediaRecorder(destination.stream, { mimeType });
       
       const analyser = audioContextRef.current.createAnalyser();
       source.connect(analyser);
@@ -253,9 +276,18 @@ const MainApp = () => {
       const bufferLength = analyser.frequencyBinCount;
       const dataArray = new Uint8Array(bufferLength);
 
+      // *** FIX: Reset refs on each new listening session ***
       audioChunksRef.current = [];
+      headerChunkRef.current = null;
+
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
-        audioChunksRef.current.push(event.data);
+        if (event.data.size > 0) {
+            // *** FIX: Store the first chunk as the header ***
+            if (!headerChunkRef.current) {
+                headerChunkRef.current = event.data;
+            }
+            audioChunksRef.current.push(event.data);
+        }
       });
       mediaRecorderRef.current.start(1000);
 
