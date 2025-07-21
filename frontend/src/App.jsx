@@ -100,8 +100,6 @@ const MainApp = () => {
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
   const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
-  const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
-  const [isDevMode, setIsDevMode] = useState(false);
 
   const audioChunksRef = useRef([]);
   const headerChunkRef = useRef(null);
@@ -126,31 +124,6 @@ const MainApp = () => {
   useEffect(() => {
     isAutoFlashOnRef.current = isAutoFlashOn;
   }, [isAutoFlashOn]);
-
-  useEffect(() => {
-    const queryParams = new URLSearchParams(window.location.search);
-    if (queryParams.get('dev') === 'true') {
-      setIsDevMode(true);
-      setNotification('Developer mode active: Usage limit disabled.');
-      return; 
-    }
-
-    const today = new Date().toISOString().split('T')[0];
-    const storedUsageJSON = localStorage.getItem('flashfonic-usage');
-    let currentUsage = { count: 0, limit: 25, date: today };
-
-    if (storedUsageJSON) {
-      const storedUsage = JSON.parse(storedUsageJSON);
-      if (storedUsage.date === today) {
-        currentUsage = storedUsage;
-      } else {
-        currentUsage = { ...storedUsage, count: 0, date: today };
-      }
-    }
-    
-    setUsage(currentUsage);
-    localStorage.setItem('flashfonic-usage', JSON.stringify(currentUsage));
-  }, []);
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
@@ -183,7 +156,6 @@ const MainApp = () => {
         }
 
         try {
-            // --- FIX: Ensured the fetch URL is always pointing to the correct live backend ---
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -197,15 +169,6 @@ const MainApp = () => {
             
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
-            
-            if (!isDevMode) {
-              setUsage(prevUsage => {
-                  const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
-                  localStorage.setItem('flashfonic-usage', JSON.stringify(newUsage));
-                  return newUsage;
-              });
-            }
-
             setNotification(isListening || isPlaying ? `Card generated! Still processing...` : 'Card generated!');
         } catch (error) {
             console.error("Error:", error);
@@ -214,13 +177,9 @@ const MainApp = () => {
             setIsGenerating(false);
         }
     };
-  }, [isListening, isPlaying, isDevMode]);
+  }, [isListening, isPlaying]);
 
   const handleLiveFlashIt = useCallback(() => {
-    if (!isDevMode && usage.count >= usage.limit) {
-      setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
-      return;
-    }
     if (isGeneratingRef.current) return;
     if (!headerChunkRef.current) {
         setNotification('Audio not ready. Wait a moment.');
@@ -240,13 +199,9 @@ const MainApp = () => {
     sendAudioForProcessing({ audioBlob, isLive: true });
 
     audioChunksRef.current = chunks.slice(-60);
-  }, [duration, sendAudioForProcessing, usage, isDevMode]);
+  }, [duration, sendAudioForProcessing]);
 
   const handleUploadFlash = useCallback(() => {
-    if (!isDevMode && usage.count >= usage.limit) {
-      setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
-      return;
-    }
     if (!uploadedFile || isGeneratingRef.current) return;
 
     sendAudioForProcessing({
@@ -255,7 +210,7 @@ const MainApp = () => {
         startTime: audioPlayerRef.current.currentTime,
         duration: duration,
     });
-  }, [uploadedFile, duration, sendAudioForProcessing, usage, isDevMode]);
+  }, [uploadedFile, duration, sendAudioForProcessing]);
 
   // Live Auto-Flash Timer
   useEffect(() => {
@@ -293,10 +248,6 @@ const MainApp = () => {
   };
 
   const startListening = async () => {
-    if (!isDevMode && usage.count >= usage.limit) {
-      setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
-      return;
-    }
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
@@ -737,24 +688,7 @@ const MainApp = () => {
         <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
         <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
       </div>
-      <div className="card main-controls" style={{position: 'relative'}}>
-        {!isDevMode && (
-          <div style={{
-            position: 'absolute',
-            top: '15px',
-            right: '15px',
-            backgroundColor: '#e9ecef',
-            padding: '5px 12px',
-            borderRadius: '12px',
-            fontSize: '0.8rem',
-            color: '#495057',
-            fontWeight: '600',
-            zIndex: 2
-          }}>
-            Beta Trial: {usage.limit - usage.count} cards left
-          </div>
-        )}
-
+      <div className="card main-controls">
         {appMode === 'live' ? (
           <>
             <div className="listening-control">
@@ -829,6 +763,7 @@ const MainApp = () => {
                         <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
                         <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
                     </div>
+                    {/* --- UI FIX: Added top margin to this caption --- */}
                     <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
                   </>
                 )}
