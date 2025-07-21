@@ -102,6 +102,7 @@ const MainApp = () => {
   const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
   const audioChunksRef = useRef([]);
   const headerChunkRef = useRef(null);
@@ -728,6 +729,8 @@ const MainApp = () => {
       {studyingFolder && ( <FlashcardViewer folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={() => setStudyingFolder(null)} /> )}
       {isCreateFolderModalOpen && ( <CreateFolderModal onClose={() => setIsCreateFolderModalOpen(false)} onCreate={handleCreateFolder} /> )}
       {promptModalConfig && <PromptModal {...promptModalConfig} />}
+      {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
+
       <div className="header">
         <h1>FlashFonic</h1>
         <h2 className="subheading">Listen. Flash it. Learn.</h2>
@@ -740,13 +743,13 @@ const MainApp = () => {
         {!isDevMode && (
           <div style={{
             position: 'absolute',
-            top: '15px',
+            top: '10px',
             right: '15px',
-            backgroundColor: '#e9ecef',
+            backgroundColor: '#ede9fe',
             padding: '5px 12px',
             borderRadius: '12px',
             fontSize: '0.8rem',
-            color: '#495057',
+            color: '#5b21b6',
             fontWeight: '600',
             zIndex: 2
           }}>
@@ -798,7 +801,12 @@ const MainApp = () => {
               <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
               <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
             </div>
-            <button onClick={handleLiveFlashIt} className="flash-it-button" disabled={!isListening || isGenerating || isAutoFlashOn}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
+            <button 
+                onClick={handleLiveFlashIt} 
+                className={`flash-it-button ${isListening && !isGenerating && !isAutoFlashOn ? 'animated' : ''}`} 
+                disabled={!isListening || isGenerating || isAutoFlashOn || (!isDevMode && usage.count >= usage.limit)}>
+                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+            </button>
           </>
         ) : (
           <>
@@ -837,7 +845,12 @@ const MainApp = () => {
               <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
-             <button onClick={handleUploadFlash} className="flash-it-button" disabled={!uploadedFile || isGenerating || (isUploadAutoFlashOn && isPlaying)}>{isGenerating ? 'Generating...' : '⚡ Flash It!'}</button>
+             <button 
+                onClick={handleUploadFlash} 
+                className={`flash-it-button ${uploadedFile && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
+                disabled={!uploadedFile || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}>
+                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+             </button>
           </>
         )}
       </div>
@@ -896,11 +909,75 @@ const MainApp = () => {
           )) : <p className="subtle-text">No folders created yet.</p>}
         </div>
       </div>
+      <div className="app-footer">
+        <button className="feedback-btn" onClick={() => setIsFeedbackModalOpen(true)}>Send Feedback</button>
+      </div>
     </>
   );
 };
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
+const FeedbackModal = ({ onClose, formspreeUrl }) => {
+  const [status, setStatus] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const form = e.target;
+    const data = new FormData(form);
+    
+    try {
+      const response = await fetch(form.action, {
+        method: form.method,
+        body: data,
+        headers: {
+            'Accept': 'application/json'
+        }
+      });
+
+      if (response.ok) {
+        setStatus('Thanks for your feedback!');
+        form.reset();
+        setTimeout(onClose, 2000);
+      } else {
+        setStatus('Oops! There was a problem submitting your form.');
+      }
+    } catch (error) {
+      setStatus('Oops! There was a problem submitting your form.');
+    }
+  };
+
+  return (
+    <div className="feedback-modal-overlay" onClick={onClose}>
+      <div className="feedback-modal-content" onClick={e => e.stopPropagation()}>
+        <h2>Send Beta Feedback</h2>
+        <form className="feedback-form" onSubmit={handleSubmit} action={formspreeUrl} method="POST">
+          <div className="form-group">
+            <label htmlFor="email">Your Email (Optional)</label>
+            <input id="email" type="email" name="email" className="form-input" />
+          </div>
+          <div className="form-group">
+            <label htmlFor="type">Feedback Type</label>
+            <select id="type" name="type" className="form-select" defaultValue="General Comment">
+              <option>General Comment</option>
+              <option>Bug Report</option>
+              <option>Feature Request</option>
+            </select>
+          </div>
+          <div className="form-group">
+            <label htmlFor="message">Message</label>
+            <textarea id="message" name="message" className="form-textarea" required />
+          </div>
+          <div className="feedback-modal-actions">
+            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+            <button type="submit" className="modal-create-btn">Submit</button>
+          </div>
+          {status && <p style={{marginTop: '1rem', textAlign: 'center'}}>{status}</p>}
+        </form>
+      </div>
+    </div>
+  );
+};
+
 const FlashcardViewer = ({ folderName, cards, onClose }) => {
   const [deck, setDeck] = useState([...cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -1119,7 +1196,7 @@ const CreateFolderModal = ({ onClose, onCreate }) => {
         <form onSubmit={handleSubmit}>
           <input type="text" className="modal-input" placeholder="Enter folder name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
           <div className="modal-actions">
-            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
+            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Create</button>
           </div>
         </form>
@@ -1141,7 +1218,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
         <form onSubmit={handleSubmit}>
           <input type="number" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
           <div className="modal-actions">
-            <button type="button" onClick={onClose} className="modal-cancel-btn">Cancel</button>
+            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Confirm</button>
           </div>
         </form>
