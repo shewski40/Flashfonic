@@ -120,6 +120,11 @@ const MainApp = () => {
     isGeneratingRef.current = isGenerating;
   }, [isGenerating]);
 
+  const isAutoFlashOnRef = useRef(isAutoFlashOn);
+  useEffect(() => {
+    isAutoFlashOnRef.current = isAutoFlashOn;
+  }, [isAutoFlashOn]);
+
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
     if (storedFolders) setFolders(JSON.parse(storedFolders));
@@ -242,7 +247,6 @@ const MainApp = () => {
     setNotification('');
   };
 
-  // --- FIX: Restored the full startListening function with timer logic ---
   const startListening = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -256,11 +260,18 @@ const MainApp = () => {
       }
       setNotification(initialNotification);
 
-      // This is the restored timer logic
       if (listeningDuration > 0) {
         listeningTimeoutRef.current = setTimeout(() => {
-          setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
-          stopListening();
+          if (isAutoFlashOnRef.current) {
+            setNotification(`Listening timer finished. Generating final card...`);
+            handleLiveFlashIt(); 
+            setTimeout(() => {
+                stopListening();
+            }, 2500); 
+          } else {
+            setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
+            stopListening();
+          }
         }, listeningDuration * 60 * 1000);
       }
 
@@ -1017,7 +1028,8 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               )}
             </div>
             <div className="tts-slider-group">
-              <label>Delay: {speechDelay}s</label>
+              {/* --- UI FIX: Changed label text --- */}
+              <label>Front to back delay: {speechDelay}s</label>
               <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
             </div>
             <div className="tts-slider-group">
