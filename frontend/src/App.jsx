@@ -242,15 +242,42 @@ const MainApp = () => {
     setNotification('');
   };
 
+  // --- FIX: Restored the full startListening function with timer logic ---
   const startListening = async () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
-      setNotification('Listening...');
-
-      const mimeType = 'audio/webm; codecs=opus';
-      mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
       
+      let initialNotification = 'Listening...';
+      if (isAutoFlashOn) {
+        initialNotification = `Listening... Auto-Flash enabled for every ${autoFlashInterval}s.`
+      } else if (voiceActivated) {
+        initialNotification = 'Listening... click "Flash It" or use voice trigger.'
+      }
+      setNotification(initialNotification);
+
+      // This is the restored timer logic
+      if (listeningDuration > 0) {
+        listeningTimeoutRef.current = setTimeout(() => {
+          setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
+          stopListening();
+        }, listeningDuration * 60 * 1000);
+      }
+
+      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+      const destination = audioContextRef.current.createMediaStreamDestination();
+      source.connect(destination);
+      
+      const mimeType = 'audio/webm; codecs=opus';
+      mediaRecorderRef.current = new MediaRecorder(destination.stream, { mimeType });
+      
+      const analyser = audioContextRef.current.createAnalyser();
+      source.connect(analyser);
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
       audioChunksRef.current = [];
       headerChunkRef.current = null;
 
@@ -264,6 +291,40 @@ const MainApp = () => {
       });
       mediaRecorderRef.current.start(1000);
 
+      const checkForSilence = () => {
+        analyser.getByteFrequencyData(dataArray);
+        let sum = dataArray.reduce((a, b) => a + b, 0);
+        if (sum < 5) {
+          if (!silenceTimeoutRef.current) {
+            silenceTimeoutRef.current = setTimeout(() => {
+              stopListening();
+              setNotification('Stopped listening due to silence.');
+            }, 15000);
+          }
+        } else {
+          if (silenceTimeoutRef.current) {
+            clearTimeout(silenceTimeoutRef.current);
+            silenceTimeoutRef.current = null;
+          }
+        }
+        animationFrameRef.current = requestAnimationFrame(checkForSilence);
+      };
+      checkForSilence();
+
+      if (voiceActivated && 'webkitSpeechRecognition' in window) {
+        const recognition = new window.webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+        recognition.interimResults = false;
+        recognition.onresult = (event) => {
+          const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+          if (transcript.includes('flash')) handleLiveFlashIt();
+        };
+        recognition.onerror = (e) => console.error('Voice trigger error:', e);
+        recognition.onend = () => { if (voiceActivated && isListening) recognition.start(); };
+        recognition.start();
+        recognitionRef.current = recognition;
+      }
     } catch (err) {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
@@ -631,7 +692,6 @@ const MainApp = () => {
               </button>
             </div>
             
-            {/* --- UI FIX: New logic for combined captions --- */}
             {(() => {
               if (voiceActivated && isAutoFlashOn) {
                 return (
@@ -687,10 +747,13 @@ const MainApp = () => {
                 </button>
                 
                 {isUploadAutoFlashOn && (
+                  <>
                     <div className="slider-container">
                         <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
                         <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
                     </div>
+                    <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
+                  </>
                 )}
               </>
             )}
