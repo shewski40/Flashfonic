@@ -101,7 +101,6 @@ const MainApp = () => {
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
   const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
-  // --- NEW: State for developer mode ---
   const [isDevMode, setIsDevMode] = useState(false);
 
   const audioChunksRef = useRef([]);
@@ -129,12 +128,11 @@ const MainApp = () => {
   }, [isAutoFlashOn]);
 
   useEffect(() => {
-    // --- NEW: Check for developer mode on initial load ---
     const queryParams = new URLSearchParams(window.location.search);
     if (queryParams.get('dev') === 'true') {
       setIsDevMode(true);
       setNotification('Developer mode active: Usage limit disabled.');
-      return; // Exit early to bypass counter setup
+      return; 
     }
 
     const today = new Date().toISOString().split('T')[0];
@@ -185,6 +183,7 @@ const MainApp = () => {
         }
 
         try {
+            // --- FIX: Ensured the fetch URL is always pointing to the correct live backend ---
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -199,7 +198,6 @@ const MainApp = () => {
             const newCard = { ...data, id: Date.now() };
             setGeneratedFlashcards(prev => [newCard, ...prev]);
             
-            // --- NEW: Only update usage if not in dev mode ---
             if (!isDevMode) {
               setUsage(prevUsage => {
                   const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
@@ -740,7 +738,6 @@ const MainApp = () => {
         <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
       </div>
       <div className="card main-controls" style={{position: 'relative'}}>
-        {/* --- NEW: Conditionally render the counter --- */}
         {!isDevMode && (
           <div style={{
             position: 'absolute',
