@@ -763,7 +763,8 @@ const MainApp = () => {
                         <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
                         <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
                     </div>
-                    <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
+                    {/* --- UI FIX: Added top margin to this caption --- */}
+                    <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
                   </>
                 )}
               </>
@@ -1028,7 +1029,6 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               )}
             </div>
             <div className="tts-slider-group">
-              {/* --- UI FIX: Changed label text --- */}
               <label>Front to back delay: {speechDelay}s</label>
               <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
             </div>
