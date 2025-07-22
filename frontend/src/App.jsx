@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import './App.css';
-// --- FIX: Corrected import path for Vercel Analytics ---
 import { Analytics } from '@vercel/analytics/react';
 
 // --- LANDING PAGE COMPONENT ---
@@ -105,6 +104,17 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+
+  // --- FIX: Detect if the browser is Safari ---
+  const [isSafari, setIsSafari] = useState(false);
+  useEffect(() => {
+    // This check identifies Safari but excludes Chrome and other Chromium browsers.
+    const safariCheck = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+    setIsSafari(safariCheck);
+    if (safariCheck) {
+      console.log("Safari browser detected. Voice Activation will be disabled.");
+    }
+  }, []);
 
   const audioChunksRef = useRef([]);
   const headerChunkRef = useRef(null);
@@ -373,7 +383,8 @@ const MainApp = () => {
       };
       checkForSilence();
 
-      if (voiceActivated && 'webkitSpeechRecognition' in window) {
+      // --- FIX: Do not initialize Speech Recognition on Safari ---
+      if (!isSafari && voiceActivated && 'webkitSpeechRecognition' in window) {
         const recognition = new window.webkitSpeechRecognition();
         recognition.continuous = true;
         recognition.lang = 'en-US';
@@ -765,7 +776,12 @@ const MainApp = () => {
               <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
             </div>
             <div className="listening-modes">
-              <button onClick={() => setVoiceActivated(!voiceActivated)} className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}>
+              <button 
+                onClick={() => setVoiceActivated(!voiceActivated)} 
+                className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
+                disabled={isSafari}
+                title={isSafari ? "Voice activation is not supported on Safari." : "Activate voice commands"}
+              >
                 Voice Activate
               </button>
               <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}>
