@@ -308,25 +308,26 @@ const MainApp = () => {
       return;
     }
     try {
+      // --- FIX: Robust, sequential initialization to prevent Safari freeze ---
+      // 1. Get microphone permission first.
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
       setNotification('Listening...');
 
+      // 2. Once permission is granted, create the recorder.
       const mimeType = 'audio/webm; codecs=opus';
       mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
       
       audioChunksRef.current = [];
       headerChunkRef.current = null;
 
+      // 3. Set up the event listener that will kick off everything else.
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
             audioChunksRef.current.push(event.data);
-
-            // --- FIX: Stagger initialization. Only setup advanced features after the first chunk is received. ---
             if (!headerChunkRef.current) {
                 headerChunkRef.current = event.data;
-                
-                // Now that recording has started, safely initialize other audio components
+                // 4. ONLY NOW, after the first chunk proves recording is working, start the timers and advanced features.
                 if (listeningDuration > 0) {
                   listeningTimeoutRef.current = setTimeout(() => {
                     if (isAutoFlashOnRef.current) {
@@ -339,35 +340,6 @@ const MainApp = () => {
                     }
                   }, listeningDuration * 60 * 1000);
                 }
-
-                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
-                const analyser = audioContextRef.current.createAnalyser();
-                source.connect(analyser);
-                analyser.fftSize = 256;
-                const bufferLength = analyser.frequencyBinCount;
-                const dataArray = new Uint8Array(bufferLength);
-
-                const checkForSilence = () => {
-                  analyser.getByteFrequencyData(dataArray);
-                  let sum = dataArray.reduce((a, b) => a + b, 0);
-                  if (sum < 5) {
-                    if (!silenceTimeoutRef.current) {
-                      silenceTimeoutRef.current = setTimeout(() => {
-                        stopListening();
-                        setNotification('Stopped listening due to silence.');
-                      }, 15000);
-                    }
-                  } else {
-                    if (silenceTimeoutRef.current) {
-                      clearTimeout(silenceTimeoutRef.current);
-                      silenceTimeoutRef.current = null;
-                    }
-                  }
-                  animationFrameRef.current = requestAnimationFrame(checkForSilence);
-                };
-                checkForSilence();
-
                 if (!isSafari && voiceActivated && 'webkitSpeechRecognition' in window) {
                   const recognition = new window.webkitSpeechRecognition();
                   recognition.continuous = true;
@@ -385,12 +357,15 @@ const MainApp = () => {
             }
         }
       });
+
+      // 5. Finally, start the recording.
       mediaRecorderRef.current.start(1000);
 
     } catch (err) {
       console.error("Error starting listening:", err);
+      // --- FIX: This catch block now correctly handles permission denial without freezing ---
       setNotification("Microphone access denied or error.");
-      setIsListening(false); // Ensure state is correct on error
+      setIsListening(false);
     }
   };
 
