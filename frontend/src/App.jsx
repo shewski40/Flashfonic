@@ -105,10 +105,8 @@ const MainApp = () => {
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
 
-  // --- FIX: Detect if the browser is Safari ---
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
-    // This check identifies Safari but excludes Chrome and other Chromium browsers.
     const safariCheck = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
     setIsSafari(safariCheck);
     if (safariCheck) {
@@ -312,95 +310,87 @@ const MainApp = () => {
     try {
       streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
       setIsListening(true);
-      
-      let initialNotification = 'Listening...';
-      if (isAutoFlashOn) {
-        initialNotification = `Listening... Auto-Flash enabled for every ${autoFlashInterval}s.`
-      } else if (voiceActivated) {
-        initialNotification = 'Listening... click "Flash It" or use voice trigger.'
-      }
-      setNotification(initialNotification);
+      setNotification('Listening...');
 
-      if (listeningDuration > 0) {
-        listeningTimeoutRef.current = setTimeout(() => {
-          if (isAutoFlashOnRef.current) {
-            setNotification(`Listening timer finished. Generating final card...`);
-            handleLiveFlashIt(); 
-            setTimeout(() => {
-                stopListening();
-            }, 2500); 
-          } else {
-            setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
-            stopListening();
-          }
-        }, listeningDuration * 60 * 1000);
-      }
-
-      audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-      const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
-      const destination = audioContextRef.current.createMediaStreamDestination();
-      source.connect(destination);
-      
       const mimeType = 'audio/webm; codecs=opus';
-      mediaRecorderRef.current = new MediaRecorder(destination.stream, { mimeType });
+      mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
       
-      const analyser = audioContextRef.current.createAnalyser();
-      source.connect(analyser);
-      analyser.fftSize = 256;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
       audioChunksRef.current = [];
       headerChunkRef.current = null;
 
       mediaRecorderRef.current.addEventListener('dataavailable', (event) => {
         if (event.data.size > 0) {
+            audioChunksRef.current.push(event.data);
+
+            // --- FIX: Stagger initialization. Only setup advanced features after the first chunk is received. ---
             if (!headerChunkRef.current) {
                 headerChunkRef.current = event.data;
+                
+                // Now that recording has started, safely initialize other audio components
+                if (listeningDuration > 0) {
+                  listeningTimeoutRef.current = setTimeout(() => {
+                    if (isAutoFlashOnRef.current) {
+                      setNotification(`Listening timer finished. Generating final card...`);
+                      handleLiveFlashIt(); 
+                      setTimeout(() => stopListening(), 2500); 
+                    } else {
+                      setNotification(`Listening timer finished after ${formatListeningDuration(listeningDuration)}.`);
+                      stopListening();
+                    }
+                  }, listeningDuration * 60 * 1000);
+                }
+
+                audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
+                const analyser = audioContextRef.current.createAnalyser();
+                source.connect(analyser);
+                analyser.fftSize = 256;
+                const bufferLength = analyser.frequencyBinCount;
+                const dataArray = new Uint8Array(bufferLength);
+
+                const checkForSilence = () => {
+                  analyser.getByteFrequencyData(dataArray);
+                  let sum = dataArray.reduce((a, b) => a + b, 0);
+                  if (sum < 5) {
+                    if (!silenceTimeoutRef.current) {
+                      silenceTimeoutRef.current = setTimeout(() => {
+                        stopListening();
+                        setNotification('Stopped listening due to silence.');
+                      }, 15000);
+                    }
+                  } else {
+                    if (silenceTimeoutRef.current) {
+                      clearTimeout(silenceTimeoutRef.current);
+                      silenceTimeoutRef.current = null;
+                    }
+                  }
+                  animationFrameRef.current = requestAnimationFrame(checkForSilence);
+                };
+                checkForSilence();
+
+                if (!isSafari && voiceActivated && 'webkitSpeechRecognition' in window) {
+                  const recognition = new window.webkitSpeechRecognition();
+                  recognition.continuous = true;
+                  recognition.lang = 'en-US';
+                  recognition.interimResults = false;
+                  recognition.onresult = (event) => {
+                    const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
+                    if (transcript.includes('flash')) handleLiveFlashIt();
+                  };
+                  recognition.onerror = (e) => console.error('Voice trigger error:', e);
+                  recognition.onend = () => { if (voiceActivated && isListening) recognition.start(); };
+                  recognition.start();
+                  recognitionRef.current = recognition;
+                }
             }
-            audioChunksRef.current.push(event.data);
         }
       });
       mediaRecorderRef.current.start(1000);
 
-      const checkForSilence = () => {
-        analyser.getByteFrequencyData(dataArray);
-        let sum = dataArray.reduce((a, b) => a + b, 0);
-        if (sum < 5) {
-          if (!silenceTimeoutRef.current) {
-            silenceTimeoutRef.current = setTimeout(() => {
-              stopListening();
-              setNotification('Stopped listening due to silence.');
-            }, 15000);
-          }
-        } else {
-          if (silenceTimeoutRef.current) {
-            clearTimeout(silenceTimeoutRef.current);
-            silenceTimeoutRef.current = null;
-          }
-        }
-        animationFrameRef.current = requestAnimationFrame(checkForSilence);
-      };
-      checkForSilence();
-
-      // --- FIX: Do not initialize Speech Recognition on Safari ---
-      if (!isSafari && voiceActivated && 'webkitSpeechRecognition' in window) {
-        const recognition = new window.webkitSpeechRecognition();
-        recognition.continuous = true;
-        recognition.lang = 'en-US';
-        recognition.interimResults = false;
-        recognition.onresult = (event) => {
-          const transcript = event.results[event.results.length - 1][0].transcript.trim().toLowerCase();
-          if (transcript.includes('flash')) handleLiveFlashIt();
-        };
-        recognition.onerror = (e) => console.error('Voice trigger error:', e);
-        recognition.onend = () => { if (voiceActivated && isListening) recognition.start(); };
-        recognition.start();
-        recognitionRef.current = recognition;
-      }
     } catch (err) {
       console.error("Error starting listening:", err);
       setNotification("Microphone access denied or error.");
+      setIsListening(false); // Ensure state is correct on error
     }
   };
 
