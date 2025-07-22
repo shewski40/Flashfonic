@@ -245,12 +245,12 @@ const MainApp = () => {
 
     const grab = Math.min(duration, chunks.length);
     const slice = chunks.slice(-grab);
-    const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: 'audio/webm' });
+    const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: isSafari ? 'audio/mp4' : 'audio/webm' });
     
     sendAudioForProcessing({ audioBlob, isLive: true });
 
     audioChunksRef.current = chunks.slice(-60);
-  }, [duration, sendAudioForProcessing, usage, isDevMode]);
+  }, [duration, sendAudioForProcessing, usage, isDevMode, isSafari]);
 
   const handleUploadFlash = useCallback(() => {
     if (!isDevMode && usage.count >= usage.limit) {
@@ -312,7 +312,8 @@ const MainApp = () => {
       setIsListening(true);
       setNotification('Listening...');
 
-      const mimeType = 'audio/webm; codecs=opus';
+      // --- SAFARI FIX: Use mp4 for Safari, webm for others ---
+      const mimeType = isSafari ? 'audio/mp4' : 'audio/webm; codecs=opus';
       mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
       
       audioChunksRef.current = [];
@@ -337,7 +338,6 @@ const MainApp = () => {
                   }, listeningDuration * 60 * 1000);
                 }
 
-                // --- FIX: Conditionally skip Silence Detection and Voice Activation on Safari ---
                 if (!isSafari) {
                   audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
                   const source = audioContextRef.current.createMediaStreamSource(streamRef.current);
