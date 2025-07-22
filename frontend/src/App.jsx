@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import jsPDF from 'jspdf';
 import './App.css';
+// --- FIX: Corrected import path for Vercel Analytics ---
+import { Analytics } from '@vercel/analytics/react';
 
 // --- LANDING PAGE COMPONENT ---
 const LandingPage = ({ onEnter }) => {
@@ -1240,11 +1242,17 @@ function App() {
   if (showApp) {
     return (
       <div className="main-app-container">
+        <Analytics />
         <MainApp />
       </div>
     );
   } else {
-    return <LandingPage onEnter={() => setShowApp(true)} />;
+    return (
+      <>
+        <Analytics />
+        <LandingPage onEnter={() => setShowApp(true)} />
+      </>
+    );
   }
 }
 
