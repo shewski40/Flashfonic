@@ -106,6 +106,7 @@ const MainApp = () => {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mediaAudioBuffer, setMediaAudioBuffer] = useState(null);
   const [rawFile, setRawFile] = useState(null);
+  const [isAudioReady, setIsAudioReady] = useState(false); // ** NEW: Tracks if audio is decoded and ready
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -271,65 +272,64 @@ const MainApp = () => {
     audioChunksRef.current = chunks.slice(-60);
   }, [duration, sendAudioForProcessing, usage, isDevMode, initAudioContext]);
 
+  const handlePrepareAudio = useCallback(async () => {
+    if (!rawFile) return;
+    const isReady = await initAudioContext();
+    if (!isReady) return;
+
+    setNotification("Processing audio...");
+    try {
+      const arrayBuffer = await rawFile.arrayBuffer();
+      const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
+      setMediaAudioBuffer(decodedBuffer);
+      setIsAudioReady(true);
+      setNotification("Audio is ready! You can now flash it.");
+    } catch (e) {
+      console.error("Error decoding audio data on demand:", e);
+      setNotification("Could not process this file's audio.");
+      setIsAudioReady(false);
+    }
+  }, [rawFile, initAudioContext]);
+
   const handleUploadFlash = useCallback(async () => {
-    const isReady = await initAudioContext();
-    if (!isReady) return;
+    if (!isAudioReady || !mediaAudioBuffer || isGeneratingRef.current) return;
 
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
     }
-    if (!rawFile || isGeneratingRef.current) return;
-
-    let bufferToProcess = mediaAudioBuffer;
-
-    if (!bufferToProcess) {
-        try {
-            setNotification("Processing audio for the first time...");
-            const arrayBuffer = await rawFile.arrayBuffer();
-            const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-            setMediaAudioBuffer(decodedBuffer);
-            bufferToProcess = decodedBuffer;
-            setNotification("Audio processed! Generating card...");
-        } catch (e) {
-            console.error("Error decoding audio data on demand:", e);
-            setNotification("Could not process this file's audio.");
-            setIsGenerating(false);
-            return;
-        }
-    }
 
     const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
-    const now = activePlayer.currentTime;
-    const startTime = Math.max(0, now - duration);
-    const endTime = now;
+    const now = activePlayer.currentTime;
+    const startTime = Math.max(0, now - duration);
+    const endTime = now;
 
-    const sampleRate = bufferToProcess.sampleRate;
-    const startSample = Math.floor(startTime * sampleRate);
-    const endSample = Math.floor(endTime * sampleRate);
-    const numSamples = endSample - startSample;
+    const sampleRate = mediaAudioBuffer.sampleRate;
+    const startSample = Math.floor(startTime * sampleRate);
+    const endSample = Math.floor(endTime * sampleRate);
+    const numSamples = endSample - startSample;
 
-    if (numSamples <= 0) {
-        setNotification("Not enough audio at the current position.");
-        return;
-    }
+    if (numSamples <= 0) {
+      setNotification("Not enough audio at the current position.");
+      return;
+    }
 
-    const clippedBuffer = audioContextRef.current.createBuffer(
-        bufferToProcess.numberOfChannels,
-        numSamples,
-        sampleRate
-    );
+    const clippedBuffer = audioContextRef.current.createBuffer(
+      mediaAudioBuffer.numberOfChannels,
+      numSamples,
+      sampleRate
+    );
 
-    for (let i = 0; i < bufferToProcess.numberOfChannels; i++) {
-        const channelData = bufferToProcess.getChannelData(i);
-        const clippedData = clippedBuffer.getChannelData(i);
-        clippedData.set(channelData.subarray(startSample, endSample));
-    }
-    
-    const wavBlob = encodeWAV(clippedBuffer);
+    for (let i = 0; i < mediaAudioBuffer.numberOfChannels; i++) {
+      const channelData = mediaAudioBuffer.getChannelData(i);
+      const clippedData = clippedBuffer.getChannelData(i);
+      clippedData.set(channelData.subarray(startSample, endSample));
+    }
+    
+    const wavBlob = encodeWAV(clippedBuffer);
     sendAudioForProcessing(wavBlob);
 
-  }, [rawFile, mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType, initAudioContext]);
+  }, [isAudioReady, mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
@@ -343,12 +343,12 @@ const MainApp = () => {
   useEffect(() => {
     if (uploadAutoFlashTimerRef.current) clearInterval(uploadAutoFlashTimerRef.current);
     uploadAutoFlashTimerRef.current = null;
-    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying) {
+    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying && isAudioReady) {
         setNotification(`Auto-Flash started. Generating a card every ${formatAutoFlashInterval(uploadAutoFlashInterval)}.`);
         uploadAutoFlashTimerRef.current = setInterval(handleUploadFlash, uploadAutoFlashInterval * 1000);
     }
     return () => clearInterval(uploadAutoFlashTimerRef.current);
-  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash]);
+  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash, isAudioReady]);
 
 
   const stopListening = () => {
@@ -431,6 +431,7 @@ const MainApp = () => {
     setMediaSrc(null);
     setMediaAudioBuffer(null);
     setRawFile(file);
+    setIsAudioReady(false); // ** NEW: Reset on new file
     setFileName(file.name);
     setCurrentTime(0);
     setMediaDuration(0);
@@ -445,7 +446,7 @@ const MainApp = () => {
     }
 
     setMediaSrc(URL.createObjectURL(file));
-    setNotification('File ready to flash!');
+    setNotification('File selected. Prepare audio to begin.');
   };
 
   const triggerFileUpload = () => {
@@ -918,10 +919,22 @@ const MainApp = () => {
               <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
+                {/* ** NEW LOGIC: Show Prepare button first, then Flash It button ** */}
+              {mediaSrc && !isAudioReady && (
+                    <button 
+                        onClick={handlePrepareAudio} 
+                        className="flash-it-button"
+                        disabled={isGenerating}
+                    >
+                        {isGenerating ? 'Processing...' : '🎧 Prepare Audio for Flashing'}
+                    </button>
+                )}
               <button 
                 onClick={handleUploadFlash} 
                 className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
-                disabled={!mediaSrc || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}>
+                disabled={!isAudioReady || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
+                  style={{ display: isAudioReady ? 'block' : 'none' }} // Hide until audio is ready
+                >
                 {isGenerating ? 'Generating...' : '⚡ Flash It!'}
               </button>
           </>
