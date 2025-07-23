@@ -93,8 +93,7 @@ const MainApp = () => {
   const [checkedCards, setCheckedCards] = useState({});
   const [editingCard, setEditingCard] = useState(null);
   const [studyingFolder, setStudyingFolder] = useState(null);
-  const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
-  const [promptModalConfig, setPromptModalConfig] = useState(null);
+  const [modalConfig, setModalConfig] = useState(null);
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
@@ -168,7 +167,25 @@ const MainApp = () => {
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
-    if (storedFolders) setFolders(JSON.parse(storedFolders));
+    if (storedFolders) {
+      let parsedFolders = JSON.parse(storedFolders);
+      if (Array.isArray(parsedFolders) || (Object.keys(parsedFolders).length > 0 && !parsedFolders[Object.keys(parsedFolders)[0]].id)) {
+        console.log("Old folder structure detected. Migrating...");
+        const newFolders = {};
+        Object.keys(parsedFolders).forEach(folderName => {
+          const newId = crypto.randomUUID();
+          newFolders[newId] = {
+            id: newId,
+            name: folderName,
+            cards: parsedFolders[folderName],
+            subfolders: {}
+          };
+        });
+        setFolders(newFolders);
+      } else {
+        setFolders(parsedFolders);
+      }
+    }
   }, []);
 
   useEffect(() => {
@@ -522,7 +539,7 @@ const MainApp = () => {
     } else {
       setFolders(prev => ({ ...prev, [folderName]: [] }));
     }
-    setIsCreateFolderModalOpen(false);
+    setModalConfig(null);
   };
 
   const deleteCardFromFolder = (folderName, cardId) => {
@@ -582,7 +599,8 @@ const MainApp = () => {
   };
 
   const exportFolderToPDF = (folderName) => {
-    setPromptModalConfig({
+    setModalConfig({
+      type: 'prompt',
       title: 'Export to PDF',
       message: 'How many flashcards per page? (6, 8, or 10)',
       defaultValue: '8',
@@ -651,14 +669,15 @@ const MainApp = () => {
           });
         }
         doc.save(`${folderName}-flashcards.pdf`);
-        setPromptModalConfig(null);
+        setModalConfig(null);
       },
-      onClose: () => setPromptModalConfig(null)
+      onClose: () => setModalConfig(null)
     });
   };
   
   const exportFolderToCSV = (folderName) => {
-    setPromptModalConfig({
+    setModalConfig({
+      type: 'prompt',
       title: 'Export to CSV',
       message: 'How many flashcards do you want to export?',
       defaultValue: folders[folderName].length,
@@ -668,7 +687,7 @@ const MainApp = () => {
             alert("Invalid number.");
             return;
         }
-        const cards = folders[folderName].slice(0, numCards);
+        const cards = folders[folderName].length;
         let csvContent = "data:text/csv;charset=utf-8,";
         csvContent += "FlashFonic\nListen. Flash it. Learn.\n\n";
         csvContent += "Question,Answer\n";
@@ -683,9 +702,9 @@ const MainApp = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setPromptModalConfig(null);
+        setModalConfig(null)
       },
-      onClose: () => setPromptModalConfig(null)
+      onClose: () => setModalConfig(null)
     });
   };
 
@@ -770,8 +789,7 @@ const MainApp = () => {
   return (
     <>
       {studyingFolder && ( <FlashcardViewer folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={() => setStudyingFolder(null)} /> )}
-      {isCreateFolderModalOpen && ( <CreateFolderModal onClose={() => setIsCreateFolderModalOpen(false)} onCreate={handleCreateFolder} /> )}
-      {promptModalConfig && <PromptModal {...promptModalConfig} />}
+      {modalConfig && <ActionModal config={modalConfig} onClose={() => setModalConfig(null)} />}
       {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
 
       <div className="header">
@@ -946,7 +964,7 @@ const MainApp = () => {
   			  <div className="folder-actions">
   				  <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
   					  <option value="" disabled>Select a folder...</option>
-  					  {Object.keys(folders).map(name => <option key={name} value={name}>{name}</option>)}
+  					  {Object.values(folders).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
   				  </select>
   				  <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
   			  </div>
@@ -954,29 +972,21 @@ const MainApp = () => {
   	  )}
   	  <div className="card folders-container">
   		  <h2 className="section-heading">Your Folders</h2>
-  		  <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
+  		  <button onClick={() => setModalConfig({ type: 'createFolder' })} className="create-folder-btn">Create New Folder</button>
   		  <div className="folder-list">
-  			  {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
-  				  <details key={name} className="folder">
-  					  <summary onClick={(e) => { if (e.target.closest('button')) e.preventDefault(); }}>
-  						  <div className="folder-summary">
-  							  <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
-  							  <div className="folder-export-buttons">
-  								  <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name, cards: folders[name] }); }} className="study-btn">Study</button>
-  								  <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
-  								  <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
-  							  </div>
-  						  </div>
-  					  </summary>
-  					  {folders[name].map((card) => (
-  						  <div key={card.id} className="card saved-card-in-folder">
-  							  <div className="card-content">
-  								  {renderCardContent(card, 'folder', name)}
-  								  <button onClick={() => deleteCardFromFolder(name, card.id)} className="card-delete-btn">🗑️</button>
-  							  </div>
-  						  </div>
-  					  ))}
-  				  </details>
+  			  {Object.values(folders).length > 0 ? Object.values(folders).map(folder => (
+  				  <FolderItem 
+                      key={folder.id} 
+                      folder={folder} 
+                      setModalConfig={setModalConfig}
+                      setStudyingFolder={setStudyingFolder}
+                      isListening={isListening}
+                      stopListening={stopListening}
+                      exportFolderToPDF={exportFolderToPDF}
+                      exportFolderToCSV={exportFolderToCSV}
+                      renderCardContent={renderCardContent}
+                      deleteCardFromFolder={deleteCardFromFolder}
+                  />
   			  )) : <p className="subtle-text">No folders created yet.</p>}
   		  </div>
   	  </div>
@@ -989,57 +999,103 @@ const MainApp = () => {
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
 
-function encodeWAV(audioBuffer) {
-    const numOfChan = audioBuffer.numberOfChannels;
-    const length = audioBuffer.length * numOfChan * 2 + 44;
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    const channels = [];
-    let i, sample;
-    let offset = 0;
-    let pos = 0;
+const FolderItem = ({ folder, ...props }) => {
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
+    const menuRef = useRef(null);
 
-    setUint32(0x46464952); 
-    setUint32(length - 8); 
-    setUint32(0x45564157); 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsMenuOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
-    setUint32(0x20746d66); 
-    setUint32(16); 
-    setUint16(1); 
-    setUint16(numOfChan);
-    setUint32(audioBuffer.sampleRate);
-    setUint32(audioBuffer.sampleRate * 2 * numOfChan); 
-    setUint16(numOfChan * 2); 
-    setUint16(16); 
+    const cardCount = folder.cards.length + Object.values(folder.subfolders).reduce((acc, sub) => acc + sub.cards.length, 0);
 
-    setUint32(0x61746164); 
-    setUint32(length - pos - 4);
+    return (
+        <details key={folder.id} className="folder">
+            <summary onClick={(e) => { if (e.target.closest('button')) e.preventDefault(); }}>
+                <div className="folder-header">
+                    <span className="folder-name">{folder.name} ({cardCount} {cardCount === 1 ? 'card' : 'cards'})</span>
+                    <div style={{position: 'relative'}} ref={menuRef}>
+                        <button className="folder-menu-btn" onClick={() => setIsMenuOpen(prev => !prev)}>⋮</button>
+                        {isMenuOpen && (
+                            <div className="folder-menu">
+                                <button onClick={() => props.setModalConfig({ type: 'createSubfolder', parentId: folder.id })}>Add Subfolder</button>
+                                <button onClick={() => props.setModalConfig({ type: 'renameFolder', folderId: folder.id, currentName: folder.name })}>Rename</button>
+                                <button onClick={() => props.setModalConfig({ type: 'deleteFolder', folderId: folder.id, folderName: folder.name })}>Delete</button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+                <div className="folder-export-buttons">
+                    <button onClick={() => { if (props.isListening) props.stopListening(); props.setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn">Study</button>
+                    <button onClick={() => props.exportFolderToPDF(folder.id)}>Export PDF</button>
+                    <button onClick={() => props.exportFolderToCSV(folder.id)}>Export CSV</button>
+                </div>
+            </summary>
+            {folder.cards.map((card) => (
+                <div key={card.id} className="card saved-card-in-folder">
+                    <div className="card-content">
+                        {props.renderCardContent(card, 'folder', folder.id)}
+                        <button onClick={() => props.deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
+                    </div>
+                </div>
+            ))}
+            {Object.values(folder.subfolders).length > 0 && (
+                <div className="subfolders-container">
+                    {Object.values(folder.subfolders).map(subfolder => (
+                        <FolderItem key={subfolder.id} folder={subfolder} {...props} />
+                    ))}
+                </div>
+            )}
+        </details>
+    );
+};
 
-    for (i = 0; i < audioBuffer.numberOfChannels; i++)
-        channels.push(audioBuffer.getChannelData(i));
+const ActionModal = ({ config, onClose }) => {
+    const [inputValue, setInputValue] = useState(config.currentName || '');
+    const { type, title, message, onConfirm } = config;
 
-    while (pos < length) {
-        for (i = 0; i < numOfChan; i++) {
-            sample = Math.max(-1, Math.min(1, channels[i][offset]));
-            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-            view.setInt16(pos, sample, true);
-            pos += 2;
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (type.includes('delete')) {
+            onConfirm();
+        } else if (inputValue.trim()) {
+            onConfirm(inputValue.trim());
         }
-        offset++;
-    }
+    };
 
-    return new Blob([view], { type: 'audio/wav' });
-
-    function setUint16(data) {
-        view.setUint16(pos, data, true);
-        pos += 2;
-    }
-
-    function setUint32(data) {
-        view.setUint32(pos, data, true);
-        pos += 4;
-    }
-}
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>{title}</h2>
+                {message && <p className="modal-message">{message}</p>}
+                <form onSubmit={handleSubmit}>
+                    {!type.includes('delete') && (
+                        <input 
+                            type="text" 
+                            className="modal-input" 
+                            placeholder="Enter name..."
+                            value={inputValue} 
+                            onChange={(e) => setInputValue(e.target.value)} 
+                            autoFocus 
+                        />
+                    )}
+                    <div className="modal-actions">
+                        <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="submit" className={type.includes('delete') ? 'modal-delete-btn' : 'modal-create-btn'}>
+                            {type.includes('delete') ? 'Delete' : 'Confirm'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
 
 const FeedbackModal = ({ onClose, formspreeUrl }) => {
@@ -1308,49 +1364,48 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   	</div>
   );
 };
-const CreateFolderModal = ({ onClose, onCreate }) => {
-  const [folderName, setFolderName] = useState('');
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (folderName.trim()) onCreate(folderName.trim());
-  };
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Create New Folder</h2>
-        <form onSubmit={handleSubmit}>
-          <input type="text" className="modal-input" placeholder="Enter folder name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
-          <div className="modal-actions">
-            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="modal-create-btn">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
+
+const ActionModal = ({ config, onClose }) => {
+    const [inputValue, setInputValue] = useState(config.currentName || '');
+    const { type, title, message, onConfirm } = config;
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (type.includes('delete')) {
+            onConfirm();
+        } else if (inputValue.trim()) {
+            onConfirm(inputValue.trim());
+        }
+    };
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>{title}</h2>
+                {message && <p className="modal-message">{message}</p>}
+                <form onSubmit={handleSubmit}>
+                    {!type.includes('delete') && (
+                        <input 
+                            type="text" 
+                            className="modal-input" 
+                            placeholder="Enter name..."
+                            value={inputValue} 
+                            onChange={(e) => setInputValue(e.target.value)} 
+                            autoFocus 
+                        />
+                    )}
+                    <div className="modal-actions">
+                        <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="submit" className={type.includes('delete') ? 'modal-delete-btn' : 'modal-create-btn'}>
+                            {type.includes('delete') ? 'Delete' : 'Confirm'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
 };
-const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
-  const [value, setValue] = useState(defaultValue || '');
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (value) onConfirm(value);
-  };
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{title}</h2>
-        <p className="modal-message">{message}</p>
-        <form onSubmit={handleSubmit}>
-          <input type="number" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <div className="modal-actions">
-            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="modal-create-btn">Confirm</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
+
 const formatTime = (time) => {
   if (isNaN(time) || time === 0) return '00:00';
   const minutes = Math.floor(time / 60);
