@@ -75,27 +75,55 @@ body {
 
 .main-controls .listening-control {
   display: flex;
-  flex-direction: column;
-  justify-content: space-around;
-  align-items: center;
-  margin-bottom: 1.5rem;
-  gap: 1rem;
+  justify-content: center;
+  margin-bottom: 1rem;
 }
 
-.start-stop-btn,
-.voice-activate-btn {
+.start-stop-btn {
   padding: 0.8em 1.5em;
-  font-size: 1em;
+  font-size: 1.1em;
   font-weight: bold;
   border: none;
   border-radius: 30px;
   cursor: pointer;
-  transition: all 0.2s ease;
   background-color: var(--primary-purple);
   color: white;
   width: 100%;
-  box-sizing: border-box;
+  max-width: 300px;
 }
+
+/* UI FIX: Styles for smaller secondary buttons */
+.listening-modes {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  justify-content: center;
+}
+
+.small-btn {
+  padding: 0.6em 1.2em;
+  font-size: 0.9em;
+  font-weight: bold;
+  border: none;
+  border-radius: 30px;
+  cursor: pointer;
+  background-color: var(--primary-purple);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5em;
+}
+
+.voice-activate-btn.small-btn.active,
+.start-stop-btn.active {
+  background-color: var(--secondary-pink);
+}
+
+.autoflash-btn.small-btn.active {
+  background-color: var(--success-green);
+}
+
 
 .mode-selector {
   display: flex;
@@ -208,12 +236,6 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: 500;
   min-height: 1.2em;
   text-align: center;
-}
-
-.voice-activate-btn.active,
-.start-stop-btn.active {
-  background-color: var(--secondary-pink);
-  color: white;
 }
 
 .voice-hint {
@@ -353,7 +375,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-list summary {
   position: relative;
-  padding: 1em 2.5em; /* Make space for both arrow and menu */
+  padding: 1em 2.5em;
   font-weight: 600;
   cursor: pointer;
   outline: none;
@@ -392,36 +414,32 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-.folder-export-buttons {
+.folder-main-actions {
   display: flex;
   gap: 0.5rem;
   flex-wrap: wrap;
   align-items: center;
 }
 
-.folder-export-buttons button {
-  margin-left: 0;
-  padding: 0.4em 0.8em;
-  font-size: 0.8em;
-  background-color: var(--border-color);
-  border: 1px solid var(--primary-purple);
-  color: var(--text-light);
+.study-btn {
+  background-color: var(--success-green) !important;
+  border: none;
+  padding: 0.6em 1.2em !important;
+  font-size: 0.9em !important;
+  font-weight: 700 !important;
+  color: white;
   border-radius: 6px;
   cursor: pointer;
 }
 
-.study-btn {
-  background-color: var(--success-green) !important;
-  border-color: var(--success-green) !important;
-  padding: 0.8em 1.5em !important;
-  font-size: 1em !important;
-  font-weight: 700 !important;
-}
-
-/* NEW: Style for Needs Review button */
-.review-btn {
-  background-color: var(--warning-orange) !important;
-  border-color: var(--warning-orange) !important;
+.secondary-actions-btn {
+  background-color: var(--border-color);
+  border: none;
+  padding: 0.6em 1.2em;
+  font-size: 0.9em;
+  color: var(--text-light);
+  border-radius: 6px;
+  cursor: pointer;
 }
 
 .saved-card-in-folder {
@@ -503,7 +521,6 @@ input[type="range"]::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 
-/* --- VIDEO PLAYER STYLES --- */
 .player-container {
   margin: 1.5rem 0;
 }
@@ -562,16 +579,13 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--danger-red);
 }
 
-/* NEW: Styles for delete button in viewer */
 .viewer-delete-btn {
     bottom: 10px;
-    right: 10px;
+    right: 40px; /* Adjusted to not overlap flag */
     font-size: 1.5rem;
     color: rgba(255, 255, 255, 0.5);
 }
-.viewer-delete-btn:hover {
-    color: var(--danger-red);
-}
+.viewer-delete-btn:hover { color: var(--danger-red); }
 
 .edit-mode .edit-textarea {
   width: 100%;
@@ -660,11 +674,16 @@ input[type="range"]::-webkit-slider-thumb {
 .viewer-controls button {
   background-color: var(--content-bg);
   color: var(--text-light);
-  border: 1px solid var(--primary-purple);
+  border: 1px solid var(--border-color);
   padding: 0.5em 1em;
   border-radius: 8px;
   cursor: pointer;
   font-size: 0.9em;
+}
+
+.viewer-controls button.active {
+  border-color: var(--primary-purple);
+  background-color: var(--primary-purple);
 }
 
 .viewer-main {
@@ -864,7 +883,6 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-light);
 }
 
-/* NEW: Delete button style for modal */
 .modal-delete-btn {
     background-color: var(--danger-red);
     color: white;
@@ -974,6 +992,66 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 0.5em 1em;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.actions-menu-container {
+    position: relative;
+}
+
+.menu-trigger-btn {
+    background: none;
+    border: none;
+    color: var(--text-dark);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0 0.5rem;
+    line-height: 1;
+}
+.menu-trigger-btn:hover { color: var(--text-light); }
+
+.menu-dropdown {
+    position: absolute;
+    right: 0;
+    top: 100%;
+    margin-top: 5px;
+    background-color: var(--dark-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    z-index: 10;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    width: 150px;
+}
+
+.menu-dropdown button {
+    background: none;
+    border: none;
+    color: var(--text-light);
+    padding: 0.8em 1em;
+    text-align: left;
+    width: 100%;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.menu-dropdown button:hover { background-color: var(--primary-purple); }
+
+.folder-level { width: 100%; }
+
+.last-reviewed-tag {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background-color: rgba(0,0,0,0.2);
+    color: var(--text-soft);
+    padding: 0.2em 0.5em;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-style: italic;
+}
+.card-back .last-reviewed-tag {
+    color: rgba(255,255,255,0.8);
 }
 
 /* --- MEDIA QUERIES FOR RESPONSIVENESS --- */
@@ -1196,44 +1274,6 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* --- AUTO-FLASH STYLES --- */
-.listening-modes {
-  display: flex;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  justify-content: space-around;
-}
-
-.autoflash-btn {
-  padding: 0.8em 1.5em;
-  font-size: 1em;
-  font-weight: bold;
-  border: none;
-  border-radius: 30px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  background-color: var(--primary-purple);
-  color: white;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5em;
-}
-
-.autoflash-btn.active {
-  background-color: var(--success-green);
-  color: white;
-}
-
-.autoflash-btn:disabled,
-.voice-activate-btn:disabled {
-  background-color: var(--border-color) !important;
-  color: var(--text-dark) !important;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
 .beta-tag {
   font-size: 0.7em;
   font-weight: bold;
@@ -1244,7 +1284,6 @@ input[type="range"]::-webkit-slider-thumb {
   vertical-align: middle;
 }
 
-/* --- BRAND BLING STYLES --- */
 @keyframes shimmer {
   0% { background-position: -500% 0; }
   100% { background-position: 500% 0; }
@@ -1260,7 +1299,6 @@ input[type="range"]::-webkit-slider-thumb {
   animation: shimmer 5s linear infinite;
 }
 
-/* Animation for Flash It Button */
 @keyframes pulse-blue {
   0% {
     box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.7);
@@ -1277,7 +1315,6 @@ input[type="range"]::-webkit-slider-thumb {
   animation: pulse-blue 2s infinite;
 }
 
-/* Styles for Feedback Modal */
 .app-footer {
   text-align: center;
   margin-top: 2rem;
@@ -1297,7 +1334,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .feedback-btn:hover {
-  background-color: #059669; /* A darker green for hover */
+  background-color: #059669;
 }
 
 .feedback-modal-overlay {
@@ -1363,59 +1400,4 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1.5rem;
-}
-
-/* --- NEW STYLES FOR FOLDER ACTIONS --- */
-.folder-actions-menu {
-    position: relative;
-    margin-left: auto; /* Pushes menu to the right */
-}
-
-.menu-trigger-btn {
-    background: none;
-    border: none;
-    color: var(--text-dark);
-    font-size: 1.5rem;
-    cursor: pointer;
-    padding: 0 0.5rem;
-    line-height: 1;
-}
-
-.menu-trigger-btn:hover {
-    color: var(--text-light);
-}
-
-.menu-dropdown {
-    position: absolute;
-    right: 0;
-    top: 100%;
-    margin-top: 5px;
-    background-color: var(--dark-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
-    z-index: 10;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    width: 150px;
-}
-
-.menu-dropdown button {
-    background: none;
-    border: none;
-    color: var(--text-light);
-    padding: 0.8em 1em;
-    text-align: left;
-    width: 100%;
-    cursor: pointer;
-    font-size: 0.9em;
-}
-
-.menu-dropdown button:hover {
-    background-color: var(--primary-purple);
-}
-
-.folder-level {
-    width: 100%;
 }
