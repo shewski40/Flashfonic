@@ -127,22 +127,34 @@ const MainApp = () => {
   const listeningTimeoutRef = useRef(null);
   const autoFlashTimerRef = useRef(null);
   const uploadAutoFlashTimerRef = useRef(null);
-  const audioContextRef = useRef(null); // ** MODIFIED: Will now hold our persistent AudioContext
+  const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  // ** NEW: Initialize AudioContext on the first user interaction (e.g., button click)
-  const initAudioContext = () => {
+  const initAudioContext = useCallback(async () => {
     if (!audioContextRef.current) {
       try {
         audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-        console.log("AudioContext initialized successfully.");
+        console.log("AudioContext created in state:", audioContextRef.current.state);
       } catch (e) {
         console.error("Could not initialize AudioContext:", e);
         setNotification("Audio processing is not supported on this browser.");
+        return false;
       }
     }
-  };
+
+    if (audioContextRef.current.state === 'suspended') {
+      try {
+        await audioContextRef.current.resume();
+        console.log("AudioContext resumed successfully. State:", audioContextRef.current.state);
+      } catch (e) {
+        console.error("Failed to resume AudioContext:", e);
+        setNotification("Could not activate audio engine. Please tap the screen and try again.");
+        return false;
+      }
+    }
+    return true;
+  }, []);
 
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
@@ -230,8 +242,10 @@ const MainApp = () => {
     };
   }, [isListening, isPlaying, isDevMode]);
 
-  const handleLiveFlashIt = useCallback(() => {
-    initAudioContext(); // Ensure context is ready
+  const handleLiveFlashIt = useCallback(async () => {
+    const isReady = await initAudioContext();
+    if (!isReady) return;
+
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
@@ -255,20 +269,17 @@ const MainApp = () => {
     sendAudioForProcessing(audioBlob);
 
     audioChunksRef.current = chunks.slice(-60);
-  }, [duration, sendAudioForProcessing, usage, isDevMode]);
+  }, [duration, sendAudioForProcessing, usage, isDevMode, initAudioContext]);
 
   const handleUploadFlash = useCallback(async () => {
-    initAudioContext(); // Ensure context is ready before we do anything
+    const isReady = await initAudioContext();
+    if (!isReady) return;
+
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
     }
     if (!rawFile || isGeneratingRef.current) return;
-
-    if (!audioContextRef.current) {
-        setNotification("Audio engine could not start. Please refresh and try again.");
-        return;
-    }
 
     let bufferToProcess = mediaAudioBuffer;
 
@@ -318,7 +329,7 @@ const MainApp = () => {
     const wavBlob = encodeWAV(clippedBuffer);
     sendAudioForProcessing(wavBlob);
 
-  }, [rawFile, mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
+  }, [rawFile, mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType, initAudioContext]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
@@ -347,14 +358,15 @@ const MainApp = () => {
     if (recognitionRef.current) recognitionRef.current.stop();
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-    // Do not close the persistent AudioContext here
     
     setIsListening(false);
     setNotification('');
   };
 
   const startListening = async () => {
-    initAudioContext(); // Ensure context is ready
+    const isReady = await initAudioContext();
+    if (!isReady) return;
+
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
@@ -415,7 +427,7 @@ const MainApp = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    initAudioContext(); // Ensure context is ready for when the user clicks flash it
+    initAudioContext();
     setMediaSrc(null);
     setMediaAudioBuffer(null);
     setRawFile(file);
@@ -437,7 +449,7 @@ const MainApp = () => {
   };
 
   const triggerFileUpload = () => {
-    initAudioContext(); // User interaction! Good time to init.
+    initAudioContext();
     fileInputRef.current.click();
   }
 
@@ -466,7 +478,7 @@ const MainApp = () => {
   }, [mediaSrc, fileType]);
 
   const togglePlayPause = () => {
-    initAudioContext(); // User interaction! Good time to init.
+    initAudioContext();
     const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
     if (activePlayer?.paused) {
       activePlayer.play();
