@@ -82,13 +82,12 @@ const MainApp = () => {
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
   const [folders, setFolders] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
   const [fileName, setFileName] = useState('');
-  const [mediaSrc, setMediaSrc] = useState(null); // Renamed from audioSrc to be generic
-  const [fileType, setFileType] = useState(null); // 'audio' or 'video'
+  const [mediaSrc, setMediaSrc] = useState(null);
+  const [fileType, setFileType] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [mediaDuration, setMediaDuration] = useState(0); // Renamed from audioDuration
+  const [mediaDuration, setMediaDuration] = useState(0);
   const [voiceActivated, setVoiceActivated] = useState(false);
   const [checkedCards, setCheckedCards] = useState({});
   const [editingCard, setEditingCard] = useState(null);
@@ -105,6 +104,7 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+  const [mediaAudioBuffer, setMediaAudioBuffer] = useState(null); // ** NEW: To store decoded audio data
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -121,7 +121,7 @@ const MainApp = () => {
   const streamRef = useRef(null);
   const fileInputRef = useRef(null);
   const audioPlayerRef = useRef(null);
-  const videoPlayerRef = useRef(null); // New ref for the video player
+  const videoPlayerRef = useRef(null);
   const recognitionRef = useRef(null);
   const listeningTimeoutRef = useRef(null);
   const autoFlashTimerRef = useRef(null);
@@ -174,32 +174,20 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  const sendAudioForProcessing = useCallback(async (payload) => {
+  const sendAudioForProcessing = useCallback(async (audioBlob) => {
     setIsGenerating(true);
-    setNotification('Sending file to server...');
-
-    const { fileBlob, isLive, startTime, duration } = payload;
+    setNotification('Sending audio to server...');
 
     const reader = new FileReader();
-    reader.readAsDataURL(fileBlob);
+    reader.readAsDataURL(audioBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1];
         
-        const requestBody = {
-            audio_data: base64Audio,
-            is_live_capture: isLive,
-        };
-
-        if (!isLive) {
-            requestBody.startTime = startTime;
-            requestBody.duration = duration;
-        }
-
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
+                body: JSON.stringify({ audio_data: base64Audio }) // ** SIMPLIFIED: No longer needs time/duration
             });
             
             const data = await response.json();
@@ -249,7 +237,7 @@ const MainApp = () => {
     const slice = chunks.slice(-grab);
     const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: mediaRecorderRef.current.mimeType });
     
-    sendAudioForProcessing({ fileBlob: audioBlob, isLive: true });
+    sendAudioForProcessing(audioBlob);
 
     audioChunksRef.current = chunks.slice(-60);
   }, [duration, sendAudioForProcessing, usage, isDevMode]);
@@ -259,17 +247,46 @@ const MainApp = () => {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
     }
-    if (!uploadedFile || isGeneratingRef.current) return;
+    if (!mediaAudioBuffer || isGeneratingRef.current) {
+        if (!mediaAudioBuffer) setNotification("File still processing, please wait...");
+        return;
+    }
 
     const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
-    
-    sendAudioForProcessing({
-        fileBlob: uploadedFile,
-        isLive: false,
-        startTime: activePlayer.currentTime,
-        duration: duration,
-    });
-  }, [uploadedFile, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
+    const now = activePlayer.currentTime;
+    const startTime = Math.max(0, now - duration);
+    const endTime = now;
+
+    const sampleRate = mediaAudioBuffer.sampleRate;
+    const startSample = Math.floor(startTime * sampleRate);
+    const endSample = Math.floor(endTime * sampleRate);
+    const numSamples = endSample - startSample;
+
+    if (numSamples <= 0) {
+        setNotification("Not enough audio at the current position.");
+        return;
+    }
+
+    // Create a new AudioBuffer for the clip
+    const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+    const clippedBuffer = audioContext.createBuffer(
+        mediaAudioBuffer.numberOfChannels,
+        numSamples,
+        sampleRate
+    );
+
+    // Copy the data from the original buffer to the new clipped buffer
+    for (let i = 0; i < mediaAudioBuffer.numberOfChannels; i++) {
+        const channelData = mediaAudioBuffer.getChannelData(i);
+        const clippedData = clippedBuffer.getChannelData(i);
+        clippedData.set(channelData.subarray(startSample, endSample));
+    }
+    
+    // Encode the clipped buffer to a WAV blob and send it
+    const wavBlob = encodeWAV(clippedBuffer);
+    sendAudioForProcessing(wavBlob);
+
+  }, [mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
@@ -361,25 +378,42 @@ const MainApp = () => {
     setNotification('');
   };
 
-  const handleFileChange = (event) => {
+  const handleFileChange = async (event) => {
     const file = event.target.files[0];
-    if (file) {
-      if (file.type.startsWith('video/')) {
-        setFileType('video');
-      } else if (file.type.startsWith('audio/')) {
-        setFileType('audio');
-      } else {
-        setNotification("Unsupported file type. Please upload an audio or video file.");
-        return;
-      }
+    if (!file) return;
 
-      setUploadedFile(file);
-      setFileName(file.name);
-      setMediaSrc(URL.createObjectURL(file));
-      setCurrentTime(0);
-      setMediaDuration(0);
-      setNotification('');
+    // Reset states for the new file
+    setMediaSrc(null);
+    setMediaAudioBuffer(null);
+    setFileName(file.name);
+    setCurrentTime(0);
+    setMediaDuration(0);
+    setNotification('Analyzing file, please wait...');
+
+    if (file.type.startsWith('video/')) {
+      setFileType('video');
+    } else if (file.type.startsWith('audio/')) {
+      setFileType('audio');
+    } else {
+      setNotification("Unsupported file type. Please upload an audio or video file.");
+      return;
     }
+
+    // Set the media source for the player right away
+    setMediaSrc(URL.createObjectURL(file));
+
+    // Decode the audio data in the background
+    try {
+        const arrayBuffer = await file.arrayBuffer();
+        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+        setMediaAudioBuffer(decodedBuffer);
+        setNotification('File ready to flash!');
+    } catch (e) {
+        console.error("Error decoding audio data:", e);
+        setNotification("Could not process this file's audio.");
+        setMediaAudioBuffer(null);
+    }
   };
 
   const triggerFileUpload = () => fileInputRef.current.click();
@@ -801,16 +835,14 @@ const MainApp = () => {
                 <div className="player-container">
                   {fileType === 'video' ? (
                                 <>
-                                    {/* The 'playsInline' attribute is key for iOS. Removed 'controls'. */}
                                     <video 
                                         ref={videoPlayerRef} 
                                         src={mediaSrc} 
                                         playsInline 
                                         className="video-player"
-                                        onClick={togglePlayPause} // Allow playing/pausing by tapping the video
+                                        onClick={togglePlayPause}
                                     >
                                     </video>
-                                    {/* Using the same custom controls as the audio player for consistency */}
                                     <div className="audio-player">
                                         <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
                                         <div className="progress-bar-container" onClick={handleSeek}>
@@ -819,7 +851,7 @@ const MainApp = () => {
                                         <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
                                     </div>
                                 </>
-                  ) : ( // fileType === 'audio'
+                  ) : (
                     <div className="audio-player">
                       <audio ref={audioPlayerRef} src={mediaSrc} />
                       <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
@@ -852,9 +884,9 @@ const MainApp = () => {
             </div>
               <button 
                 onClick={handleUploadFlash} 
-                className={`flash-it-button ${uploadedFile && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
-                disabled={!uploadedFile || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}>
-                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+                className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
+                disabled={!mediaAudioBuffer || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}>
+                {isGenerating ? 'Generating...' : (mediaSrc && !mediaAudioBuffer) ? 'Processing File...' : '⚡ Flash It!'}
               </button>
           </>
         )}
@@ -922,6 +954,63 @@ const MainApp = () => {
 };
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
+
+// ** NEW: Helper function to encode an AudioBuffer to a WAV Blob
+function encodeWAV(audioBuffer) {
+    const numOfChan = audioBuffer.numberOfChannels;
+    const length = audioBuffer.length * numOfChan * 2 + 44;
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+    const channels = [];
+    let i, sample;
+    let offset = 0;
+    let pos = 0;
+
+    // write WAVE header
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8); // file length - 8
+    setUint32(0x45564157); // "WAVE"
+
+    setUint32(0x20746d66); // "fmt " chunk
+    setUint32(16); // length = 16
+    setUint16(1); // PCM (uncompressed)
+    setUint16(numOfChan);
+    setUint32(audioBuffer.sampleRate);
+    setUint32(audioBuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
+    setUint16(numOfChan * 2); // block-align
+    setUint16(16); // 16-bit
+
+    setUint32(0x61746164); // "data" - chunk
+    setUint32(length - pos - 4); // chunk length
+
+    // write interleaved data
+    for (i = 0; i < audioBuffer.numberOfChannels; i++)
+        channels.push(audioBuffer.getChannelData(i));
+
+    while (pos < length) {
+        for (i = 0; i < numOfChan; i++) {
+            sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit signed int
+            view.setInt16(pos, sample, true); // write 16-bit sample
+            pos += 2;
+        }
+        offset++;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+
+    function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+    }
+
+    function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+    }
+}
+
+
 const FeedbackModal = ({ onClose, formspreeUrl }) => {
   const [status, setStatus] = useState('');
 
