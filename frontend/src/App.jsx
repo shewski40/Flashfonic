@@ -104,7 +104,8 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [mediaAudioBuffer, setMediaAudioBuffer] = useState(null); // ** NEW: To store decoded audio data
+  const [mediaAudioBuffer, setMediaAudioBuffer] = useState(null);
+  const [rawFile, setRawFile] = useState(null); // ** NEW: To store the original file for deferred processing
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -187,7 +188,7 @@ const MainApp = () => {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audio_data: base64Audio }) // ** SIMPLIFIED: No longer needs time/duration
+                body: JSON.stringify({ audio_data: base64Audio })
             });
             
             const data = await response.json();
@@ -242,14 +243,31 @@ const MainApp = () => {
     audioChunksRef.current = chunks.slice(-60);
   }, [duration, sendAudioForProcessing, usage, isDevMode]);
 
-  const handleUploadFlash = useCallback(() => {
+  const handleUploadFlash = useCallback(async () => {
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
     }
-    if (!mediaAudioBuffer || isGeneratingRef.current) {
-        if (!mediaAudioBuffer) setNotification("File still processing, please wait...");
-        return;
+    if (!rawFile || isGeneratingRef.current) return;
+
+    let bufferToProcess = mediaAudioBuffer;
+
+    // ** NEW: If audio hasn't been decoded yet, decode it now (on user click)
+    if (!bufferToProcess) {
+        try {
+            setNotification("Processing audio for the first time...");
+            const arrayBuffer = await rawFile.arrayBuffer();
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
+            setMediaAudioBuffer(decodedBuffer); // Save it for next time
+            bufferToProcess = decodedBuffer;
+            setNotification("Audio processed! Generating card...");
+        } catch (e) {
+            console.error("Error decoding audio data on demand:", e);
+            setNotification("Could not process this file's audio.");
+            setIsGenerating(false); // Stop the loading spinner
+            return;
+        }
     }
 
     const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
@@ -257,7 +275,7 @@ const MainApp = () => {
     const startTime = Math.max(0, now - duration);
     const endTime = now;
 
-    const sampleRate = mediaAudioBuffer.sampleRate;
+    const sampleRate = bufferToProcess.sampleRate;
     const startSample = Math.floor(startTime * sampleRate);
     const endSample = Math.floor(endTime * sampleRate);
     const numSamples = endSample - startSample;
@@ -267,26 +285,23 @@ const MainApp = () => {
         return;
     }
 
-    // Create a new AudioBuffer for the clip
     const audioContext = new (window.AudioContext || window.webkitAudioContext)();
     const clippedBuffer = audioContext.createBuffer(
-        mediaAudioBuffer.numberOfChannels,
+        bufferToProcess.numberOfChannels,
         numSamples,
         sampleRate
     );
 
-    // Copy the data from the original buffer to the new clipped buffer
-    for (let i = 0; i < mediaAudioBuffer.numberOfChannels; i++) {
-        const channelData = mediaAudioBuffer.getChannelData(i);
+    for (let i = 0; i < bufferToProcess.numberOfChannels; i++) {
+        const channelData = bufferToProcess.getChannelData(i);
         const clippedData = clippedBuffer.getChannelData(i);
         clippedData.set(channelData.subarray(startSample, endSample));
     }
     
-    // Encode the clipped buffer to a WAV blob and send it
     const wavBlob = encodeWAV(clippedBuffer);
     sendAudioForProcessing(wavBlob);
 
-  }, [mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
+  }, [rawFile, mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
@@ -378,18 +393,18 @@ const MainApp = () => {
     setNotification('');
   };
 
-  const handleFileChange = async (event) => {
+  const handleFileChange = (event) => {
     const file = event.target.files[0];
     if (!file) return;
 
-    // Reset states for the new file
+    // ** MODIFIED: Reset states and store the raw file, but DO NOT decode yet.
     setMediaSrc(null);
     setMediaAudioBuffer(null);
+    setRawFile(file); // Store the file for later
     setFileName(file.name);
     setCurrentTime(0);
     setMediaDuration(0);
-    setNotification('Analyzing file, please wait...');
-
+    
     if (file.type.startsWith('video/')) {
       setFileType('video');
     } else if (file.type.startsWith('audio/')) {
@@ -399,21 +414,8 @@ const MainApp = () => {
       return;
     }
 
-    // Set the media source for the player right away
     setMediaSrc(URL.createObjectURL(file));
-
-    // Decode the audio data in the background
-    try {
-        const arrayBuffer = await file.arrayBuffer();
-        const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-        const decodedBuffer = await audioContext.decodeAudioData(arrayBuffer);
-        setMediaAudioBuffer(decodedBuffer);
-        setNotification('File ready to flash!');
-    } catch (e) {
-        console.error("Error decoding audio data:", e);
-        setNotification("Could not process this file's audio.");
-        setMediaAudioBuffer(null);
-    }
+    setNotification('File ready to flash!');
   };
 
   const triggerFileUpload = () => fileInputRef.current.click();
@@ -885,8 +887,8 @@ const MainApp = () => {
               <button 
                 onClick={handleUploadFlash} 
                 className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
-                disabled={!mediaAudioBuffer || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}>
-                {isGenerating ? 'Generating...' : (mediaSrc && !mediaAudioBuffer) ? 'Processing File...' : '⚡ Flash It!'}
+                disabled={!mediaSrc || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}>
+                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
               </button>
           </>
         )}
@@ -955,7 +957,6 @@ const MainApp = () => {
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
 
-// ** NEW: Helper function to encode an AudioBuffer to a WAV Blob
 function encodeWAV(audioBuffer) {
     const numOfChan = audioBuffer.numberOfChannels;
     const length = audioBuffer.length * numOfChan * 2 + 44;
@@ -966,32 +967,30 @@ function encodeWAV(audioBuffer) {
     let offset = 0;
     let pos = 0;
 
-    // write WAVE header
-    setUint32(0x46464952); // "RIFF"
-    setUint32(length - 8); // file length - 8
-    setUint32(0x45564157); // "WAVE"
+    setUint32(0x46464952); 
+    setUint32(length - 8); 
+    setUint32(0x45564157); 
 
-    setUint32(0x20746d66); // "fmt " chunk
-    setUint32(16); // length = 16
-    setUint16(1); // PCM (uncompressed)
+    setUint32(0x20746d66); 
+    setUint32(16); 
+    setUint16(1); 
     setUint16(numOfChan);
     setUint32(audioBuffer.sampleRate);
-    setUint32(audioBuffer.sampleRate * 2 * numOfChan); // avg. bytes/sec
-    setUint16(numOfChan * 2); // block-align
-    setUint16(16); // 16-bit
+    setUint32(audioBuffer.sampleRate * 2 * numOfChan); 
+    setUint16(numOfChan * 2); 
+    setUint16(16); 
 
-    setUint32(0x61746164); // "data" - chunk
-    setUint32(length - pos - 4); // chunk length
+    setUint32(0x61746164); 
+    setUint32(length - pos - 4);
 
-    // write interleaved data
     for (i = 0; i < audioBuffer.numberOfChannels; i++)
         channels.push(audioBuffer.getChannelData(i));
 
     while (pos < length) {
         for (i = 0; i < numOfChan; i++) {
-            sample = Math.max(-1, Math.min(1, channels[i][offset])); // clamp
-            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit signed int
-            view.setInt16(pos, sample, true); // write 16-bit sample
+            sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+            view.setInt16(pos, sample, true);
             pos += 2;
         }
         offset++;
