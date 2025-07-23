@@ -106,7 +106,7 @@ const MainApp = () => {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [mediaAudioBuffer, setMediaAudioBuffer] = useState(null);
   const [rawFile, setRawFile] = useState(null);
-  const [isAudioReady, setIsAudioReady] = useState(false); // ** NEW: Tracks if audio is decoded and ready
+  const [isAudioReady, setIsAudioReady] = useState(false);
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -132,30 +132,43 @@ const MainApp = () => {
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  const initAudioContext = useCallback(async () => {
-    if (!audioContextRef.current) {
-      try {
-        audioContextRef.current = new (window.AudioContext || window.webkitAudioContext)();
-        console.log("AudioContext created in state:", audioContextRef.current.state);
-      } catch (e) {
-        console.error("Could not initialize AudioContext:", e);
-        setNotification("Audio processing is not supported on this browser.");
-        return false;
-      }
+  const initAudioContext = useCallback(() => {
+    if (audioContextRef.current && audioContextRef.current.state === 'running') {
+      return true;
     }
-
-    if (audioContextRef.current.state === 'suspended') {
-      try {
-        await audioContextRef.current.resume();
-        console.log("AudioContext resumed successfully. State:", audioContextRef.current.state);
-      } catch (e) {
-        console.error("Failed to resume AudioContext:", e);
-        setNotification("Could not activate audio engine. Please tap the screen and try again.");
-        return false;
+    try {
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      const context = new AudioContext();
+      audioContextRef.current = context;
+      if (context.state === 'suspended') {
+        context.resume().then(() => {
+          console.log("AudioContext resumed successfully.");
+        });
       }
+      return true;
+    } catch (e) {
+      console.error("Could not initialize AudioContext:", e);
+      setNotification("Audio processing is not supported on this browser.");
+      return false;
     }
-    return true;
   }, []);
+
+  // ** NEW: Prime the audio context on the first user interaction
+  useEffect(() => {
+    const primeAudio = () => {
+      initAudioContext();
+      window.removeEventListener('click', primeAudio);
+      window.removeEventListener('touchend', primeAudio);
+    };
+    window.addEventListener('click', primeAudio);
+    window.addEventListener('touchend', primeAudio);
+
+    return () => {
+      window.removeEventListener('click', primeAudio);
+      window.removeEventListener('touchend', primeAudio);
+    };
+  }, [initAudioContext]);
+
 
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
@@ -244,9 +257,6 @@ const MainApp = () => {
   }, [isListening, isPlaying, isDevMode]);
 
   const handleLiveFlashIt = useCallback(async () => {
-    const isReady = await initAudioContext();
-    if (!isReady) return;
-
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
@@ -274,8 +284,10 @@ const MainApp = () => {
 
   const handlePrepareAudio = useCallback(async () => {
     if (!rawFile) return;
-    const isReady = await initAudioContext();
-    if (!isReady) return;
+    if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
+      setNotification("Audio engine not ready. Please tap the screen once and try again.");
+      return;
+    }
 
     setNotification("Processing audio...");
     try {
@@ -289,7 +301,7 @@ const MainApp = () => {
       setNotification("Could not process this file's audio.");
       setIsAudioReady(false);
     }
-  }, [rawFile, initAudioContext]);
+  }, [rawFile]);
 
   const handleUploadFlash = useCallback(async () => {
     if (!isAudioReady || !mediaAudioBuffer || isGeneratingRef.current) return;
@@ -364,9 +376,6 @@ const MainApp = () => {
   };
 
   const startListening = async () => {
-    const isReady = await initAudioContext();
-    if (!isReady) return;
-
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
@@ -401,14 +410,35 @@ const MainApp = () => {
                   }, listeningDuration * 60 * 1000);
                 }
 
-                if (!isSafari) {
-                  // Silence detection and voice activation logic here...
+                if (!isSafari && voiceActivated) {
+                    // Voice activation logic restored
                 }
             }
         }
       });
 
       mediaRecorderRef.current.start(1000);
+
+      if (voiceActivated && !isSafari) {
+          const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+          if (SpeechRecognition) {
+              recognitionRef.current = new SpeechRecognition();
+              recognitionRef.current.continuous = true;
+              recognitionRef.current.interimResults = true;
+              recognitionRef.current.onresult = (event) => {
+                  for (let i = event.resultIndex; i < event.results.length; ++i) {
+                      if (event.results[i].isFinal) {
+                          const transcript = event.results[i][0].transcript.trim().toLowerCase();
+                          if (transcript.includes("flash")) {
+                              console.log("Voice command 'flash' detected.");
+                              handleLiveFlashIt();
+                          }
+                      }
+                  }
+              };
+              recognitionRef.current.start();
+          }
+      }
 
     } catch (err) {
       console.error("Error starting listening:", err);
@@ -427,11 +457,10 @@ const MainApp = () => {
     const file = event.target.files[0];
     if (!file) return;
 
-    initAudioContext();
     setMediaSrc(null);
     setMediaAudioBuffer(null);
     setRawFile(file);
-    setIsAudioReady(false); // ** NEW: Reset on new file
+    setIsAudioReady(false);
     setFileName(file.name);
     setCurrentTime(0);
     setMediaDuration(0);
@@ -450,7 +479,6 @@ const MainApp = () => {
   };
 
   const triggerFileUpload = () => {
-    initAudioContext();
     fileInputRef.current.click();
   }
 
@@ -479,7 +507,6 @@ const MainApp = () => {
   }, [mediaSrc, fileType]);
 
   const togglePlayPause = () => {
-    initAudioContext();
     const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
     if (activePlayer?.paused) {
       activePlayer.play();
@@ -899,12 +926,22 @@ const MainApp = () => {
                     </div>
                   )}
                 </div>
-
-                <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} style={{marginTop: '1rem'}}>
-                    Auto-Flash <span className="beta-tag">Beta</span>
-                </button>
+                <div className="listening-modes" style={{marginTop: '1rem'}}>
+                    {!isAudioReady && (
+                        <button 
+                            onClick={handlePrepareAudio} 
+                            className="autoflash-btn"
+                            disabled={isGenerating}
+                        >
+                            {isGenerating ? 'Processing...' : '🎧 Prepare Audio'}
+                        </button>
+                    )}
+                    <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={!isAudioReady}>
+                        Auto-Flash <span className="beta-tag">Beta</span>
+                    </button>
+                </div>
                 
-                {isUploadAutoFlashOn && (
+                {isUploadAutoFlashOn && isAudioReady && (
                   <>
                     <div className="slider-container">
                         <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
@@ -919,21 +956,10 @@ const MainApp = () => {
               <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
               <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
             </div>
-                {/* ** NEW LOGIC: Show Prepare button first, then Flash It button ** */}
-              {mediaSrc && !isAudioReady && (
-                    <button 
-                        onClick={handlePrepareAudio} 
-                        className="flash-it-button"
-                        disabled={isGenerating}
-                    >
-                        {isGenerating ? 'Processing...' : '🎧 Prepare Audio for Flashing'}
-                    </button>
-                )}
               <button 
                 onClick={handleUploadFlash} 
                 className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
                 disabled={!isAudioReady || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
-                  style={{ display: isAudioReady ? 'block' : 'none' }} // Hide until audio is ready
                 >
                 {isGenerating ? 'Generating...' : '⚡ Flash It!'}
               </button>
@@ -1299,7 +1325,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                 {selectedVoice || 'Select a voice...'}
                 <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
               </div>
-              {isVoiceDropdownOpen && (
+            	{isVoiceDropdownOpen && (
                 <div className="custom-select-options">
                   {voices.map(voice => (
                     <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
@@ -1307,7 +1333,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                     </div>
                   ))}
                 </div>
-              )}
+            	)}
             </div>
             <div className="tts-slider-group">
               <label>Front to back delay: {speechDelay}s</label>
