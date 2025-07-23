@@ -82,6 +82,7 @@ const MainApp = () => {
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
   const [folders, setFolders] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState('');
   const [mediaSrc, setMediaSrc] = useState(null);
   const [fileType, setFileType] = useState(null);
@@ -104,7 +105,8 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null); // ** MODIFIED: Reverted to storing the full file
+  const [uploadedFile, setUploadedFile] = useState(null);
+  const [audioCacheId, setAudioCacheId] = useState(null);
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -173,59 +175,39 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  const sendAudioForProcessing = useCallback(async (payload) => {
+  const generateFlashcardRequest = useCallback(async (requestBody) => {
     setIsGenerating(true);
-    setNotification('Sending file to server...');
-
-    const { fileBlob, isLive, startTime, duration } = payload;
-
-    const reader = new FileReader();
-    reader.readAsDataURL(fileBlob);
-    reader.onloadend = async () => {
-        const base64Audio = reader.result.split(',')[1];
+    setNotification('Generating flashcard...');
+    try {
+        const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
         
-        const requestBody = {
-            audio_data: base64Audio,
-            is_live_capture: isLive,
-        };
-
-        if (!isLive) {
-            requestBody.startTime = startTime;
-            requestBody.duration = duration;
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to generate flashcard.');
         }
-
-        try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
+        
+        const newCard = { ...data, id: Date.now() };
+        setGeneratedFlashcards(prev => [newCard, ...prev]);
+        
+        if (!isDevMode) {
+            setUsage(prevUsage => {
+                const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
+                localStorage.setItem('flashfonic-usage', JSON.stringify(newUsage));
+                return newUsage;
             });
-            
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to generate flashcard.');
-            }
-            
-            const newCard = { ...data, id: Date.now() };
-            setGeneratedFlashcards(prev => [newCard, ...prev]);
-            
-            if (!isDevMode) {
-              setUsage(prevUsage => {
-                  const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
-                  localStorage.setItem('flashfonic-usage', JSON.stringify(newUsage));
-                  return newUsage;
-              });
-            }
-
-            setNotification(isListening || isPlaying ? `Card generated! Still processing...` : 'Card generated!');
-        } catch (error) {
-            console.error("Error:", error);
-            setNotification(`Error: ${error.message}`);
-        } finally {
-            setIsGenerating(false);
         }
-    };
-  }, [isListening, isPlaying, isDevMode]);
+        setNotification('Card generated!');
+    } catch (error) {
+        console.error("Error:", error);
+        setNotification(`Error: ${error.message}`);
+    } finally {
+        setIsGenerating(false);
+    }
+  }, [isDevMode]);
 
   const handleLiveFlashIt = useCallback(async () => {
     if (!isDevMode && usage.count >= usage.limit) {
@@ -246,29 +228,81 @@ const MainApp = () => {
 
     const grab = Math.min(duration, chunks.length);
     const slice = chunks.slice(-grab);
-    const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: mediaRecorderRef.current.mimeType });
+    const fileBlob = new Blob([headerChunkRef.current, ...slice], { type: mediaRecorderRef.current.mimeType });
     
-    sendAudioForProcessing({ fileBlob: audioBlob, isLive: true });
+    const reader = new FileReader();
+    reader.readAsDataURL(fileBlob);
+    reader.onloadend = () => {
+        const base64Audio = reader.result.split(',')[1];
+        generateFlashcardRequest({ audio_data: base64Audio, is_live_capture: true });
+    };
+  }, [duration, usage, isDevMode, generateFlashcardRequest]);
 
-    audioChunksRef.current = chunks.slice(-60);
-  }, [duration, sendAudioForProcessing, usage, isDevMode]);
+  const handleProcessAudio = useCallback(async () => {
+    if (!uploadedFile) return;
+    setIsProcessing(true);
+    setNotification("Uploading and processing audio...");
+
+    const reader = new FileReader();
+    reader.readAsDataURL(uploadedFile);
+    reader.onloadend = async () => {
+        const base64File = reader.result.split(',')[1];
+        try {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/process-audio', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ audio_data: base64File })
+            });
+
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.error || 'Failed to process audio.');
+            }
+            
+            setAudioCacheId(data.audioId);
+            setNotification("Audio is ready! You can now flash it.");
+        } catch (error) {
+            console.error("Error processing audio:", error);
+            setNotification(`Error: ${error.message}`);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+  }, [uploadedFile]);
 
   const handleUploadFlash = useCallback(async () => {
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
     }
-    if (!uploadedFile || isGeneratingRef.current) return;
+    if (isGeneratingRef.current) return;
 
-    const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
-    
-    sendAudioForProcessing({
-        fileBlob: uploadedFile,
-        isLive: false,
-        startTime: activePlayer.currentTime,
-        duration: duration,
-    });
-  }, [uploadedFile, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
+    const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
+    const requestBody = {
+        startTime: activePlayer.currentTime,
+        duration: duration,
+        is_live_capture: false,
+    };
+
+    if (audioCacheId) {
+        // FAST PATH: Use the cached audio ID
+        requestBody.audioId = audioCacheId;
+    } else {
+        // SLOW PATH (Audio files): Upload the whole file
+        if (!uploadedFile) return;
+        const reader = new FileReader();
+        reader.readAsDataURL(uploadedFile);
+        reader.onloadend = () => {
+            const base64Audio = reader.result.split(',')[1];
+            requestBody.audio_data = base64Audio;
+            generateFlashcardRequest(requestBody);
+        };
+        return; // Exit here because the request is async
+    }
+    
+    generateFlashcardRequest(requestBody);
+
+  }, [uploadedFile, audioCacheId, duration, usage, isDevMode, fileType, generateFlashcardRequest]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
@@ -282,12 +316,12 @@ const MainApp = () => {
   useEffect(() => {
     if (uploadAutoFlashTimerRef.current) clearInterval(uploadAutoFlashTimerRef.current);
     uploadAutoFlashTimerRef.current = null;
-    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying) {
+    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying && (fileType === 'audio' || audioCacheId)) {
         setNotification(`Auto-Flash started. Generating a card every ${formatAutoFlashInterval(uploadAutoFlashInterval)}.`);
         uploadAutoFlashTimerRef.current = setInterval(handleUploadFlash, uploadAutoFlashInterval * 1000);
     }
     return () => clearInterval(uploadAutoFlashTimerRef.current);
-  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash]);
+  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash, fileType, audioCacheId]);
 
 
   const stopListening = () => {
@@ -384,10 +418,11 @@ const MainApp = () => {
     if (!file) return;
 
     setMediaSrc(null);
-    setUploadedFile(file); // ** MODIFIED: Store the file object
+    setUploadedFile(file);
     setFileName(file.name);
     setCurrentTime(0);
     setMediaDuration(0);
+    setAudioCacheId(null);
     
     if (file.type.startsWith('video/')) {
       setFileType('video');
@@ -765,63 +800,63 @@ const MainApp = () => {
                 className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
                 disabled={isSafari}
                 title={isSafari ? "Voice activation is not supported on Safari." : "Activate voice commands"}
-              >
-                Voice Activate
-              </button>
-              <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}>
-                Auto-Flash <span className="beta-tag">Beta</span>
-              </button>
-            </div>
-            
-            {(() => {
-              if (voiceActivated && isAutoFlashOn) {
-                return (
-                  <div className="voice-hint">
-                    <p>🎤 Say "flash" to create a card.</p>
-                    <p>⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>
-                  </div>
-                );
-              } else if (voiceActivated) {
-                return <p className="voice-hint">🎤 Say "flash" to create a card.</p>;
-              } else if (isAutoFlashOn) {
-                return <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>;
-              }
-              return null;
-            })()}
+            	>
+            	  Voice Activate
+          	  </button>
+          	  <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}>
+          		  Auto-Flash <span className="beta-tag">Beta</span>
+          	  </button>
+        	  </div>
+        	  
+        	  {(() => {
+        		  if (voiceActivated && isAutoFlashOn) {
+        			  return (
+        				  <div className="voice-hint">
+        				    <p>🎤 Say "flash" to create a card.</p>
+        				    <p>⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>
+        				  </div>
+        			  );
+        		  } else if (voiceActivated) {
+        			  return <p className="voice-hint">🎤 Say "flash" to create a card.</p>;
+        		  } else if (isAutoFlashOn) {
+        			  return <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>;
+        		  }
+        		  return null;
+        	  })()}
 
-            <div className="slider-container">
-              <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
-              <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening} />
-            </div>
-            {isAutoFlashOn && (
-                <div className="slider-container">
-                <label htmlFor="autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span></label>
-                <input id="autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(autoFlashInterval)} onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isListening} />
-                </div>
-            )}
-            <div className="slider-container">
-              <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
-              <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
-            </div>
-            <button 
-                onClick={handleLiveFlashIt} 
-                className={`flash-it-button ${isListening && !isGenerating && !isAutoFlashOn ? 'animated' : ''}`} 
-                disabled={!isListening || isGenerating || isAutoFlashOn || (!isDevMode && usage.count >= usage.limit)}>
-                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
-            </button>
-          </>
-        ) : (
-          <>
-            <div className="upload-button-container">
-              <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
-            </div>
-            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*,video/*" style={{ display: 'none' }} />
-            {fileName && <p className="file-name-display">Selected: {fileName}</p>}
-            
-            {mediaSrc && (
-              <>
-                <div className="player-container">
-                  {fileType === 'video' ? (
+        	  <div className="slider-container">
+        		  <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
+        		  <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening} />
+        	  </div>
+        	  {isAutoFlashOn && (
+        		  <div className="slider-container">
+        		  <label htmlFor="autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span></label>
+        		  <input id="autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(autoFlashInterval)} onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isListening} />
+        		  </div>
+        	  )}
+        	  <div className="slider-container">
+        		  <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
+        		  <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
+        	  </div>
+        	  <button 
+        		  onClick={handleLiveFlashIt} 
+        		  className={`flash-it-button ${isListening && !isGenerating && !isAutoFlashOn ? 'animated' : ''}`} 
+        		  disabled={!isListening || isGenerating || isAutoFlashOn || (!isDevMode && usage.count >= usage.limit)}>
+        		  {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+        	  </button>
+        	</>
+    	  ) : (
+    		  <>
+    			  <div className="upload-button-container">
+    				  <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
+    			  </div>
+    			  <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*,video/*" style={{ display: 'none' }} />
+    			  {fileName && <p className="file-name-display">Selected: {fileName}</p>}
+    			  
+    			  {mediaSrc && (
+    				  <>
+    					  <div className="player-container">
+    						  {fileType === 'video' ? (
                                 <>
                                     <video 
                                         ref={videoPlayerRef} 
@@ -839,91 +874,115 @@ const MainApp = () => {
                                         <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
                                     </div>
                                 </>
-                  ) : (
-                    <div className="audio-player">
-                      <audio ref={audioPlayerRef} src={mediaSrc} />
-                      <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                      <div className="progress-bar-container" onClick={handleSeek}>
-                        <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                      </div>
-                      <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-            <div className="slider-container" style={{ marginTop: '1rem' }}>
-              <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
-              <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
-            </div>
-              <button 
-                onClick={handleUploadFlash} 
-                className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
-                disabled={!mediaSrc || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
+    						  ) : (
+    							  <div className="audio-player">
+    								  <audio ref={audioPlayerRef} src={mediaSrc} />
+    								  <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+    								  <div className="progress-bar-container" onClick={handleSeek}>
+    									  <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
+    								  </div>
+    								  <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+    							  </div>
+    						  )}
+    					  </div>
+                      <div className="listening-modes" style={{marginTop: '1rem'}}>
+                          {fileType === 'video' && !audioCacheId && (
+                              <button 
+                                  onClick={handleProcessAudio} 
+                                  className="autoflash-btn"
+                                  disabled={isProcessing}
+                              >
+                                  {isProcessing ? 'Processing...' : '🎧 Process Audio from Video'}
+                              </button>
+                          )}
+                          <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={fileType === 'video' && !audioCacheId}>
+                              Auto-Flash <span className="beta-tag">Beta</span>
+                          </button>
+                      </div>
+    					  
+    					  {isUploadAutoFlashOn && (fileType === 'audio' || audioCacheId) && (
+    						  <>
+    							  <div className="slider-container">
+    								  <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
+    								  <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
+    							  </div>
+    							  <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
+    						  </>
+    					  )}
+    				  </>
+    			  )}
+    			  <div className="slider-container" style={{ marginTop: '1rem' }}>
+    				  <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
+    				  <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+    			  </div>
+    			  <button 
+    				  onClick={handleUploadFlash} 
+    				  className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
+    				  disabled={!mediaSrc || isGenerating || (fileType === 'video' && !audioCacheId) || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
                 >
-                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
-              </button>
-          </>
-        )}
-      </div>
-      {notification && <p className="notification">{notification}</p>}
-      {generatedFlashcards.length > 0 && (
-          <div className="card generated-cards-queue">
-              <div className="queue-header">
-                <h3>Review Queue</h3>
-                <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
-              </div>
-              {generatedFlashcards.map(card => (
-                  <div key={card.id} className="card generated-card">
-                      <div className="card-selection">
-                        <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
-                      </div>
-                      <div className="card-content">
-                        {renderCardContent(card, 'queue')}
-                        <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
-                      </div>
-                  </div>
-              ))}
-              <div className="folder-actions">
-                  <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
-                      <option value="" disabled>Select a folder...</option>
-                      {Object.keys(folders).map(name => <option key={name} value={name}>{name}</option>)}
-                  </select>
-                  <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
-              </div>
-          </div>
-      )}
-      <div className="card folders-container">
-        <h2 className="section-heading">Your Folders</h2>
-        <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
-        <div className="folder-list">
-          {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
-            <details key={name} className="folder">
-              <summary onClick={(e) => { if (e.target.closest('button')) e.preventDefault(); }}>
-                <div className="folder-summary">
-                    <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
-                    <div className="folder-export-buttons">
-                        <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name, cards: folders[name] }); }} className="study-btn">Study</button>
-                        <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
-                        <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
-                    </div>
-                </div>
-              </summary>
-              {folders[name].map((card) => (
-                <div key={card.id} className="card saved-card-in-folder">
-                  <div className="card-content">
-                    {renderCardContent(card, 'folder', name)}
-                    <button onClick={() => deleteCardFromFolder(name, card.id)} className="card-delete-btn">🗑️</button>
-                  </div>
-                </div>
-              ))}
-            </details>
-          )) : <p className="subtle-text">No folders created yet.</p>}
-        </div>
-      </div>
-      <div className="app-footer">
-        <button className="feedback-btn" onClick={() => setIsFeedbackModalOpen(true)}>Send Feedback</button>
-      </div>
+    				  {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+    			  </button>
+    		  </>
+    	  )}
+  	  </div>
+  	  {notification && <p className="notification">{notification}</p>}
+  	  {generatedFlashcards.length > 0 && (
+  		  <div className="card generated-cards-queue">
+  			  <div className="queue-header">
+  				  <h3>Review Queue</h3>
+  				  <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
+  			  </div>
+  			  {generatedFlashcards.map(card => (
+  				  <div key={card.id} className="card generated-card">
+  					  <div className="card-selection">
+  						  <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
+  					  </div>
+  					  <div className="card-content">
+  						  {renderCardContent(card, 'queue')}
+  						  <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
+  					  </div>
+  				  </div>
+  			  ))}
+  			  <div className="folder-actions">
+  				  <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+  					  <option value="" disabled>Select a folder...</option>
+  					  {Object.keys(folders).map(name => <option key={name} value={name}>{name}</option>)}
+  				  </select>
+  				  <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
+  			  </div>
+  		  </div>
+  	  )}
+  	  <div className="card folders-container">
+  		  <h2 className="section-heading">Your Folders</h2>
+  		  <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
+  		  <div className="folder-list">
+  			  {Object.keys(folders).length > 0 ? Object.keys(folders).map(name => (
+  				  <details key={name} className="folder">
+  					  <summary onClick={(e) => { if (e.target.closest('button')) e.preventDefault(); }}>
+  						  <div className="folder-summary">
+  							  <span>{name} ({folders[name].length} {folders[name].length === 1 ? 'card' : 'cards'})</span>
+  							  <div className="folder-export-buttons">
+  								  <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name, cards: folders[name] }); }} className="study-btn">Study</button>
+  								  <button onClick={() => exportFolderToPDF(name)}>Export PDF</button>
+  								  <button onClick={() => exportFolderToCSV(name)}>Export CSV</button>
+  							  </div>
+  						  </div>
+  					  </summary>
+  					  {folders[name].map((card) => (
+  						  <div key={card.id} className="card saved-card-in-folder">
+  							  <div className="card-content">
+  								  {renderCardContent(card, 'folder', name)}
+  								  <button onClick={() => deleteCardFromFolder(name, card.id)} className="card-delete-btn">🗑️</button>
+  							  </div>
+  						  </div>
+  					  ))}
+  				  </details>
+  			  )) : <p className="subtle-text">No folders created yet.</p>}
+  		  </div>
+  	  </div>
+  	  <div className="app-footer">
+  		  <button className="feedback-btn" onClick={() => setIsFeedbackModalOpen(true)}>Send Feedback</button>
+  	  </div>
     </>
   );
 };
