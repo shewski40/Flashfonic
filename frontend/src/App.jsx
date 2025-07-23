@@ -273,15 +273,6 @@ const MainApp = () => {
     };
   }, [duration, usage, isDevMode, generateFlashcardRequest]);
   
-  useEffect(() => {
-    if (isListening && isAutoFlashOn) {
-      autoFlashTimerRef.current = setInterval(handleLiveFlashIt, autoFlashInterval * 1000);
-    }
-    return () => {
-      if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
-    };
-  }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
-  
   const handleUploadFlash = useCallback(async () => {
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today.`);
@@ -309,6 +300,15 @@ const MainApp = () => {
     generateFlashcardRequest(requestBody);
   }, [uploadedFile, audioCacheId, duration, usage, isDevMode, fileType, generateFlashcardRequest]);
 
+  useEffect(() => {
+    if (isListening && isAutoFlashOn) {
+      autoFlashTimerRef.current = setInterval(handleLiveFlashIt, autoFlashInterval * 1000);
+    }
+    return () => {
+      if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
+    };
+  }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
+  
   useEffect(() => {
     if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying && (fileType === 'audio' || audioCacheId)) {
         setNotification(`Auto-Flash started. Generating a card every ${formatAutoFlashInterval(uploadAutoFlashInterval)}.`);
@@ -946,6 +946,16 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
   const [flaggedCards, setFlaggedCards] = useState({});
   const [reviewMode, setReviewMode] = useState('all'); // 'all', 'flagged', 'srs'
   
+  // FIX: Re-added state for TTS controls
+  const [isReading, setIsReading] = useState(false);
+  const [speechRate, setSpeechRate] = useState(1);
+  const [speechDelay, setSpeechDelay] = useState(3);
+  const [voices, setVoices] = useState([]);
+  const [selectedVoice, setSelectedVoice] = useState('');
+  const speechTimeoutRef = useRef(null);
+  const voiceDropdownRef = useRef(null);
+  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
+
   const studyDeck = useMemo(() => {
       if (reviewMode === 'flagged') return deck.filter(card => flaggedCards[card.id]);
       if (reviewMode === 'srs') {
@@ -979,9 +989,59 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
       setIsFlipped(false);
   };
 
-  const goToNext = () => { setIsFlipped(false); setCurrentIndex(p => (p + 1) % studyDeck.length); };
-  const goToPrev = () => { setIsFlipped(false); setCurrentIndex(p => (p - 1 + studyDeck.length) % studyDeck.length); };
-  const scrambleDeck = () => { setDeck(d => [...d].sort(() => Math.random() - 0.5)); setCurrentIndex(0); setIsFlipped(false); };
+  // FIX: Re-added TTS logic
+  useEffect(() => {
+    const loadVoices = () => {
+      const availableVoices = window.speechSynthesis.getVoices();
+      const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+      setVoices(englishVoices);
+      if (englishVoices.length > 0 && !selectedVoice) {
+        setSelectedVoice(englishVoices[0].name);
+      }
+    };
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+    return () => { window.speechSynthesis.onvoiceschanged = null; };
+  }, [selectedVoice]);
+
+  const stopReading = useCallback(() => {
+    setIsReading(false);
+    window.speechSynthesis.cancel();
+    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+  }, []);
+
+  useEffect(() => {
+    if (!isReading || !currentCard) return;
+    const speak = (text, onEnd) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voice = voices.find(v => v.name === selectedVoice);
+        if (voice) utterance.voice = voice;
+        utterance.rate = speechRate;
+        utterance.onend = onEnd;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    };
+    const readCardSequence = () => {
+      setIsFlipped(false);
+      speak(`Question: ${currentCard.question}`, () => {
+        speechTimeoutRef.current = setTimeout(() => {
+          setIsFlipped(true);
+          speak(`Answer: ${currentCard.answer}`, () => {
+            setCurrentIndex(prev => (prev + 1) % studyDeck.length);
+          });
+        }, speechDelay * 1000);
+      });
+    };
+    readCardSequence();
+    return () => {
+      window.speechSynthesis.cancel();
+      clearTimeout(speechTimeoutRef.current);
+    };
+  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice, currentCard, voices]);
+
+  const goToNext = () => { stopReading(); setIsFlipped(false); setCurrentIndex(p => (p + 1) % studyDeck.length); };
+  const goToPrev = () => { stopReading(); setIsFlipped(false); setCurrentIndex(p => (p - 1 + studyDeck.length) % studyDeck.length); };
+  const scrambleDeck = () => { stopReading(); setDeck(d => [...d].sort(() => Math.random() - 0.5)); setCurrentIndex(0); setIsFlipped(false); };
   const toggleFlag = (cardId) => { setFlaggedCards(p => ({...p, [cardId]: !p[cardId]})); };
   const handleDragStart = (e, index) => e.dataTransfer.setData("cardIndex", index);
   const handleDrop = (e, dropIndex) => {
@@ -1018,7 +1078,7 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
         <>
           {studyDeck.length > 0 ? (
             <>
-              <div className="viewer-main" onClick={() => setIsFlipped(p => !p)}>
+              <div className="viewer-main" onClick={() => { stopReading(); setIsFlipped(p => !p); }}>
                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                   <div className="card-face card-front">
                     {reviewMode === 'srs' && <div className="last-reviewed-tag">Last reviewed: {timeSince(currentCard.lastReviewed)}</div>}
@@ -1045,7 +1105,33 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
               <p>No cards to display in this mode.</p>
             </div>
           )}
-            {/* TTS Controls omitted for brevity */}
+            <div className="tts-controls">
+              <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
+              <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+                <label>Voice</label>
+                <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+                  {selectedVoice || 'Select a voice...'}
+                  <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+                </div>
+                {isVoiceDropdownOpen && (
+                  <div className="custom-select-options">
+                    {voices.map(voice => (
+                      <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                        {voice.name} ({voice.lang})
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <div className="tts-slider-group">
+                <label>Front to back delay: {speechDelay}s</label>
+                <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
+              </div>
+              <div className="tts-slider-group">
+                <label>Speed: {speechRate}x</label>
+                <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
+              </div>
+            </div>
         </>
       )}
     </div>
