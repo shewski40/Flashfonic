@@ -104,9 +104,7 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [mediaAudioBuffer, setMediaAudioBuffer] = useState(null);
-  const [rawFile, setRawFile] = useState(null);
-  const [isAudioReady, setIsAudioReady] = useState(false);
+  const [uploadedFile, setUploadedFile] = useState(null); // ** MODIFIED: Reverted to storing the full file
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -128,48 +126,9 @@ const MainApp = () => {
   const listeningTimeoutRef = useRef(null);
   const autoFlashTimerRef = useRef(null);
   const uploadAutoFlashTimerRef = useRef(null);
-  const audioContextRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
   
-  const initAudioContext = useCallback(() => {
-    if (audioContextRef.current && audioContextRef.current.state === 'running') {
-      return true;
-    }
-    try {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      const context = new AudioContext();
-      audioContextRef.current = context;
-      if (context.state === 'suspended') {
-        context.resume().then(() => {
-          console.log("AudioContext resumed successfully.");
-        });
-      }
-      return true;
-    } catch (e) {
-      console.error("Could not initialize AudioContext:", e);
-      setNotification("Audio processing is not supported on this browser.");
-      return false;
-    }
-  }, []);
-
-  // ** NEW: Prime the audio context on the first user interaction
-  useEffect(() => {
-    const primeAudio = () => {
-      initAudioContext();
-      window.removeEventListener('click', primeAudio);
-      window.removeEventListener('touchend', primeAudio);
-    };
-    window.addEventListener('click', primeAudio);
-    window.addEventListener('touchend', primeAudio);
-
-    return () => {
-      window.removeEventListener('click', primeAudio);
-      window.removeEventListener('touchend', primeAudio);
-    };
-  }, [initAudioContext]);
-
-
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
     isGeneratingRef.current = isGenerating;
@@ -214,20 +173,32 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
 
-  const sendAudioForProcessing = useCallback(async (audioBlob) => {
+  const sendAudioForProcessing = useCallback(async (payload) => {
     setIsGenerating(true);
-    setNotification('Sending audio to server...');
+    setNotification('Sending file to server...');
+
+    const { fileBlob, isLive, startTime, duration } = payload;
 
     const reader = new FileReader();
-    reader.readAsDataURL(audioBlob);
+    reader.readAsDataURL(fileBlob);
     reader.onloadend = async () => {
         const base64Audio = reader.result.split(',')[1];
         
+        const requestBody = {
+            audio_data: base64Audio,
+            is_live_capture: isLive,
+        };
+
+        if (!isLive) {
+            requestBody.startTime = startTime;
+            requestBody.duration = duration;
+        }
+
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ audio_data: base64Audio })
+                body: JSON.stringify(requestBody)
             });
             
             const data = await response.json();
@@ -277,71 +248,27 @@ const MainApp = () => {
     const slice = chunks.slice(-grab);
     const audioBlob = new Blob([headerChunkRef.current, ...slice], { type: mediaRecorderRef.current.mimeType });
     
-    sendAudioForProcessing(audioBlob);
+    sendAudioForProcessing({ fileBlob: audioBlob, isLive: true });
 
     audioChunksRef.current = chunks.slice(-60);
-  }, [duration, sendAudioForProcessing, usage, isDevMode, initAudioContext]);
-
-  const handlePrepareAudio = useCallback(async () => {
-    if (!rawFile) return;
-    if (!audioContextRef.current || audioContextRef.current.state !== 'running') {
-      setNotification("Audio engine not ready. Please tap the screen once and try again.");
-      return;
-    }
-
-    setNotification("Processing audio...");
-    try {
-      const arrayBuffer = await rawFile.arrayBuffer();
-      const decodedBuffer = await audioContextRef.current.decodeAudioData(arrayBuffer);
-      setMediaAudioBuffer(decodedBuffer);
-      setIsAudioReady(true);
-      setNotification("Audio is ready! You can now flash it.");
-    } catch (e) {
-      console.error("Error decoding audio data on demand:", e);
-      setNotification("Could not process this file's audio.");
-      setIsAudioReady(false);
-    }
-  }, [rawFile]);
+  }, [duration, sendAudioForProcessing, usage, isDevMode]);
 
   const handleUploadFlash = useCallback(async () => {
-    if (!isAudioReady || !mediaAudioBuffer || isGeneratingRef.current) return;
-
     if (!isDevMode && usage.count >= usage.limit) {
       setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
       return;
     }
+    if (!uploadedFile || isGeneratingRef.current) return;
 
     const activePlayer = fileType === 'video' ? videoPlayerRef.current : audioPlayerRef.current;
-    const now = activePlayer.currentTime;
-    const startTime = Math.max(0, now - duration);
-    const endTime = now;
-
-    const sampleRate = mediaAudioBuffer.sampleRate;
-    const startSample = Math.floor(startTime * sampleRate);
-    const endSample = Math.floor(endTime * sampleRate);
-    const numSamples = endSample - startSample;
-
-    if (numSamples <= 0) {
-      setNotification("Not enough audio at the current position.");
-      return;
-    }
-
-    const clippedBuffer = audioContextRef.current.createBuffer(
-      mediaAudioBuffer.numberOfChannels,
-      numSamples,
-      sampleRate
-    );
-
-    for (let i = 0; i < mediaAudioBuffer.numberOfChannels; i++) {
-      const channelData = mediaAudioBuffer.getChannelData(i);
-      const clippedData = clippedBuffer.getChannelData(i);
-      clippedData.set(channelData.subarray(startSample, endSample));
-    }
     
-    const wavBlob = encodeWAV(clippedBuffer);
-    sendAudioForProcessing(wavBlob);
-
-  }, [isAudioReady, mediaAudioBuffer, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
+    sendAudioForProcessing({
+        fileBlob: uploadedFile,
+        isLive: false,
+        startTime: activePlayer.currentTime,
+        duration: duration,
+    });
+  }, [uploadedFile, duration, sendAudioForProcessing, usage, isDevMode, fileType]);
 
   useEffect(() => {
     if (autoFlashTimerRef.current) clearInterval(autoFlashTimerRef.current);
@@ -355,19 +282,22 @@ const MainApp = () => {
   useEffect(() => {
     if (uploadAutoFlashTimerRef.current) clearInterval(uploadAutoFlashTimerRef.current);
     uploadAutoFlashTimerRef.current = null;
-    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying && isAudioReady) {
+    if (appMode === 'upload' && isUploadAutoFlashOn && isPlaying) {
         setNotification(`Auto-Flash started. Generating a card every ${formatAutoFlashInterval(uploadAutoFlashInterval)}.`);
         uploadAutoFlashTimerRef.current = setInterval(handleUploadFlash, uploadAutoFlashInterval * 1000);
     }
     return () => clearInterval(uploadAutoFlashTimerRef.current);
-  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash, isAudioReady]);
+  }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash]);
 
 
   const stopListening = () => {
     if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
-    if (recognitionRef.current) recognitionRef.current.stop();
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+    }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
     
@@ -408,10 +338,6 @@ const MainApp = () => {
                       stopListening();
                     }
                   }, listeningDuration * 60 * 1000);
-                }
-
-                if (!isSafari && voiceActivated) {
-                    // Voice activation logic restored
                 }
             }
         }
@@ -458,9 +384,7 @@ const MainApp = () => {
     if (!file) return;
 
     setMediaSrc(null);
-    setMediaAudioBuffer(null);
-    setRawFile(file);
-    setIsAudioReady(false);
+    setUploadedFile(file); // ** MODIFIED: Store the file object
     setFileName(file.name);
     setCurrentTime(0);
     setMediaDuration(0);
@@ -475,7 +399,7 @@ const MainApp = () => {
     }
 
     setMediaSrc(URL.createObjectURL(file));
-    setNotification('File selected. Prepare audio to begin.');
+    setNotification('File selected. Press play and then flash it!');
   };
 
   const triggerFileUpload = () => {
@@ -926,30 +850,6 @@ const MainApp = () => {
                     </div>
                   )}
                 </div>
-                <div className="listening-modes" style={{marginTop: '1rem'}}>
-                    {!isAudioReady && (
-                        <button 
-                            onClick={handlePrepareAudio} 
-                            className="autoflash-btn"
-                            disabled={isGenerating}
-                        >
-                            {isGenerating ? 'Processing...' : '🎧 Prepare Audio'}
-                        </button>
-                    )}
-                    <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={!isAudioReady}>
-                        Auto-Flash <span className="beta-tag">Beta</span>
-                    </button>
-                </div>
-                
-                {isUploadAutoFlashOn && isAudioReady && (
-                  <>
-                    <div className="slider-container">
-                        <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
-                        <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
-                    </div>
-                    <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
-                  </>
-                )}
               </>
             )}
             <div className="slider-container" style={{ marginTop: '1rem' }}>
@@ -959,7 +859,7 @@ const MainApp = () => {
               <button 
                 onClick={handleUploadFlash} 
                 className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
-                disabled={!isAudioReady || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
+                disabled={!mediaSrc || isGenerating || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
                 >
                 {isGenerating ? 'Generating...' : '⚡ Flash It!'}
               </button>
