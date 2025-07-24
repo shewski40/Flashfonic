@@ -73,7 +73,6 @@ body {
   position: relative;
 }
 
-/* UI FIX: Reverted to original button layout */
 .main-controls .listening-control {
   display: flex;
   flex-direction: column;
@@ -83,7 +82,8 @@ body {
   gap: 1rem;
 }
 
-.start-stop-btn {
+.start-stop-btn,
+.voice-activate-btn {
   padding: 0.8em 1.5em;
   font-size: 1em;
   font-weight: bold;
@@ -322,109 +322,180 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
 }
 
-
-.folders-container h2 {
-  text-align: center;
-  color: var(--text-light);
+.folders-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 1rem;
 }
 
-.create-folder-btn {
-  display: block;
-  margin: 0 auto 1.5rem auto;
-  padding: 0.8em 1.5em;
-  font-size: 1.1em;
+.folders-header .section-heading {
+  margin-bottom: 0;
+  text-align: left;
+}
+
+.create-folder-btn-header {
+  padding: 0.6em 1.2em;
+  font-size: 0.9em;
   font-weight: bold;
   border: none;
   border-radius: 30px;
   cursor: pointer;
-  transition: all 0.2s ease;
   background-color: var(--primary-purple);
   color: white;
 }
 
-.folder-list .folder {
+.sort-by-container {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  color: var(--text-dark);
+}
+
+.sort-by-container select {
+  background-color: var(--dark-bg);
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 0.3em 0.5em;
+}
+
+.folder-item {
   background-color: var(--content-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   margin-bottom: 1rem;
-  overflow: visible; /* Fix for dropdown visibility */
+  cursor: grab;
 }
 
-.folder-list summary {
-  position: relative;
-  padding: 1em 2.5em;
-  font-weight: 600;
-  cursor: pointer;
-  outline: none;
-  list-style: none;
-  font-family: 'Poppins', sans-serif;
+.folder-item-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1em 1.5em;
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.folder-list summary::-webkit-details-marker {
-  display: none;
-}
-
-.folder-list summary::before {
-  content: '▶';
-  position: absolute;
-  left: 1em;
-  top: 50%;
-  transform: translateY(-50%) rotate(0deg);
-  transition: transform 0.2s ease-in-out;
-  font-size: 1.1em;
-  color: var(--primary-purple);
-}
-
-.folder-list details[open] > summary::before {
-  transform: translateY(-50%) rotate(90deg);
-}
-
-
-.folder-summary {
+.folder-item-header-right {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-  width: 100%;
-}
-
-.folder-main-actions {
-  display: flex;
-  gap: 0.5rem;
-  flex-wrap: wrap;
   align-items: center;
+  gap: 1rem;
+  color: var(--text-dark);
 }
 
-.study-btn {
-  background-color: var(--success-green) !important;
-  border: none;
-  padding: 0.6em 1.2em !important;
-  font-size: 0.9em !important;
-  font-weight: 700 !important;
-  color: white;
-  border-radius: 6px;
-  cursor: pointer;
-}
-
-.secondary-actions-btn {
-  background-color: var(--border-color);
-  border: none;
-  padding: 0.6em 1.2em;
+.card-count-badge {
   font-size: 0.9em;
+  font-weight: 500;
+}
+
+.folder-item-arrow {
+  font-size: 1.2em;
+  transition: transform 0.2s ease-in-out;
+}
+
+.folder-item-content {
+  padding: 0 1.5em 1.5em 1.5em;
+  border-top: 1px solid var(--border-color);
+}
+
+.expanded-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 1em 0;
+}
+
+.expanded-header-left h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.3rem;
   color: var(--text-light);
-  border-radius: 6px;
+}
+
+.expanded-actions {
+  display: flex;
+  gap: 0.75rem;
+}
+
+.study-btn-expanded {
+  background-color: var(--success-green);
+  color: white;
+  border: none;
+  padding: 0.7em 1.5em;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 1em;
   cursor: pointer;
 }
 
-.saved-card-in-folder {
-  background-color: var(--dark-bg);
-  margin: 0.5em 1em;
+.flashnotes-btn {
+  background-color: var(--primary-purple);
+  color: white;
+  border: none;
+  padding: 0.7em 1.5em;
   border-radius: 8px;
+  font-weight: bold;
+  font-size: 1em;
+  cursor: pointer;
+}
+
+.expanded-header-right {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-list-container {
+  max-height: 400px;
+  overflow-y: auto;
+  padding-right: 10px; /* for scrollbar */
+}
+
+.card-list-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background-color: var(--dark-bg);
   padding: 1em;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+}
+
+.card-list-item-text p {
+  margin: 0 0 0.5em 0;
+}
+
+.move-cards-bar {
+  position: sticky;
+  bottom: 0;
+  background-color: var(--dark-bg);
+  padding: 1rem;
+  margin: 1rem -1.5em -1.5em -1.5em;
+  border-bottom-left-radius: 12px;
+  border-bottom-right-radius: 12px;
+  border-top: 1px solid var(--border-color);
+  display: flex;
+  gap: 1rem;
+}
+
+.move-cards-bar select {
+  flex-grow: 1;
+}
+
+.move-cards-bar button {
+  background-color: var(--success-green);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 0.5em 1em;
+  font-weight: bold;
+  cursor: pointer;
+}
+.move-cards-bar button:disabled {
+  background-color: var(--border-color);
+  cursor: not-allowed;
 }
 
 .upload-button-container {

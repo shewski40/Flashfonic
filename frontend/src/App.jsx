@@ -23,7 +23,7 @@ const timeSince = (date) => {
 };
 
 
-// --- LANDING PAGE COMPONENT (Unchanged) ---
+// --- LANDING PAGE COMPONENT ---
 const LandingPage = ({ onEnter }) => {
   return (
     <div className="landing-page">
@@ -31,7 +31,6 @@ const LandingPage = ({ onEnter }) => {
         <div className="nav-logo">FlashFonic</div>
         <button onClick={onEnter} className="nav-cta">Enter Beta</button>
       </nav>
-
       <header className="landing-hero">
         <h1 className="landing-h1">The Future of Studying is Listening.</h1>
         <p className="landing-p">
@@ -39,50 +38,23 @@ const LandingPage = ({ onEnter }) => {
         </p>
         <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
       </header>
-
       <section className="how-it-works">
         <h2>How It Works</h2>
         <div className="steps-container">
-          <div className="step">
-            <div className="step-number">1</div>
-            <h3>CAPTURE</h3>
-            <p>Record live audio or upload a file.</p>
-          </div>
-          <div className="step">
-            <div className="step-number">2</div>
-            <h3>AI GENERATE</h3>
-            <p>Our AI transcribes and creates a Q&A flashcard.</p>
-          </div>
-          <div className="step">
-            <div className="step-number">3</div>
-            <h3>STUDY</h3>
-            <p>Master your material with our advanced study tools.</p>
-          </div>
+          <div className="step"><div className="step-number">1</div><h3>CAPTURE</h3><p>Record live audio or upload a file.</p></div>
+          <div className="step"><div className="step-number">2</div><h3>AI GENERATE</h3><p>Our AI transcribes and creates a Q&A flashcard.</p></div>
+          <div className="step"><div className="step-number">3</div><h3>STUDY</h3><p>Master your material with our advanced study tools.</p></div>
         </div>
       </section>
-
       <section className="features-section">
         <h2>A Smarter Way to Learn</h2>
         <div className="features-grid">
-          <div className="feature-card">
-            <h3>🤖 Revolutionary Audio-to-Card AI</h3>
-            <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
-          </div>
-          <div className="feature-card">
-            <h3>⚡️ Hands-Free Capture Modes</h3>
-            <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
-          </div>
-          <div className="feature-card">
-            <h3>📚 Advanced Study Suite</h3>
-            <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
-          </div>
-          <div className="feature-card">
-            <h3>📂 Organize & Export with Ease</h3>
-            <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
-          </div>
+          <div className="feature-card"><h3>🤖 Revolutionary Audio-to-Card AI</h3><p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p></div>
+          <div className="feature-card"><h3>⚡️ Hands-Free Capture Modes</h3><p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p></div>
+          <div className="feature-card"><h3>📚 Advanced Study Suite</h3><p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p></div>
+          <div className="feature-card"><h3>📂 Organize & Export with Ease</h3><p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p></div>
         </div>
       </section>
-
       <footer className="landing-footer">
         <h2>Ready to change the way you learn?</h2>
         <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
@@ -101,6 +73,7 @@ const MainApp = () => {
   const [duration, setDuration] = useState(15);
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
   const [folders, setFolders] = useState({});
+  const [folderOrder, setFolderOrder] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -168,18 +141,29 @@ const MainApp = () => {
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders-nested');
-    if (storedFolders) setFolders(JSON.parse(storedFolders));
+    const storedOrder = localStorage.getItem('flashfonic-folder-order');
+    if (storedFolders) {
+        const parsedFolders = JSON.parse(storedFolders);
+        setFolders(parsedFolders);
+        const validOrder = JSON.parse(storedOrder || '[]').filter(id => parsedFolders[id]);
+        const existingKeys = Object.keys(parsedFolders);
+        const newKeys = existingKeys.filter(k => !validOrder.includes(k));
+        setFolderOrder([...validOrder, ...newKeys]);
+    }
   }, []);
 
   useEffect(() => {
     localStorage.setItem('flashfonic-folders-nested', JSON.stringify(folders));
-  }, [folders]);
+    localStorage.setItem('flashfonic-folder-order', JSON.stringify(folderOrder));
+  }, [folders, folderOrder]);
 
   const findFolder = useCallback((folderId, currentFolders = folders) => {
     for (const id in currentFolders) {
         if (id === folderId) return currentFolders[id];
-        const found = findFolder(folderId, currentFolders[id].subfolders);
-        if (found) return found;
+        if (currentFolders[id].subfolders) {
+            const found = findFolder(folderId, currentFolders[id].subfolders);
+            if (found) return found;
+        }
     }
     return null;
   }, [folders]);
@@ -191,7 +175,7 @@ const MainApp = () => {
         newFolders[id] = updateFn(newFolders[id]);
         return newFolders;
       }
-      if (Object.keys(newFolders[id].subfolders).length > 0) {
+      if (newFolders[id].subfolders && Object.keys(newFolders[id].subfolders).length > 0) {
         const updatedSubfolders = updateFolderRecursive(targetId, updateFn, newFolders[id].subfolders);
         if (updatedSubfolders !== newFolders[id].subfolders) {
             newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
@@ -209,10 +193,12 @@ const MainApp = () => {
       return newFolders;
     }
     for (const id in newFolders) {
-      const updatedSubfolders = deleteFolderRecursive(targetId, newFolders[id].subfolders);
-      if (updatedSubfolders !== newFolders[id].subfolders) {
-        newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
-        return newFolders;
+      if (newFolders[id].subfolders) {
+          const updatedSubfolders = deleteFolderRecursive(targetId, newFolders[id].subfolders);
+          if (updatedSubfolders !== newFolders[id].subfolders) {
+            newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
+            return newFolders;
+          }
       }
     }
     return newFolders;
@@ -348,11 +334,12 @@ const MainApp = () => {
   }, [uploadedFile]);
 
   const handleCreateFolder = (folderName, parentId = null) => {
-    const newFolder = { id: generateId(), name: folderName, cards: [], subfolders: {} };
+    const newFolder = { id: generateId(), name: folderName, cards: [], subfolders: {}, createdAt: new Date().toISOString(), lastViewed: null };
     if (parentId) {
       setFolders(prev => updateFolderRecursive(parentId, p => ({ ...p, subfolders: { ...p.subfolders, [newFolder.id]: newFolder } }), prev));
     } else {
       setFolders(prev => ({ ...prev, [newFolder.id]: newFolder }));
+      setFolderOrder(prev => [...prev, newFolder.id]);
     }
     setModalState({ type: null, data: null });
   };
@@ -364,29 +351,37 @@ const MainApp = () => {
 
   const handleDeleteFolder = (folderId) => {
     setFolders(prev => deleteFolderRecursive(folderId, prev));
+    setFolderOrder(prev => prev.filter(id => id !== folderId));
     setModalState({ type: null, data: null });
   };
   
-  const handleMoveToFolder = () => {
-    if (!selectedFolderForMove) {
-      setNotification("Please select a folder first.");
-      return;
-    }
-    const cardsToMove = generatedFlashcards.filter(card => checkedCards[card.id]);
-    if (cardsToMove.length === 0) {
-      setNotification("Please check the cards you want to move.");
-      return;
-    }
-    const targetFolder = findFolder(selectedFolderForMove);
-    if (!targetFolder) {
-        setNotification("Error: Target folder not found.");
+  const handleMoveToFolder = (cardsToMoveIds, destinationFolderId, sourceFolderId = null) => {
+    if (!destinationFolderId) {
+        setNotification("Please select a destination folder.");
         return;
     }
-    setFolders(prev => updateFolderRecursive(selectedFolderForMove, f => ({ ...f, cards: [...f.cards, ...cardsToMove] }), prev));
-    setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
-    setCheckedCards({});
-    setSelectedFolderForMove('');
+    
+    let cardsToMove = [];
+    if (sourceFolderId) {
+        // Moving from within an expanded folder
+        const sourceFolder = findFolder(sourceFolderId);
+        cardsToMove = sourceFolder.cards.filter(c => cardsToMoveIds[c.id]);
+        setFolders(prev => updateFolderRecursive(sourceFolderId, f => ({...f, cards: f.cards.filter(c => !cardsToMoveIds[c.id])}), prev));
+    } else {
+        // Moving from the review queue
+        cardsToMove = generatedFlashcards.filter(c => cardsToMoveIds[c.id]);
+        setGeneratedFlashcards(prev => prev.filter(c => !cardsToMoveIds[c.id]));
+    }
+
+    if (cardsToMove.length === 0) {
+        setNotification("No cards were selected to move.");
+        return;
+    }
+
+    const targetFolder = findFolder(destinationFolderId);
+    setFolders(prev => updateFolderRecursive(destinationFolderId, f => ({ ...f, cards: [...f.cards, ...cardsToMove] }), prev));
     setNotification(`${cardsToMove.length} card(s) moved to ${targetFolder.name}.`);
+    setCheckedCards({}); // Clear selection in both cases
   };
 
   const deleteCardFromFolder = (folderId, cardId) => {
@@ -422,7 +417,7 @@ const MainApp = () => {
           setNotification("Folder is empty or not found.");
           return;
       }
-      setNotification(`Generating AI notes for "${folder.name}"...`);
+      setNotification(`Generating FlashNotes for "${folder.name}"...`);
       setIsGenerating(true);
       try {
           const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-notes', {
@@ -444,14 +439,14 @@ const MainApp = () => {
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(16);
           doc.setTextColor("#1F2937");
-          doc.text(`AI Notes for: ${folder.name}`, pageW / 2, 30, { align: 'center' });
+          doc.text(`FlashNotes for: ${folder.name}`, pageW / 2, 30, { align: 'center' });
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(12);
           doc.setTextColor("#000000");
           const splitText = doc.splitTextToSize(notes, pageW - 40);
           doc.text(splitText, 20, 50);
-          doc.save(`${folder.name}-ai-notes.pdf`);
-          setNotification("AI notes generated and downloaded!");
+          doc.save(`${folder.name}-flash-notes.pdf`);
+          setNotification("FlashNotes generated and downloaded!");
       } catch (error) {
           console.error("Error generating AI notes:", error);
           setNotification(`Error: ${error.message}`);
@@ -460,36 +455,12 @@ const MainApp = () => {
       }
   };
 
-  const renderCardContent = (card, source, folderId = null) => {
-    if (editingCard && editingCard.id === card.id) {
-      return (
-        <div className="edit-mode">
-          <textarea className="edit-textarea" value={editingCard.question} onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })} />
-          <textarea className="edit-textarea" value={editingCard.answer} onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })} />
-          <div className="edit-actions">
-            <button onClick={saveEdit} className="edit-save-btn">Save</button>
-            <button onClick={() => setEditingCard(null)} className="edit-cancel-btn">Cancel</button>
-          </div>
-        </div>
-      );
-    }
-    return (
-      <>
-        <div className="card-top-actions">
-          <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
-        </div>
-        <p><strong>Q:</strong> {card.question}</p>
-        <p><strong>A:</strong> {card.answer}</p>
-      </>
-    );
-  };
-
   const renderFolderTreeOptions = (folders, level = 0) => {
     let options = [];
     for (const id in folders) {
         const folder = folders[id];
         options.push(<option key={id} value={id}>{'--'.repeat(level)} {folder.name}</option>);
-        if (Object.keys(folder.subfolders).length > 0) {
+        if (folder.subfolders && Object.keys(folder.subfolders).length > 0) {
             options = options.concat(renderFolderTreeOptions(folder.subfolders, level + 1));
         }
     }
@@ -650,6 +621,13 @@ const MainApp = () => {
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
   };
 
+  const startStudy = (folder, updateLastViewed = true) => {
+      if (updateLastViewed) {
+          setFolders(prev => updateFolderRecursive(folder.id, f => ({...f, lastViewed: new Date().toISOString() }), prev));
+      }
+      setStudyingFolder({ id: folder.id, name: folder.name, cards: [...folder.cards] });
+  };
+
   return (
     <>
       {studyingFolder && (
@@ -686,7 +664,6 @@ const MainApp = () => {
             <div className="listening-control">
               <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
             </div>
-            {/* UI FIX: Restored original layout for secondary buttons */}
             <div className="listening-modes">
               <button 
                 onClick={() => setVoiceActivated(!voiceActivated)} 
@@ -798,7 +775,9 @@ const MainApp = () => {
             <div key={card.id} className="card generated-card">
               <div className="card-selection"><input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} /></div>
               <div className="card-content">
-                {renderCardContent(card, 'queue')}
+                {/* This should be a component */}
+                <p><strong>Q:</strong> {card.question}</p>
+                <p><strong>A:</strong> {card.answer}</p>
                 <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
               </div>
             </div>
@@ -808,26 +787,23 @@ const MainApp = () => {
               <option value="" disabled>Select a folder...</option>
               {renderFolderTreeOptions(folders)}
             </select>
-            <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
+            <button onClick={() => handleMoveToFolder(checkedCards, selectedFolderForMove)} className="move-to-folder-btn">Move to Folder</button>
           </div>
         </div>
       )}
-      <div className="card folders-container">
-        <h2 className="section-heading">Your Folders</h2>
-        <button onClick={() => setModalState({ type: 'createFolder', data: { parentId: null } })} className="create-folder-btn">Create New Folder</button>
-        <div className="folder-list">
-          {Object.keys(folders).length > 0 ? 
-            <FolderTree 
-              folders={folders} 
-              onSetModal={setModalState}
-              onSetStudyingFolder={setStudyingFolder}
-              onGenerateAINotes={generateAINotes}
-              renderCardContent={renderCardContent}
-              deleteCardFromFolder={deleteCardFromFolder}
-            />
-            : <p className="subtle-text">No folders created yet.</p>}
-        </div>
-      </div>
+      
+      <FoldersSection 
+        folders={folders}
+        folderOrder={folderOrder}
+        setFolderOrder={setFolderOrder}
+        onSetModal={setModalState}
+        onStartStudy={startStudy}
+        onGenerateAINotes={generateAINotes}
+        onUpdateFolder={setFolders}
+        renderFolderTreeOptions={renderFolderTreeOptions}
+        onMoveCards={handleMoveToFolder}
+      />
+
       <div className="app-footer">
         <button className="feedback-btn" onClick={() => setModalState({ type: 'feedback' })}>Send Feedback</button>
       </div>
@@ -835,107 +811,150 @@ const MainApp = () => {
   );
 };
 
-const FolderTree = ({ folders, onSetModal, onSetStudyingFolder, onGenerateAINotes, renderCardContent, deleteCardFromFolder, level = 0 }) => {
-    const startStudySession = (folder) => {
-        onSetStudyingFolder({ id: folder.id, name: folder.name, cards: [...folder.cards] });
+// --- HELPER COMPONENTS ---
+
+const FoldersSection = ({ folders, folderOrder, setFolderOrder, onSetModal, onStartStudy, onGenerateAINotes, onUpdateFolder, renderFolderTreeOptions, onMoveCards }) => {
+    const [sortBy, setSortBy] = useState('name');
+
+    const sortedFolderOrder = useMemo(() => {
+        if (sortBy === 'custom') return folderOrder;
+        const sorted = [...folderOrder];
+        sorted.sort((aId, bId) => {
+            const a = folders[aId];
+            const b = folders[bId];
+            if (!a || !b) return 0;
+            switch (sortBy) {
+                case 'dateCreated': return new Date(b.createdAt) - new Date(a.createdAt);
+                case 'lastViewed': return (new Date(b.lastViewed) || 0) - (new Date(a.lastViewed) || 0);
+                case 'name':
+                default: return a.name.localeCompare(b.name);
+            }
+        });
+        return sorted;
+    }, [folderOrder, folders, sortBy]);
+
+    const handleDragStart = (e, index) => {
+        e.dataTransfer.setData("folderIndex", index);
+    };
+
+    const handleDrop = (e, dropIndex) => {
+        const dragIndex = e.dataTransfer.getData("folderIndex");
+        const newOrder = [...folderOrder];
+        const [draggedItem] = newOrder.splice(dragIndex, 1);
+        newOrder.splice(dropIndex, 0, draggedItem);
+        setFolderOrder(newOrder);
+        setSortBy('custom');
     };
 
     return (
-        <div className="folder-level" style={{ marginLeft: `${level * 20}px` }}>
-            {Object.values(folders).map(folder => (
-                <details key={folder.id} className="folder">
-                    <summary onClick={(e) => { if (e.target.closest('button, .actions-menu-container')) e.preventDefault(); }}>
-                        <div className="folder-summary">
-                            <span>{folder.name} ({folder.cards.length} {folder.cards.length === 1 ? 'card' : 'cards'})</span>
-                            <div className="folder-main-actions">
-                                <button onClick={() => startStudySession(folder)} className="study-btn">Study</button>
-                                <SecondaryActionsMenu folder={folder} onGenerateAINotes={onGenerateAINotes} />
-                            </div>
-                        </div>
-                        <FolderActionsMenu folder={folder} onSetModal={onSetModal} />
-                    </summary>
-                    {folder.cards.map((card) => (
-                        <div key={card.id} className="card saved-card-in-folder">
-                            <div className="card-content">
-                                {renderCardContent(card, 'folder', folder.id)}
-                                <button onClick={() => deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
-                            </div>
-                        </div>
-                    ))}
-                    {Object.keys(folder.subfolders).length > 0 && (
-                        <FolderTree 
-                            folders={folder.subfolders} 
+        <div className="card folders-container">
+            <div className="folders-header">
+                <h2 className="section-heading">Your Folders</h2>
+                <button onClick={() => onSetModal({ type: 'createFolder', data: { parentId: null } })} className="create-folder-btn-header">Create Folder</button>
+            </div>
+            <div className="sort-by-container">
+                <label htmlFor="sort-by">Sort by:</label>
+                <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
+                    <option value="custom" disabled={sortBy !== 'custom'}>Custom Order</option>
+                    <option value="name">Name</option>
+                    <option value="dateCreated">Date Created</option>
+                    <option value="lastViewed">Last Viewed</option>
+                </select>
+            </div>
+            <div className="folder-list">
+                {sortedFolderOrder.map((folderId, index) => {
+                    const folder = folders[folderId];
+                    if (!folder) return null;
+                    return (
+                        <FolderItem 
+                            key={folderId}
+                            folder={folder}
+                            index={index}
                             onSetModal={onSetModal}
-                            onSetStudyingFolder={onSetStudyingFolder}
+                            onStartStudy={onStartStudy}
                             onGenerateAINotes={onGenerateAINotes}
-                            renderCardContent={renderCardContent}
-                            deleteCardFromFolder={deleteCardFromFolder}
-                            level={level + 1} 
+                            onUpdateFolder={onUpdateFolder}
+                            onDragStart={handleDragStart}
+                            onDrop={handleDrop}
+                            renderFolderTreeOptions={renderFolderTreeOptions}
+                            onMoveCards={onMoveCards}
                         />
-                    )}
-                </details>
-            ))}
+                    );
+                })}
+                {folderOrder.length === 0 && <p className="subtle-text">No folders created yet.</p>}
+            </div>
         </div>
     );
 };
 
-const FolderActionsMenu = ({ folder, onSetModal }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef(null);
-    useEffect(() => {
-        const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setIsOpen(false); };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-    const handleAction = (type, data) => {
-        onSetModal({ type, data });
-        setIsOpen(false);
+const FolderItem = ({ folder, index, onSetModal, onStartStudy, onGenerateAINotes, onUpdateFolder, onDragStart, onDrop, renderFolderTreeOptions, onMoveCards }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
+    const [checkedCards, setCheckedCards] = useState({});
+    const [destinationFolder, setDestinationFolder] = useState('');
+
+    const handleCardCheck = (cardId) => {
+        setCheckedCards(prev => ({...prev, [cardId]: !prev[cardId]}));
     };
+    
+    const handleMoveClick = () => {
+        onMoveCards(checkedCards, destinationFolder, folder.id);
+        setCheckedCards({});
+    };
+
     return (
-        <div className="actions-menu-container" ref={menuRef}>
-            <button className="menu-trigger-btn" onClick={() => setIsOpen(!isOpen)}>⋮</button>
-            {isOpen && (
-                <div className="menu-dropdown">
-                    <button onClick={() => handleAction('createFolder', { parentId: folder.id })}>Add Subfolder</button>
-                    <button onClick={() => handleAction('renameFolder', { folderId: folder.id, currentName: folder.name })}>Rename</button>
-                    <button onClick={() => handleAction('deleteFolder', { folderId: folder.id, currentName: folder.name })}>Delete</button>
+        <div 
+            className="folder-item"
+            draggable
+            onDragStart={(e) => onDragStart(e, index)}
+            onDragOver={(e) => e.preventDefault()}
+            onDrop={(e) => onDrop(e, index)}
+        >
+            <div className="folder-item-header" onClick={() => setIsExpanded(!isExpanded)}>
+                <span>{folder.name}</span>
+                <div className="folder-item-header-right">
+                    <span className="card-count-badge">🗂️ {folder.cards.length} cards</span>
+                    <span className="folder-item-arrow">{isExpanded ? '▾' : '▸'}</span>
+                </div>
+            </div>
+            {isExpanded && (
+                <div className="folder-item-content">
+                    <div className="expanded-header">
+                        <div className="expanded-header-left">
+                            <h3>{folder.name}</h3>
+                            <div className="expanded-actions">
+                                <button onClick={() => onStartStudy(folder)} className="study-btn-expanded">Study</button>
+                                <button onClick={() => onGenerateAINotes(folder.id)} className="flashnotes-btn">FlashNotes</button>
+                            </div>
+                        </div>
+                        <div className="expanded-header-right">
+                           <SecondaryActionsMenu folder={folder} onGenerateAINotes={onGenerateAINotes} />
+                           <FolderActionsMenu folder={folder} onSetModal={onSetModal} />
+                        </div>
+                    </div>
+                    <div className="card-list-container">
+                        {folder.cards.map(card => (
+                            <div key={card.id} className="card-list-item">
+                                <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
+                                <div className="card-list-item-text">
+                                    <p><strong>Q:</strong> {card.question}</p>
+                                    <p><strong>A:</strong> {card.answer}</p>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    {Object.values(checkedCards).some(v => v) && (
+                        <div className="move-cards-bar">
+                            <select value={destinationFolder} onChange={e => setDestinationFolder(e.target.value)}>
+                                <option value="" disabled>Move to...</option>
+                                {renderFolderTreeOptions(onUpdateFolder(f => f))}
+                            </select>
+                            <button onClick={handleMoveClick} disabled={!destinationFolder}>Move Selected</button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
     );
-};
-
-const SecondaryActionsMenu = ({ folder, onGenerateAINotes }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const menuRef = useRef(null);
-    useEffect(() => {
-        const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setIsOpen(false); };
-        document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
-    }, []);
-    return (
-        <div className="actions-menu-container" ref={menuRef}>
-            <button className="secondary-actions-btn" onClick={() => setIsOpen(!isOpen)}>Actions ▾</button>
-            {isOpen && (
-                <div className="menu-dropdown">
-                    <button onClick={() => { onGenerateAINotes(folder.id); setIsOpen(false); }}>AI Notes</button>
-                    <button onClick={() => { /* PDF Export Logic */ setIsOpen(false); }}>Export PDF</button>
-                    <button onClick={() => { /* CSV Export Logic */ setIsOpen(false); }}>Export CSV</button>
-                </div>
-            )}
-        </div>
-    );
-};
-
-const ModalManager = ({ modalState, onClose, actions, formspreeUrl }) => {
-    if (!modalState.type) return null;
-    switch (modalState.type) {
-        case 'createFolder': return <CreateFolderModal onClose={onClose} onCreate={actions.handleCreateFolder} parentId={modalState.data?.parentId} />;
-        case 'renameFolder': return <RenameFolderModal onClose={onClose} onRename={actions.handleRenameFolder} folderId={modalState.data.folderId} currentName={modalState.data.currentName} />;
-        case 'deleteFolder': return <DeleteFolderModal onClose={onClose} onDelete={actions.handleDeleteFolder} folderId={modalState.data.folderId} folderName={modalState.data.currentName} />;
-        case 'feedback': return <FeedbackModal onClose={onClose} formspreeUrl={formspreeUrl} />;
-        default: return null;
-    }
 };
 
 const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, onUpdateCard }) => {
@@ -944,9 +963,7 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
   const [isFlipped, setIsFlipped] = useState(false);
   const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [flaggedCards, setFlaggedCards] = useState({});
-  const [reviewMode, setReviewMode] = useState('all'); // 'all', 'flagged', 'srs'
-  
-  // FIX: Re-added state for TTS controls
+  const [reviewMode, setReviewMode] = useState('all');
   const [isReading, setIsReading] = useState(false);
   const [speechRate, setSpeechRate] = useState(1);
   const [speechDelay, setSpeechDelay] = useState(3);
@@ -955,7 +972,7 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
   const speechTimeoutRef = useRef(null);
   const voiceDropdownRef = useRef(null);
   const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
-
+  
   const studyDeck = useMemo(() => {
       if (reviewMode === 'flagged') return deck.filter(card => flaggedCards[card.id]);
       if (reviewMode === 'srs') {
@@ -988,16 +1005,13 @@ const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, o
       setCurrentIndex(0);
       setIsFlipped(false);
   };
-
-  // FIX: Re-added TTS logic
+  
   useEffect(() => {
     const loadVoices = () => {
       const availableVoices = window.speechSynthesis.getVoices();
       const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
       setVoices(englishVoices);
-      if (englishVoices.length > 0 && !selectedVoice) {
-        setSelectedVoice(englishVoices[0].name);
-      }
+      if (englishVoices.length > 0 && !selectedVoice) setSelectedVoice(englishVoices[0].name);
     };
     window.speechSynthesis.onvoiceschanged = loadVoices;
     loadVoices();
