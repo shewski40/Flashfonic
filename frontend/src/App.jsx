@@ -1167,7 +1167,7 @@ const MainApp = () => {
           onDragEnd={handleFolderDragEnd}
           style={{ paddingLeft: `${paddingLeft}px` }}
         >
-          <summary onClick={(e) => { e.stopPropagation(); }}> {/* Prevent default toggle on click of children */}
+          <summary> {/* Removed e.stopPropagation() to allow native toggle */}
             <div className="folder-item-header">
               <span className="folder-name-display">
                 {level > 0 && <span className="folder-icon">📁</span>} {/* Card icon for subfolders */}
