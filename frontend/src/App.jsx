@@ -88,7 +88,7 @@ const MainApp = () => {
   const [notification, setNotification] = useState('');
   const [duration, setDuration] = useState(15);
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
-  // Updated folders state to store objects with metadata
+  // Updated folders state to store objects with metadata and nested subfolders
   const [folders, setFolders] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -102,8 +102,7 @@ const MainApp = () => {
   const [checkedCards, setCheckedCards] = useState({});
   const [editingCard, setEditingCard] = useState(null);
   const [studyingFolder, setStudyingFolder] = useState(null);
-  const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
-  const [promptModalConfig, setPromptModalConfig] = useState(null);
+  const [promptModalConfig, setPromptModalConfig] = useState(null); // For export prompts
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
@@ -119,7 +118,10 @@ const MainApp = () => {
   const [folderSortBy, setFolderSortBy] = useState('name'); // New state for folder sorting
   const [draggedFolderId, setDraggedFolderId] = useState(null); // For folder drag-and-drop
   const [expandedFolderId, setExpandedFolderId] = useState(null); // To control which folder is open
-  const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({}); // Checkboxes in expanded folder
+  const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = {}; // Checkboxes in expanded folder
+
+  // Centralized modal config for Add Subfolder, Rename, Delete
+  const [modalConfig, setModalConfig] = useState(null); 
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -184,28 +186,37 @@ const MainApp = () => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
     if (storedFolders) {
       const parsedFolders = JSON.parse(storedFolders);
-      // Ensure old structure is converted to new if necessary
-      const newFolders = {};
-      for (const key in parsedFolders) {
-        if (Array.isArray(parsedFolders[key])) { // Old format: "folderName": [cards]
-          const folderId = generateUUID(); // Using the new helper function
-          newFolders[folderId] = {
-            id: folderId,
-            name: key,
-            createdAt: Date.now(),
-            lastViewed: Date.now(),
-            cards: parsedFolders[key],
-            subfolders: {} // Initialize subfolders
-          };
-        } else { // New format
-          newFolders[key] = parsedFolders[key];
-          // Ensure subfolders key exists for existing folders
-          if (!newFolders[key].subfolders) {
-            newFolders[key].subfolders = {};
+      // Function to recursively convert old folder structure or ensure new properties
+      const convertFolderStructure = (oldFolders) => {
+        const newFolders = {};
+        for (const key in oldFolders) {
+          const folder = oldFolders[key];
+          let newFolder;
+          if (Array.isArray(folder)) { // Old format: "folderName": [cards]
+            const folderId = generateUUID();
+            newFolder = {
+              id: folderId,
+              name: key,
+              createdAt: Date.now(),
+              lastViewed: Date.now(),
+              cards: folder,
+              subfolders: {}
+            };
+          } else { // Already new format, but ensure all properties exist
+            newFolder = { ...folder };
+            if (!newFolder.id) newFolder.id = generateUUID();
+            if (!newFolder.createdAt) newFolder.createdAt = Date.now();
+            if (!newFolder.lastViewed) newFolder.lastViewed = Date.now();
+            if (!newFolder.cards) newFolder.cards = [];
+            if (!newFolder.subfolders) newFolder.subfolders = {};
+            // Recursively convert subfolders
+            newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
           }
+          newFolders[newFolder.id] = newFolder;
         }
-      }
-      setFolders(newFolders);
+        return newFolders;
+      };
+      setFolders(convertFolderStructure(parsedFolders));
     }
   }, []);
 
@@ -534,7 +545,51 @@ const MainApp = () => {
     setCheckedCards(newCheckedCards);
   };
 
-  // Updated handleMoveToFolder for new folder structure
+  // Helper to find folder by ID recursively
+  const findFolderById = (foldersObj, folderId) => {
+    for (const id in foldersObj) {
+      if (id === folderId) return foldersObj[id];
+      const foundInSub = findFolderById(foldersObj[id].subfolders, folderId);
+      if (foundInSub) return foundInSub;
+    }
+    return null;
+  };
+
+  // Helper to update folder by ID recursively
+  const updateFolderById = (foldersObj, folderId, updateFn) => {
+    const newFolders = { ...foldersObj };
+    for (const id in newFolders) {
+      if (id === folderId) {
+        newFolders[id] = updateFn(newFolders[id]);
+        return newFolders;
+      }
+      const updatedSubfolders = updateFolderById(newFolders[id].subfolders, folderId, updateFn);
+      if (updatedSubfolders !== newFolders[id].subfolders) {
+        newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
+        return newFolders;
+      }
+    }
+    return foldersObj; // No change if not found
+  };
+
+  // Helper to delete folder by ID recursively
+  const deleteFolderById = (currentFolders, idToDelete) => {
+    const newFolders = { ...currentFolders };
+    if (newFolders[idToDelete]) {
+      delete newFolders[idToDelete];
+      return newFolders;
+    }
+    for (const id in newFolders) {
+      const updatedSubfolders = deleteFolderById(newFolders[id].subfolders, idToDelete);
+      if (updatedSubfolders !== newFolders[id].subfolders) {
+        newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
+        return newFolders;
+      }
+    }
+    return currentFolders;
+  };
+
+  // Updated handleMoveToFolder for new folder structure (from queue)
   const handleMoveToFolder = () => {
     if (!selectedFolderForMove) {
       setNotification("Please select a folder first.");
@@ -547,17 +602,15 @@ const MainApp = () => {
     }
 
     setFolders(prev => {
-      const newFolders = { ...prev };
-      const targetFolder = newFolders[selectedFolderForMove];
-      if (targetFolder) {
-        targetFolder.cards = [...targetFolder.cards, ...cardsToMove];
-      }
-      return newFolders;
+      return updateFolderById(prev, selectedFolderForMove, (folder) => ({
+        ...folder,
+        cards: [...folder.cards, ...cardsToMove]
+      }));
     });
     setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
     setCheckedCards({});
     setSelectedFolderForMove('');
-    setNotification(`${cardsToMove.length} card(s) moved to ${folders[selectedFolderForMove].name}.`);
+    setNotification(`${cardsToMove.length} card(s) moved.`);
   };
 
   // Updated handleCreateFolder for new folder structure
@@ -566,7 +619,7 @@ const MainApp = () => {
     if (folderExists) {
       alert("A folder with this name already exists.");
     } else {
-      const newFolderId = generateUUID(); // Using the new helper function
+      const newFolderId = generateUUID();
       setFolders(prev => ({
         ...prev,
         [newFolderId]: {
@@ -575,22 +628,62 @@ const MainApp = () => {
           createdAt: Date.now(),
           lastViewed: Date.now(),
           cards: [],
-          subfolders: {} // Initialize subfolders
+          subfolders: {}
         }
       }));
     }
-    setIsCreateFolderModalOpen(false);
+    setModalConfig(null); // Close modal
+  };
+
+  // Function to add a subfolder
+  const handleAddSubfolder = (parentFolderId, subfolderName) => {
+    setFolders(prev => updateFolderById(prev, parentFolderId, (parentFolder) => {
+      const subfolderExists = Object.values(parentFolder.subfolders).some(sf => sf.name === subfolderName);
+      if (subfolderExists) {
+        alert("A subfolder with this name already exists in this folder.");
+        return parentFolder; // Return original folder if exists
+      }
+      const newSubfolderId = generateUUID();
+      return {
+        ...parentFolder,
+        subfolders: {
+          ...parentFolder.subfolders,
+          [newSubfolderId]: {
+            id: newSubfolderId,
+            name: subfolderName,
+            createdAt: Date.now(),
+            lastViewed: Date.now(),
+            cards: [],
+            subfolders: {}
+          }
+        }
+      };
+    }));
+    setModalConfig(null); // Close modal
+  };
+
+  // Function to rename a folder/subfolder
+  const handleRenameFolder = (folderId, newName) => {
+    setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
+      ...folder,
+      name: newName
+    })));
+    setModalConfig(null); // Close modal
+  };
+
+  // Function to delete a folder/subfolder
+  const handleDeleteFolder = (folderId) => {
+    setFolders(prev => deleteFolderById(prev, folderId));
+    setModalConfig(null); // Close modal
+    setExpandedFolderId(null); // Close if deleted
   };
 
   // Updated deleteCardFromFolder for new folder structure
   const deleteCardFromFolder = (folderId, cardId) => {
-    setFolders(prevFolders => {
-      const newFolders = { ...prevFolders };
-      if (newFolders[folderId]) {
-        newFolders[folderId].cards = newFolders[folderId].cards.filter(card => card.id !== cardId);
-      }
-      return newFolders;
-    });
+    setFolders(prevFolders => updateFolderById(prevFolders, folderId, (folder) => ({
+      ...folder,
+      cards: folder.cards.filter(card => card.id !== cardId)
+    })));
   };
 
   const deleteFromQueue = (cardId) => {
@@ -602,6 +695,7 @@ const MainApp = () => {
     setMovingCard(null);
   };
 
+  // Removed individual card move button, so this function is less critical for UI
   const startMove = (card, folderId) => {
     setMovingCard({ id: card.id, folderId });
     setEditingCard(null);
@@ -616,15 +710,12 @@ const MainApp = () => {
         prev.map(card => card.id === id ? { ...card, question, answer } : card)
       );
     } else if (source === 'folder' && folderId) {
-      setFolders(prev => ({
-        ...prev,
-        [folderId]: {
-          ...prev[folderId],
-          cards: prev[folderId].cards.map(card => 
-            card.id === id ? { ...card, question, answer } : card
-          )
-        }
-      }));
+      setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
+        ...folder,
+        cards: folder.cards.map(card => 
+          card.id === id ? { ...card, question, answer } : card
+        )
+      })));
     }
     setEditingCard(null);
   };
@@ -637,19 +728,27 @@ const MainApp = () => {
     };
     const { id, folderId: sourceFolderId } = movingCard;
     setFolders(prevFolders => {
-        const newFolders = { ...prevFolders };
-        const cardToMove = newFolders[sourceFolderId].cards.find(c => c.id === id);
+        let cardToMove = null;
+        const newFolders = updateFolderById(prevFolders, sourceFolderId, (folder) => {
+          cardToMove = folder.cards.find(c => c.id === id);
+          return {
+            ...folder,
+            cards: folder.cards.filter(c => c.id !== id)
+          };
+        });
+
         if (!cardToMove) return prevFolders; // Card not found in source
-        
-        newFolders[sourceFolderId].cards = newFolders[sourceFolderId].cards.filter(c => c.id !== id);
-        newFolders[destinationFolderId].cards = [...newFolders[destinationFolderId].cards, cardToMove];
-        return newFolders;
+
+        return updateFolderById(newFolders, destinationFolderId, (folder) => ({
+          ...folder,
+          cards: [...folder.cards, cardToMove]
+        }));
     });
     setMovingCard(null);
   };
 
   const exportFolderToPDF = (folderId) => {
-    const folder = folders[folderId];
+    const folder = findFolderById(folders, folderId);
     if (!folder) return;
 
     setPromptModalConfig({
@@ -728,7 +827,7 @@ const MainApp = () => {
   };
   
   const exportFolderToCSV = (folderId) => {
-    const folder = folders[folderId];
+    const folder = findFolderById(folders, folderId);
     if (!folder) return;
 
     setPromptModalConfig({
@@ -775,8 +874,19 @@ const MainApp = () => {
         </div>
       );
     }
+    // Removed individual card move button as per request
     if (movingCard && movingCard.id === card.id) {
-        const otherFolders = Object.values(folders).filter(f => f.id !== folderId);
+        // Build a flat list of all folders and subfolders for the dropdown
+        const allFolders = [];
+        const collectFolders = (currentFolders) => {
+          for (const id in currentFolders) {
+            allFolders.push(currentFolders[id]);
+            collectFolders(currentFolders[id].subfolders);
+          }
+        };
+        collectFolders(folders);
+        const otherFolders = allFolders.filter(f => f.id !== folderId);
+
         return (
             <div className="move-mode">
                 <p>Move to:</p>
@@ -795,7 +905,7 @@ const MainApp = () => {
     return (
       <>
         <div className="card-top-actions">
-          {source === 'folder' && <button onClick={() => startMove(card, folderId)} className="card-move-btn">⇄ Move</button>}
+          {/* Removed individual card move button: {source === 'folder' && <button onClick={() => startMove(card, folderId)} className="card-move-btn">⇄ Move</button>} */}
           <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
         </div>
         <p><strong>Q:</strong> {card.question}</p>
@@ -849,9 +959,18 @@ const MainApp = () => {
     });
   };
 
+  // Helper to count all cards in a folder and its subfolders
+  const countCardsRecursive = (folder) => {
+    let count = folder.cards.length;
+    for (const subfolderId in folder.subfolders) {
+      count += countCardsRecursive(folder.subfolders[subfolderId]);
+    }
+    return count;
+  };
+
   // Folder sorting logic
-  const getSortedFolders = () => {
-    const folderArray = Object.values(folders);
+  const getSortedFolders = (folderObj) => {
+    const folderArray = Object.values(folderObj);
     return folderArray.sort((a, b) => {
       if (folderSortBy === 'name') {
         return a.name.localeCompare(b.name);
@@ -885,25 +1004,59 @@ const MainApp = () => {
     }
 
     setFolders(prevFolders => {
-      const folderIds = getSortedFolders().map(f => f.id); // Get current order
-      const newFolderIds = [...folderIds];
+      // Find the folder and its parent in the nested structure
+      let sourceFolder = null;
+      let sourceParent = null;
+      let targetFolder = null;
+      let targetParent = null;
 
-      const draggedIndex = newFolderIds.indexOf(sourceFolderId);
-      const targetIndex = newFolderIds.indexOf(targetFolderId);
+      const findAndExtract = (currentFolders, idToFind) => {
+        for (const id in currentFolders) {
+          if (id === idToFind) {
+            const found = currentFolders[id];
+            const newCurrentFolders = { ...currentFolders };
+            delete newCurrentFolders[id];
+            return [found, newCurrentFolders];
+          }
+          const [foundInSub, updatedSubfolders] = findAndExtract(currentFolders[id].subfolders, idToFind);
+          if (foundInSub) {
+            currentFolders[id].subfolders = updatedSubfolders;
+            return [foundInSub, currentFolders];
+          }
+        }
+        return [null, currentFolders];
+      };
 
-      if (draggedIndex === -1 || targetIndex === -1) {
-        return prevFolders;
-      }
+      const [draggedItem, updatedSourceParentFolders] = findAndExtract(prevFolders, sourceFolderId);
+      if (!draggedItem) return prevFolders; // Should not happen
 
-      const [removed] = newFolderIds.splice(draggedIndex, 1);
-      newFolderIds.splice(targetIndex, 0, removed);
+      // Now insert draggedItem into the target location
+      const insertIntoTarget = (currentFolders, targetId, itemToInsert) => {
+        const newFolders = { ...currentFolders };
+        for (const id in newFolders) {
+          if (id === targetId) {
+            // Insert at the same level as targetId
+            const orderedKeys = Object.keys(newFolders);
+            const targetIndex = orderedKeys.indexOf(targetId);
+            orderedKeys.splice(targetIndex + 1, 0, itemToInsert.id); // Insert after target
+            const reordered = {};
+            orderedKeys.forEach(key => {
+              reordered[key] = newFolders[key] || itemToInsert; // Use existing or inserted item
+            });
+            return reordered;
+          }
+          const updatedSubfolders = insertIntoTarget(newFolders[id].subfolders, targetId, itemToInsert);
+          if (updatedSubfolders !== newFolders[id].subfolders) {
+            newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
+            return newFolders;
+          }
+        }
+        // If targetId is not found, assume it's a top-level drop
+        // This case might need more refinement depending on exact UX
+        return { ...currentFolders, [itemToInsert.id]: itemToInsert };
+      };
 
-      // Reconstruct the folders object in the new order
-      const reorderedFolders = {};
-      newFolderIds.forEach(id => {
-        reorderedFolders[id] = prevFolders[id];
-      });
-      return reorderedFolders;
+      return insertIntoTarget(updatedSourceParentFolders, targetFolderId, draggedItem);
     });
     setDraggedFolderId(null);
   };
@@ -916,13 +1069,10 @@ const MainApp = () => {
   const handleFolderToggle = (folderId, isOpen) => {
     setExpandedFolderId(isOpen ? folderId : null);
     if (isOpen) {
-      setFolders(prev => ({
-        ...prev,
-        [folderId]: {
-          ...prev[folderId],
-          lastViewed: Date.now()
-        }
-      }));
+      setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
+        ...folder,
+        lastViewed: Date.now()
+      })));
     }
   };
 
@@ -948,15 +1098,21 @@ const MainApp = () => {
     }
 
     setFolders(prev => {
-      const newFolders = { ...prev };
+      let newFolders = { ...prev };
       // Remove from source folder
-      newFolders[expandedFolderId].cards = newFolders[expandedFolderId].cards.filter(card => !selectedCardsInExpandedFolder[card.id]);
+      newFolders = updateFolderById(newFolders, expandedFolderId, (folder) => ({
+        ...folder,
+        cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[card.id])
+      }));
       // Add to destination folder
-      newFolders[destinationFolderId].cards = [...newFolders[destinationFolderId].cards, ...cardsToMove];
+      newFolders = updateFolderById(newFolders, destinationFolderId, (folder) => ({
+        ...folder,
+        cards: [...folder.cards, ...cardsToMove]
+      }));
       return newFolders;
     });
     setSelectedCardsInExpandedFolder({}); // Clear selection
-    setNotification(`${cardsToMove.length} card(s) moved to ${folders[destinationFolderId].name}.`);
+    setNotification(`${cardsToMove.length} card(s) moved to ${findFolderById(folders, destinationFolderId)?.name}.`);
   };
 
   // Drag and drop for cards within expanded folder
@@ -971,35 +1127,148 @@ const MainApp = () => {
     const sourceFolderId = e.dataTransfer.getData("sourceFolderId");
 
     if (sourceFolderId !== targetFolderId) {
-      // Moving between folders - handled by "Move to Folder" button for now
-      // This drag-and-drop is only for reordering within the same folder
+      // Moving between folders is handled by "Move to Folder" button for now
       return;
     }
 
-    setFolders(prevFolders => {
-      const newFolders = { ...prevFolders };
-      const currentCards = [...newFolders[targetFolderId].cards];
+    setFolders(prevFolders => updateFolderById(prevFolders, targetFolderId, (folder) => {
+      const currentCards = [...folder.cards];
       
       const draggedIndex = currentCards.findIndex(card => card.id === sourceCardId);
       const targetIndex = currentCards.findIndex(card => card.id === targetCardId);
 
       if (draggedIndex === -1 || targetIndex === -1) {
-        return prevFolders;
+        return folder;
       }
 
       const [removed] = currentCards.splice(draggedIndex, 1);
       currentCards.splice(targetIndex, 0, removed);
 
-      newFolders[targetFolderId].cards = currentCards;
-      return newFolders;
-    });
+      return { ...folder, cards: currentCards };
+    }));
   };
+
+  // Recursive component to render folders and subfolders
+  const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
+    const isExpanded = expandedFolderId === folder.id;
+    const paddingLeft = level * 20; // Indentation for subfolders
+
+    return (
+      <>
+        <details 
+          key={folder.id} 
+          className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
+          onToggle={(e) => handleFolderToggle(folder.id, e.target.open)}
+          open={isExpanded}
+          draggable
+          onDragStart={(e) => handleFolderDragStart(e, folder.id)}
+          onDragOver={handleFolderDragOver}
+          onDrop={(e) => handleFolderDrop(e, folder.id)}
+          onDragEnd={handleFolderDragEnd}
+          style={{ paddingLeft: `${paddingLeft}px` }}
+        >
+          <summary onClick={(e) => { e.stopPropagation(); }}> {/* Prevent default toggle on click of children */}
+            <div className="folder-item-header">
+              <span className="folder-name-display">
+                {level > 0 && <span className="folder-icon">📁</span>} {/* Card icon for subfolders */}
+                {folder.name}
+                <span className="card-count-display"> ({countCardsRecursive(folder)} cards)</span>
+              </span>
+              <div className="folder-actions-right">
+                {/* Small Study button is only visible when folder is NOT expanded */}
+                {!isExpanded && (
+                  <button onClick={(e) => { e.stopPropagation(); setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn-small">Study</button>
+                )}
+              </div>
+            </div>
+          </summary>
+          {isExpanded && (
+            <div className="folder-expanded-content">
+              <div className="folder-expanded-header">
+                <h3 className="folder-expanded-name">{folder.name}</h3>
+                <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn-large">Study</button>
+                <div className="folder-expanded-actions">
+                  <ActionsDropdown 
+                    folder={folder} // Pass the whole folder object
+                    exportPdf={exportFolderToPDF} 
+                    exportCsv={exportFolderToCSV} 
+                    onAddSubfolder={(id) => setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) })}
+                    onRenameFolder={(id, name) => setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) })}
+                    onDeleteFolder={(id) => setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) })}
+                  />
+                </div>
+              </div>
+              {/* Render subfolders */}
+              {Object.values(folder.subfolders).length > 0 && (
+                <div className="subfolder-list">
+                  {getSortedFolders(folder.subfolders).map(subfolder => (
+                    <FolderItem 
+                      key={subfolder.id} 
+                      folder={subfolder} 
+                      level={level + 1} 
+                      allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
+                    />
+                  ))}
+                </div>
+              )}
+              {/* Card list with checkboxes */}
+              <div className="folder-card-list">
+                {folder.cards.length > 0 ? folder.cards.map((card) => (
+                  <div 
+                    key={card.id} 
+                    className="card saved-card-in-folder"
+                    draggable
+                    onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
+                  >
+                    <div className="card-selection">
+                      <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
+                    </div>
+                    <div className="card-content">
+                      {renderCardContent(card, 'folder', folder.id)}
+                      <button onClick={() => deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
+                    </div>
+                  </div>
+                )) : <p className="subtle-text">No cards in this folder yet.</p>}
+              </div>
+              <div className="folder-card-actions">
+                <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                  <option value="" disabled>Move selected to...</option>
+                  {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                </select>
+                <button 
+                  onClick={() => handleMoveSelectedCardsFromExpandedFolder(selectedFolderForMove)} 
+                  className="move-to-folder-btn"
+                  disabled={Object.keys(selectedCardsInExpandedFolder).length === 0 || !selectedFolderForMove}
+                >
+                  Move Selected
+                </button>
+              </div>
+            </div>
+          )}
+        </details>
+      </>
+    );
+  };
+
+  // Collect all folders and subfolders for the move dropdown
+  const getAllFoldersFlat = (foldersObj) => {
+    let flatList = [];
+    for (const id in foldersObj) {
+      flatList.push(foldersObj[id]);
+      flatList = flatList.concat(getAllFoldersFlat(foldersObj[id].subfolders));
+    }
+    return flatList;
+  };
+  const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
   return (
     <>
       {studyingFolder && ( <FlashcardViewer folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={() => setStudyingFolder(null)} /> )}
-      {isCreateFolderModalOpen && ( <CreateFolderModal onClose={() => setIsCreateFolderModalOpen(false)} onCreate={handleCreateFolder} /> )}
-      {promptModalConfig && <PromptModal {...promptModalConfig} />}
+      {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
+      {modalConfig && modalConfig.type === 'prompt' && ( <PromptModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} title={modalConfig.title} message={modalConfig.message} defaultValue={modalConfig.defaultValue} /> )}
+      {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
       {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
 
       <div className="header">
@@ -1174,7 +1443,7 @@ const MainApp = () => {
               <div className="folder-actions">
                 <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                   <option value="" disabled>Select a folder...</option>
-                  {Object.values(folders).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                  {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                 </select>
                 <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
               </div>
@@ -1183,7 +1452,7 @@ const MainApp = () => {
           <div className="card folders-container">
             <div className="folders-header">
               <h2 className="section-heading-left">Your Folders</h2>
-              <button onClick={() => setIsCreateFolderModalOpen(true)} className="create-folder-btn">Create New Folder</button>
+              <button onClick={() => setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder })} className="create-folder-btn">Create New Folder</button>
             </div>
             <div className="folder-sort-controls">
               <label htmlFor="folder-sort">Sort by:</label>
@@ -1194,76 +1463,13 @@ const MainApp = () => {
               </select>
             </div>
             <div className="folder-list">
-              {Object.values(folders).length > 0 ? getSortedFolders().map(folder => (
-                <details 
+              {Object.values(folders).length > 0 ? getSortedFolders(folders).map(folder => (
+                <FolderItem 
                   key={folder.id} 
-                  className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
-                  onToggle={(e) => handleFolderToggle(folder.id, e.target.open)}
-                  open={expandedFolderId === folder.id}
-                  draggable
-                  onDragStart={(e) => handleFolderDragStart(e, folder.id)}
-                  onDragOver={handleFolderDragOver}
-                  onDrop={(e) => handleFolderDrop(e, folder.id)}
-                  onDragEnd={handleFolderDragEnd}
-                >
-                  <summary onClick={(e) => { if (e.target.closest('button, select')) e.preventDefault(); }}>
-                    <div className="folder-item-header">
-                      <span>{folder.name}</span>
-                      <div className="folder-actions-right">
-                        {/* Actions Tab (placeholder for Stage 2) */}
-                        {/* 3-dot menu (placeholder for Stage 2) */}
-                        <button onClick={(e) => { e.stopPropagation(); setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn-small">Study</button>
-                      </div>
-                    </div>
-                  </summary>
-                  <div className="folder-expanded-content">
-                    <div className="folder-expanded-header">
-                      <h3 className="folder-expanded-name">{folder.name}</h3>
-                      <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn-large">Study</button>
-                      <div className="folder-expanded-actions">
-                        {/* Actions Tab - Placeholder for Stage 2 */}
-                        <button className="actions-tab">Actions</button>
-                        {/* 3-dot menu - Placeholder for Stage 2 */}
-                        <button className="three-dot-menu">...</button>
-                      </div>
-                    </div>
-                    {/* Subfolders will go here in Stage 2 */}
-                    {/* Card list with checkboxes */}
-                    <div className="folder-card-list">
-                      {folder.cards.length > 0 ? folder.cards.map((card) => (
-                        <div 
-                          key={card.id} 
-                          className="card saved-card-in-folder"
-                          draggable
-                          onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
-                        >
-                          <div className="card-selection">
-                            <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
-                          </div>
-                          <div className="card-content">
-                            {renderCardContent(card, 'folder', folder.id)}
-                            <button onClick={() => deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
-                          </div>
-                        </div>
-                      )) : <p className="subtle-text">No cards in this folder yet.</p>}
-                    </div>
-                    <div className="folder-card-actions">
-                      <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
-                        <option value="" disabled>Move selected to...</option>
-                        {Object.values(folders).filter(f => f.id !== folder.id).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                      </select>
-                      <button 
-                        onClick={() => handleMoveSelectedCardsFromExpandedFolder(selectedFolderForMove)} 
-                        className="move-to-folder-btn"
-                        disabled={Object.keys(selectedCardsInExpandedFolder).length === 0 || !selectedFolderForMove}
-                      >
-                        Move Selected
-                      </button>
-                    </div>
-                  </div>
-                </details>
+                  folder={folder} 
+                  level={0} 
+                  allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
+                />
               )) : <p className="subtle-text">No folders created yet.</p>}
             </div>
           </div>
@@ -1275,6 +1481,39 @@ const MainApp = () => {
     };
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
+
+// Component for the Actions dropdown
+const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (menuRef.current && !menuRef.current.contains(event.target)) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  return (
+    <div className="actions-dropdown-container" ref={menuRef}>
+      <button className="actions-tab" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>Actions</button>
+      {isOpen && (
+        <div className="actions-dropdown-menu">
+          <button onClick={(e) => { e.stopPropagation(); onAddSubfolder(folder.id); setIsOpen(false); }}>Add Subfolder</button>
+          <button onClick={(e) => { e.stopPropagation(); onRenameFolder(folder.id, folder.name); setIsOpen(false); }}>Rename Folder</button>
+          <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); setIsOpen(false); }}>Delete Folder</button>
+          <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
+          <button onClick={(e) => { e.stopPropagation(); exportPdf(folder.id); setIsOpen(false); }}>Export PDF</button>
+          <button onClick={(e) => { e.stopPropagation(); exportCsv(folder.id); setIsOpen(false); }}>Export CSV</button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 
 function encodeWAV(audioBuffer) {
     const numOfChan = audioBuffer.numberOfChannels;
@@ -1595,7 +1834,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
     </div>
   );
 };
-const CreateFolderModal = ({ onClose, onCreate }) => {
+const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) => {
   const [folderName, setFolderName] = useState('');
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -1604,9 +1843,9 @@ const CreateFolderModal = ({ onClose, onCreate }) => {
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h2>Create New Folder</h2>
+        <h2>{title}</h2>
         <form onSubmit={handleSubmit}>
-          <input type="text" className="modal-input" placeholder="Enter folder name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
+          <input type="text" className="modal-input" placeholder="Enter name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
           <div className="modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Create</button>
@@ -1628,7 +1867,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
         <h2>{title}</h2>
         <p className="modal-message">{message}</p>
         <form onSubmit={handleSubmit}>
-          <input type="number" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+          <input type="text" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
           <div className="modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Confirm</button>
@@ -1638,6 +1877,22 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
     </div>
   );
 };
+
+const ConfirmModal = ({ message, onClose, onConfirm }) => {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Confirm Action</h2>
+        <p className="modal-message">{message}</p>
+        <div className="modal-actions">
+          <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="modal-create-btn danger" onClick={() => { onConfirm(); onClose(); }}>Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 const formatTime = (time) => {
   if (isNaN(time) || time === 0) return '00:00';
   const minutes = Math.floor(time / 60);

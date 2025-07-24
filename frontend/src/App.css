@@ -402,7 +402,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-list summary {
   position: relative;
-  padding: 1em 1em 1em 2.5em;
+  padding: 1em 1em; /* Removed left padding for arrow */
   font-weight: 600;
   cursor: pointer;
   outline: none;
@@ -417,6 +417,8 @@ input[type="range"]::-webkit-slider-thumb {
   display: none;
 }
 
+/* REMOVED PURPLE ARROW */
+/*
 .folder-list summary::before {
   content: '▶';
   position: absolute;
@@ -431,6 +433,7 @@ input[type="range"]::-webkit-slider-thumb {
 .folder-list details[open] > summary::before {
   transform: translateY(-50%) rotate(90deg);
 }
+*/
 
 /* NEW: Folder item header (for summary) */
 .folder-item-header {
@@ -565,7 +568,8 @@ input[type="range"]::-webkit-slider-thumb {
   background-color: var(--primary-purple);
 }
 
-/* Three Dot Menu */
+/* Removed Three Dot Menu styles */
+/*
 .three-dot-menu-container {
   position: relative;
 }
@@ -574,7 +578,7 @@ input[type="range"]::-webkit-slider-thumb {
   background-color: var(--content-bg);
   color: var(--text-light);
   border: 1px solid var(--primary-purple);
-  padding: 0.4em 0.6em; /* Adjust padding for three dots */
+  padding: 0.4em 0.6em;
   border-radius: 6px;
   cursor: pointer;
   font-size: 0.8em;
@@ -610,6 +614,7 @@ input[type="range"]::-webkit-slider-thumb {
 .three-dot-menu-dropdown button:hover {
   background-color: var(--primary-purple);
 }
+*/
 
 .folder-card-list {
   max-height: 400px; /* Fixed height for scrollable area */
