@@ -440,9 +440,22 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-.folder-item-header span {
+.folder-name-display {
   font-size: 1.1em;
   color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.folder-icon {
+  font-size: 1.2em; /* Adjust size of folder emoji */
+  line-height: 1;
+}
+
+.card-count-display {
+  font-size: 0.8em;
+  color: var(--text-dark);
 }
 
 /* NEW: Actions right for summary (small study button) */
@@ -506,7 +519,12 @@ input[type="range"]::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 
-.actions-tab, .three-dot-menu {
+/* Actions Dropdown */
+.actions-dropdown-container {
+  position: relative;
+}
+
+.actions-tab {
   background-color: var(--content-bg);
   color: var(--text-light);
   border: 1px solid var(--primary-purple);
@@ -517,8 +535,80 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: bold;
 }
 
+.actions-dropdown-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--content-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  min-width: 120px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+}
+
+.actions-dropdown-menu button {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  padding: 0.6em 1em;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.actions-dropdown-menu button:hover {
+  background-color: var(--primary-purple);
+}
+
+/* Three Dot Menu */
+.three-dot-menu-container {
+  position: relative;
+}
+
 .three-dot-menu {
+  background-color: var(--content-bg);
+  color: var(--text-light);
+  border: 1px solid var(--primary-purple);
   padding: 0.4em 0.6em; /* Adjust padding for three dots */
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.8em;
+  font-weight: bold;
+}
+
+.three-dot-menu-dropdown {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  background-color: var(--content-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  min-width: 150px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0;
+}
+
+.three-dot-menu-dropdown button {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  padding: 0.6em 1em;
+  text-align: left;
+  cursor: pointer;
+  font-size: 0.9em;
+  transition: background-color 0.2s ease;
+}
+
+.three-dot-menu-dropdown button:hover {
+  background-color: var(--primary-purple);
 }
 
 .folder-card-list {
@@ -566,6 +656,14 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
+/* NEW: Subfolder list styling */
+.subfolder-list {
+  padding-left: 1em; /* Indent subfolders */
+  border-left: 1px dashed var(--border-color); /* Visual line */
+  margin-left: 0.5em;
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+}
 
 .saved-card-in-folder {
   background-color: var(--dark-bg);
@@ -990,6 +1088,11 @@ input[type="range"]::-webkit-slider-thumb {
   background-color: var(--primary-purple);
   color: white;
 }
+
+.modal-create-btn.danger {
+  background-color: var(--danger-red);
+}
+
 
 .modal-cancel-btn {
   background-color: var(--border-color);
