@@ -118,7 +118,7 @@ const MainApp = () => {
   const [folderSortBy, setFolderSortBy] = useState('name'); // New state for folder sorting
   const [draggedFolderId, setDraggedFolderId] = useState(null); // For folder drag-and-drop
   const [expandedFolderId, setExpandedFolderId] = useState(null); // To control which folder is open
-  const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = {}; // Checkboxes in expanded folder
+  const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({}); // Checkboxes in expanded folder
 
   // Centralized modal config for Add Subfolder, Rename, Delete
   const [modalConfig, setModalConfig] = useState(null); 
