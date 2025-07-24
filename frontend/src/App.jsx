@@ -23,7 +23,7 @@ const timeSince = (date) => {
 };
 
 
-// --- LANDING PAGE COMPONENT (Unchanged) ---
+// --- LANDING PAGE COMPONENT ---
 const LandingPage = ({ onEnter }) => {
   return (
     <div className="landing-page">
@@ -31,7 +31,6 @@ const LandingPage = ({ onEnter }) => {
         <div className="nav-logo">FlashFonic</div>
         <button onClick={onEnter} className="nav-cta">Enter Beta</button>
       </nav>
-
       <header className="landing-hero">
         <h1 className="landing-h1">The Future of Studying is Listening.</h1>
         <p className="landing-p">
@@ -39,50 +38,23 @@ const LandingPage = ({ onEnter }) => {
         </p>
         <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
       </header>
-
       <section className="how-it-works">
         <h2>How It Works</h2>
         <div className="steps-container">
-          <div className="step">
-            <div className="step-number">1</div>
-            <h3>CAPTURE</h3>
-            <p>Record live audio or upload a file.</p>
-          </div>
-          <div className="step">
-            <div className="step-number">2</div>
-            <h3>AI GENERATE</h3>
-            <p>Our AI transcribes and creates a Q&A flashcard.</p>
-          </div>
-          <div className="step">
-            <div className="step-number">3</div>
-            <h3>STUDY</h3>
-            <p>Master your material with our advanced study tools.</p>
-          </div>
+          <div className="step"><div className="step-number">1</div><h3>CAPTURE</h3><p>Record live audio or upload a file.</p></div>
+          <div className="step"><div className="step-number">2</div><h3>AI GENERATE</h3><p>Our AI transcribes and creates a Q&A flashcard.</p></div>
+          <div className="step"><div className="step-number">3</div><h3>STUDY</h3><p>Master your material with our advanced study tools.</p></div>
         </div>
       </section>
-
       <section className="features-section">
         <h2>A Smarter Way to Learn</h2>
         <div className="features-grid">
-          <div className="feature-card">
-            <h3>🤖 Revolutionary Audio-to-Card AI</h3>
-            <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
-          </div>
-          <div className="feature-card">
-            <h3>⚡️ Hands-Free Capture Modes</h3>
-            <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
-          </div>
-          <div className="feature-card">
-            <h3>📚 Advanced Study Suite</h3>
-            <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
-          </div>
-          <div className="feature-card">
-            <h3>📂 Organize & Export with Ease</h3>
-            <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
-          </div>
+          <div className="feature-card"><h3>🤖 Revolutionary Audio-to-Card AI</h3><p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p></div>
+          <div className="feature-card"><h3>⚡️ Hands-Free Capture Modes</h3><p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p></div>
+          <div className="feature-card"><h3>📚 Advanced Study Suite</h3><p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p></div>
+          <div className="feature-card"><h3>📂 Organize & Export with Ease</h3><p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p></div>
         </div>
       </section>
-
       <footer className="landing-footer">
         <h2>Ready to change the way you learn?</h2>
         <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
@@ -801,7 +773,6 @@ const MainApp = () => {
             <div key={card.id} className="card generated-card">
               <div className="card-selection"><input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} /></div>
               <div className="card-content">
-                {/* This should be a component */}
                 <p><strong>Q:</strong> {card.question}</p>
                 <p><strong>A:</strong> {card.answer}</p>
                 <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
@@ -813,22 +784,25 @@ const MainApp = () => {
               <option value="" disabled>Select a folder...</option>
               {renderFolderTreeOptions(folders)}
             </select>
-            <button onClick={() => handleMoveToFolder(checkedCards, selectedFolderForMove)} className="move-to-folder-btn">Move to Folder</button>
+            <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
           </div>
         </div>
       )}
       
-      <FoldersSection 
-        folders={folders}
-        folderOrder={folderOrder}
-        setFolderOrder={setFolderOrder}
-        onSetModal={setModalState}
-        onStartStudy={startStudy}
-        onGenerateAINotes={generateAINotes}
-        onUpdateFolder={setFolders}
-        renderFolderTreeOptions={renderFolderTreeOptions}
-        onMoveCards={handleMoveToFolder}
-      />
+      <div className="card folders-container">
+        <div className="folders-header">
+            <h2 className="section-heading">Your Folders</h2>
+            <button onClick={() => setModalState({ type: 'createFolder', data: { parentId: null } })} className="create-folder-btn-header">Create Folder</button>
+        </div>
+        <FolderTree 
+            folders={folders} 
+            onSetModal={setModalState}
+            onSetStudyingFolder={(folder) => setStudyingFolder({id: folder.id, name: folder.name, cards: folder.cards})}
+            onGenerateAINotes={generateAINotes}
+            renderCardContent={renderCardContent}
+            deleteCardFromFolder={deleteCardFromFolder}
+        />
+      </div>
 
       <div className="app-footer">
         <button className="feedback-btn" onClick={() => setModalState({ type: 'feedback' })}>Send Feedback</button>
@@ -837,148 +811,109 @@ const MainApp = () => {
   );
 };
 
-const FoldersSection = ({ folders, folderOrder, setFolderOrder, onSetModal, onStartStudy, onGenerateAINotes, onUpdateFolder, renderFolderTreeOptions, onMoveCards }) => {
-    const [sortBy, setSortBy] = useState('name');
-
-    const sortedFolderOrder = useMemo(() => {
-        if (sortBy === 'custom') return folderOrder;
-        const sorted = [...folderOrder];
-        sorted.sort((aId, bId) => {
-            const a = folders[aId];
-            const b = folders[bId];
-            if (!a || !b) return 0;
-            switch (sortBy) {
-                case 'dateCreated': return new Date(b.createdAt) - new Date(a.createdAt);
-                case 'lastViewed': return (new Date(b.lastViewed) || 0) - (new Date(a.lastViewed) || 0);
-                case 'name':
-                default: return a.name.localeCompare(b.name);
-            }
-        });
-        return sorted;
-    }, [folderOrder, folders, sortBy]);
-
-    const handleDragStart = (e, index) => {
-        e.dataTransfer.setData("folderIndex", index);
+const FolderTree = ({ folders, onSetModal, onSetStudyingFolder, onGenerateAINotes, renderCardContent, deleteCardFromFolder, level = 0 }) => {
+    
+    const getCardsNeedingReview = (cards) => {
+        const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+        return cards.filter(card => !card.lastReviewed || new Date(card.lastReviewed) < oneWeekAgo);
     };
 
-    const handleDrop = (e, dropIndex) => {
-        const dragIndex = e.dataTransfer.getData("folderIndex");
-        const newOrder = [...folderOrder];
-        const [draggedItem] = newOrder.splice(dragIndex, 1);
-        newOrder.splice(dropIndex, 0, draggedItem);
-        setFolderOrder(newOrder);
-        setSortBy('custom');
+    const startStudySession = (folder, mode = 'normal') => {
+        let cardsToStudy = [...folder.cards];
+        if (mode === 'review') {
+            cardsToStudy.sort((a, b) => {
+                const dateA = a.lastReviewed ? new Date(a.lastReviewed) : 0;
+                const dateB = b.lastReviewed ? new Date(b.lastReviewed) : 0;
+                return dateA - dateB;
+            });
+        }
+        onSetStudyingFolder({ id: folder.id, name: folder.name, cards: cardsToStudy });
     };
 
     return (
-        <div className="card folders-container">
-            <div className="folders-header">
-                <h2 className="section-heading">Your Folders</h2>
-                <button onClick={() => onSetModal({ type: 'createFolder', data: { parentId: null } })} className="create-folder-btn-header">Create Folder</button>
-            </div>
-            <div className="sort-by-container">
-                <label htmlFor="sort-by">Sort by:</label>
-                <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
-                    <option value="custom" disabled={sortBy !== 'custom'}>Custom Order</option>
-                    <option value="name">Name</option>
-                    <option value="dateCreated">Date Created</option>
-                    <option value="lastViewed">Last Viewed</option>
-                </select>
-            </div>
-            <div className="folder-list">
-                {sortedFolderOrder.map((folderId, index) => {
-                    const folder = folders[folderId];
-                    if (!folder) return null;
-                    return (
-                        <FolderItem 
-                            key={folderId}
-                            folder={folder}
-                            index={index}
-                            onSetModal={onSetModal}
-                            onStartStudy={onStartStudy}
-                            onGenerateAINotes={onGenerateAINotes}
-                            onUpdateFolder={onUpdateFolder}
-                            onDragStart={handleDragStart}
-                            onDrop={handleDrop}
-                            renderFolderTreeOptions={renderFolderTreeOptions}
-                            onMoveCards={onMoveCards}
-                        />
-                    );
-                })}
-                {folderOrder.length === 0 && <p className="subtle-text">No folders created yet.</p>}
-            </div>
+        <div className="folder-level" style={{ marginLeft: `${level * 20}px` }}>
+            {Object.values(folders).map(folder => {
+                const cardsNeedingReview = getCardsNeedingReview(folder.cards);
+                return (
+                    <details key={folder.id} className="folder">
+                        <summary onClick={(e) => { if (e.target.closest('button, .actions-menu-container')) e.preventDefault(); }}>
+                            <div className="folder-summary">
+                                <span>{folder.name} ({folder.cards.length} {folder.cards.length === 1 ? 'card' : 'cards'})</span>
+                                <div className="folder-export-buttons">
+                                    <button onClick={() => startStudySession(folder)} className="study-btn">Study</button>
+                                    {cardsNeedingReview.length > 0 && (
+                                        <button onClick={() => startStudySession(folder, 'review')} className="review-btn">
+                                            Needs Review ({cardsNeedingReview.length})
+                                        </button>
+                                    )}
+                                    <button onClick={() => onGenerateAINotes(folder.id)}>AI Notes</button>
+                                    <button onClick={() => { /* PDF Export Logic Here */ }}>Export PDF</button>
+                                    <button onClick={() => { /* CSV Export Logic Here */ }}>Export CSV</button>
+                                </div>
+                            </div>
+                            <FolderActionsMenu folder={folder} onSetModal={onSetModal} />
+                        </summary>
+                        {folder.cards.map((card) => (
+                            <div key={card.id} className="card saved-card-in-folder">
+                                <div className="card-content">
+                                    {renderCardContent(card, 'folder', folder.id)}
+                                    <button onClick={() => deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
+                                </div>
+                            </div>
+                        ))}
+                        {Object.keys(folder.subfolders).length > 0 && (
+                            <FolderTree 
+                                folders={folder.subfolders} 
+                                onSetModal={onSetModal}
+                                onSetStudyingFolder={onSetStudyingFolder}
+                                onGenerateAINotes={onGenerateAINotes}
+                                renderCardContent={renderCardContent}
+                                deleteCardFromFolder={deleteCardFromFolder}
+                                level={level + 1} 
+                            />
+                        )}
+                    </details>
+                );
+            })}
         </div>
     );
 };
 
-const FolderItem = ({ folder, index, onSetModal, onStartStudy, onGenerateAINotes, onUpdateFolder, onDragStart, onDrop, renderFolderTreeOptions, onMoveCards }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-    const [checkedCards, setCheckedCards] = useState({});
-    const [destinationFolder, setDestinationFolder] = useState('');
-
-    const handleCardCheck = (cardId) => {
-        setCheckedCards(prev => ({...prev, [cardId]: !prev[cardId]}));
+const FolderActionsMenu = ({ folder, onSetModal }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const menuRef = useRef(null);
+    useEffect(() => {
+        const handleClickOutside = (e) => { if (menuRef.current && !menuRef.current.contains(e.target)) setIsOpen(false); };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+    const handleAction = (type, data) => {
+        onSetModal({ type, data });
+        setIsOpen(false);
     };
-    
-    const handleMoveClick = () => {
-        onMoveCards(checkedCards, destinationFolder, folder.id);
-        setCheckedCards({});
-    };
-
     return (
-        <div 
-            className="folder-item"
-            draggable
-            onDragStart={(e) => onDragStart(e, index)}
-            onDragOver={(e) => e.preventDefault()}
-            onDrop={(e) => onDrop(e, index)}
-        >
-            <div className="folder-item-header" onClick={() => setIsExpanded(!isExpanded)}>
-                <span>{folder.name}</span>
-                <div className="folder-item-header-right">
-                    <span className="card-count-badge">🗂️ {folder.cards.length} cards</span>
-                    <span className="folder-item-arrow">{isExpanded ? '▾' : '▸'}</span>
-                </div>
-            </div>
-            {isExpanded && (
-                <div className="folder-item-content">
-                    <div className="expanded-header">
-                        <div className="expanded-header-left">
-                            <h3>{folder.name}</h3>
-                            <div className="expanded-actions">
-                                <button onClick={() => onStartStudy(folder)} className="study-btn-expanded">Study</button>
-                                <button onClick={() => onGenerateAINotes(folder.id)} className="flashnotes-btn">FlashNotes</button>
-                            </div>
-                        </div>
-                        <div className="expanded-header-right">
-                           <SecondaryActionsMenu folder={folder} onGenerateAINotes={onGenerateAINotes} />
-                           <FolderActionsMenu folder={folder} onSetModal={onSetModal} />
-                        </div>
-                    </div>
-                    <div className="card-list-container">
-                        {folder.cards.map(card => (
-                            <div key={card.id} className="card-list-item">
-                                <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
-                                <div className="card-list-item-text">
-                                    <p><strong>Q:</strong> {card.question}</p>
-                                    <p><strong>A:</strong> {card.answer}</p>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    {Object.values(checkedCards).some(v => v) && (
-                        <div className="move-cards-bar">
-                            <select value={destinationFolder} onChange={e => setDestinationFolder(e.target.value)}>
-                                <option value="" disabled>Move to...</option>
-                                {renderFolderTreeOptions(onUpdateFolder(f => f))}
-                            </select>
-                            <button onClick={handleMoveClick} disabled={!destinationFolder}>Move Selected</button>
-                        </div>
-                    )}
+        <div className="actions-menu-container" ref={menuRef}>
+            <button className="menu-trigger-btn" onClick={() => setIsOpen(!isOpen)}>⋮</button>
+            {isOpen && (
+                <div className="menu-dropdown">
+                    <button onClick={() => handleAction('createFolder', { parentId: folder.id })}>Add Subfolder</button>
+                    <button onClick={() => handleAction('renameFolder', { folderId: folder.id, currentName: folder.name })}>Rename</button>
+                    <button onClick={() => handleAction('deleteFolder', { folderId: folder.id, currentName: folder.name })}>Delete</button>
                 </div>
             )}
         </div>
     );
+};
+
+const ModalManager = ({ modalState, onClose, actions, formspreeUrl }) => {
+    if (!modalState.type) return null;
+    switch (modalState.type) {
+        case 'createFolder': return <CreateFolderModal onClose={onClose} onCreate={actions.handleCreateFolder} parentId={modalState.data?.parentId} />;
+        case 'renameFolder': return <RenameFolderModal onClose={onClose} onRename={actions.handleRenameFolder} folderId={modalState.data.folderId} currentName={modalState.data.currentName} />;
+        case 'deleteFolder': return <DeleteFolderModal onClose={onClose} onDelete={actions.handleDeleteFolder} folderId={modalState.data.folderId} folderName={modalState.data.currentName} />;
+        case 'feedback': return <FeedbackModal onClose={onClose} formspreeUrl={formspreeUrl} />;
+        default: return null;
+    }
 };
 
 const FlashcardViewer = ({ folderId, folderName, cards, onClose, onDeleteCard, onUpdateCard }) => {
