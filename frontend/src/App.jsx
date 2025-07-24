@@ -23,7 +23,7 @@ const timeSince = (date) => {
 };
 
 
-// --- LANDING PAGE COMPONENT ---
+// --- LANDING PAGE COMPONENT (Unchanged) ---
 const LandingPage = ({ onEnter }) => {
   return (
     <div className="landing-page">
@@ -31,6 +31,7 @@ const LandingPage = ({ onEnter }) => {
         <div className="nav-logo">FlashFonic</div>
         <button onClick={onEnter} className="nav-cta">Enter Beta</button>
       </nav>
+
       <header className="landing-hero">
         <h1 className="landing-h1">The Future of Studying is Listening.</h1>
         <p className="landing-p">
@@ -38,23 +39,50 @@ const LandingPage = ({ onEnter }) => {
         </p>
         <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
       </header>
+
       <section className="how-it-works">
         <h2>How It Works</h2>
         <div className="steps-container">
-          <div className="step"><div className="step-number">1</div><h3>CAPTURE</h3><p>Record live audio or upload a file.</p></div>
-          <div className="step"><div className="step-number">2</div><h3>AI GENERATE</h3><p>Our AI transcribes and creates a Q&A flashcard.</p></div>
-          <div className="step"><div className="step-number">3</div><h3>STUDY</h3><p>Master your material with our advanced study tools.</p></div>
+          <div className="step">
+            <div className="step-number">1</div>
+            <h3>CAPTURE</h3>
+            <p>Record live audio or upload a file.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">2</div>
+            <h3>AI GENERATE</h3>
+            <p>Our AI transcribes and creates a Q&A flashcard.</p>
+          </div>
+          <div className="step">
+            <div className="step-number">3</div>
+            <h3>STUDY</h3>
+            <p>Master your material with our advanced study tools.</p>
+          </div>
         </div>
       </section>
+
       <section className="features-section">
         <h2>A Smarter Way to Learn</h2>
         <div className="features-grid">
-          <div className="feature-card"><h3>🤖 Revolutionary Audio-to-Card AI</h3><p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p></div>
-          <div className="feature-card"><h3>⚡️ Hands-Free Capture Modes</h3><p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p></div>
-          <div className="feature-card"><h3>📚 Advanced Study Suite</h3><p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p></div>
-          <div className="feature-card"><h3>📂 Organize & Export with Ease</h3><p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p></div>
+          <div className="feature-card">
+            <h3>🤖 Revolutionary Audio-to-Card AI</h3>
+            <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
+          </div>
+          <div className="feature-card">
+            <h3>⚡️ Hands-Free Capture Modes</h3>
+            <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
+          </div>
+          <div className="feature-card">
+            <h3>📚 Advanced Study Suite</h3>
+            <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
+          </div>
+          <div className="feature-card">
+            <h3>📂 Organize & Export with Ease</h3>
+            <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
+          </div>
         </div>
       </section>
+
       <footer className="landing-footer">
         <h2>Ready to change the way you learn?</h2>
         <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
@@ -73,7 +101,6 @@ const MainApp = () => {
   const [duration, setDuration] = useState(15);
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
   const [folders, setFolders] = useState({});
-  const [folderOrder, setFolderOrder] = useState([]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState('');
@@ -141,21 +168,12 @@ const MainApp = () => {
 
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders-nested');
-    const storedOrder = localStorage.getItem('flashfonic-folder-order');
-    if (storedFolders) {
-        const parsedFolders = JSON.parse(storedFolders);
-        setFolders(parsedFolders);
-        const validOrder = JSON.parse(storedOrder || '[]').filter(id => parsedFolders[id]);
-        const existingKeys = Object.keys(parsedFolders);
-        const newKeys = existingKeys.filter(k => !validOrder.includes(k));
-        setFolderOrder([...validOrder, ...newKeys]);
-    }
+    if (storedFolders) setFolders(JSON.parse(storedFolders));
   }, []);
 
   useEffect(() => {
     localStorage.setItem('flashfonic-folders-nested', JSON.stringify(folders));
-    localStorage.setItem('flashfonic-folder-order', JSON.stringify(folderOrder));
-  }, [folders, folderOrder]);
+  }, [folders]);
 
   const findFolder = useCallback((folderId, currentFolders = folders) => {
     for (const id in currentFolders) {
@@ -334,12 +352,11 @@ const MainApp = () => {
   }, [uploadedFile]);
 
   const handleCreateFolder = (folderName, parentId = null) => {
-    const newFolder = { id: generateId(), name: folderName, cards: [], subfolders: {}, createdAt: new Date().toISOString(), lastViewed: null };
+    const newFolder = { id: generateId(), name: folderName, cards: [], subfolders: {} };
     if (parentId) {
       setFolders(prev => updateFolderRecursive(parentId, p => ({ ...p, subfolders: { ...p.subfolders, [newFolder.id]: newFolder } }), prev));
     } else {
       setFolders(prev => ({ ...prev, [newFolder.id]: newFolder }));
-      setFolderOrder(prev => [...prev, newFolder.id]);
     }
     setModalState({ type: null, data: null });
   };
@@ -351,37 +368,29 @@ const MainApp = () => {
 
   const handleDeleteFolder = (folderId) => {
     setFolders(prev => deleteFolderRecursive(folderId, prev));
-    setFolderOrder(prev => prev.filter(id => id !== folderId));
     setModalState({ type: null, data: null });
   };
   
-  const handleMoveToFolder = (cardsToMoveIds, destinationFolderId, sourceFolderId = null) => {
-    if (!destinationFolderId) {
-        setNotification("Please select a destination folder.");
-        return;
+  const handleMoveToFolder = () => {
+    if (!selectedFolderForMove) {
+      setNotification("Please select a folder first.");
+      return;
     }
-    
-    let cardsToMove = [];
-    if (sourceFolderId) {
-        // Moving from within an expanded folder
-        const sourceFolder = findFolder(sourceFolderId);
-        cardsToMove = sourceFolder.cards.filter(c => cardsToMoveIds[c.id]);
-        setFolders(prev => updateFolderRecursive(sourceFolderId, f => ({...f, cards: f.cards.filter(c => !cardsToMoveIds[c.id])}), prev));
-    } else {
-        // Moving from the review queue
-        cardsToMove = generatedFlashcards.filter(c => cardsToMoveIds[c.id]);
-        setGeneratedFlashcards(prev => prev.filter(c => !cardsToMoveIds[c.id]));
-    }
-
+    const cardsToMove = generatedFlashcards.filter(card => checkedCards[card.id]);
     if (cardsToMove.length === 0) {
-        setNotification("No cards were selected to move.");
+      setNotification("Please check the cards you want to move.");
+      return;
+    }
+    const targetFolder = findFolder(selectedFolderForMove);
+    if (!targetFolder) {
+        setNotification("Error: Target folder not found.");
         return;
     }
-
-    const targetFolder = findFolder(destinationFolderId);
-    setFolders(prev => updateFolderRecursive(destinationFolderId, f => ({ ...f, cards: [...f.cards, ...cardsToMove] }), prev));
+    setFolders(prev => updateFolderRecursive(selectedFolderForMove, f => ({ ...f, cards: [...f.cards, ...cardsToMove] }), prev));
+    setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
+    setCheckedCards({});
+    setSelectedFolderForMove('');
     setNotification(`${cardsToMove.length} card(s) moved to ${targetFolder.name}.`);
-    setCheckedCards({}); // Clear selection in both cases
   };
 
   const deleteCardFromFolder = (folderId, cardId) => {
@@ -417,7 +426,7 @@ const MainApp = () => {
           setNotification("Folder is empty or not found.");
           return;
       }
-      setNotification(`Generating FlashNotes for "${folder.name}"...`);
+      setNotification(`Generating AI notes for "${folder.name}"...`);
       setIsGenerating(true);
       try {
           const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-notes', {
@@ -439,20 +448,44 @@ const MainApp = () => {
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(16);
           doc.setTextColor("#1F2937");
-          doc.text(`FlashNotes for: ${folder.name}`, pageW / 2, 30, { align: 'center' });
+          doc.text(`AI Notes for: ${folder.name}`, pageW / 2, 30, { align: 'center' });
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(12);
           doc.setTextColor("#000000");
           const splitText = doc.splitTextToSize(notes, pageW - 40);
           doc.text(splitText, 20, 50);
-          doc.save(`${folder.name}-flash-notes.pdf`);
-          setNotification("FlashNotes generated and downloaded!");
+          doc.save(`${folder.name}-ai-notes.pdf`);
+          setNotification("AI notes generated and downloaded!");
       } catch (error) {
           console.error("Error generating AI notes:", error);
           setNotification(`Error: ${error.message}`);
       } finally {
           setIsGenerating(false);
       }
+  };
+
+  const renderCardContent = (card, source, folderId = null) => {
+    if (editingCard && editingCard.id === card.id) {
+      return (
+        <div className="edit-mode">
+          <textarea className="edit-textarea" value={editingCard.question} onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })} />
+          <textarea className="edit-textarea" value={editingCard.answer} onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })} />
+          <div className="edit-actions">
+            <button onClick={saveEdit} className="edit-save-btn">Save</button>
+            <button onClick={() => setEditingCard(null)} className="edit-cancel-btn">Cancel</button>
+          </div>
+        </div>
+      );
+    }
+    return (
+      <>
+        <div className="card-top-actions">
+          <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
+        </div>
+        <p><strong>Q:</strong> {card.question}</p>
+        <p><strong>A:</strong> {card.answer}</p>
+      </>
+    );
   };
 
   const renderFolderTreeOptions = (folders, level = 0) => {
@@ -619,13 +652,6 @@ const MainApp = () => {
     const m = Math.floor(t / 60);
     const s = Math.floor(t % 60);
     return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-  };
-
-  const startStudy = (folder, updateLastViewed = true) => {
-      if (updateLastViewed) {
-          setFolders(prev => updateFolderRecursive(folder.id, f => ({...f, lastViewed: new Date().toISOString() }), prev));
-      }
-      setStudyingFolder({ id: folder.id, name: folder.name, cards: [...folder.cards] });
   };
 
   return (
@@ -810,8 +836,6 @@ const MainApp = () => {
     </>
   );
 };
-
-// --- HELPER COMPONENTS ---
 
 const FoldersSection = ({ folders, folderOrder, setFolderOrder, onSetModal, onStartStudy, onGenerateAINotes, onUpdateFolder, renderFolderTreeOptions, onMoveCards }) => {
     const [sortBy, setSortBy] = useState('name');
