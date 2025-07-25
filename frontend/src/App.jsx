@@ -121,7 +121,7 @@ const MainApp = () => {
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({}); // Checkboxes in expanded folder
 
   // Centralized modal config for Add Subfolder, Rename, Delete
-  const [modalConfig, setModalConfig] = useState(null); 
+  const [modalConfig, setModalConfig] = useState(null);  
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -1356,130 +1356,130 @@ const MainApp = () => {
                 <div className="player-container">
                   {fileType === 'video' ? (
                                 <>
-                                    <video 
-                                        ref={videoPlayerRef} 
-                                        src={mediaSrc} 
-                                        playsInline 
-                                        className="video-player"
-                                        onClick={togglePlayPause}
-                                    >
-                                    </video>
-                                    <div className="audio-player">
-                                        <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                                        <div className="progress-bar-container" onClick={handleSeek}>
-                                            <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                                        </div>
-                                        <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                  <video 
+                                    ref={videoPlayerRef} 
+                                    src={mediaSrc} 
+                                    playsInline 
+                                    className="video-player"
+                                    onClick={togglePlayPause}
+                                  >
+                                  </video>
+                                  <div className="audio-player">
+                                    <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                    <div className="progress-bar-container" onClick={handleSeek}>
+                                      <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
                                     </div>
+                                    <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                  </div>
                                 </>
-                          ) : (
-                            <div className="audio-player">
-                              <audio ref={audioPlayerRef} src={mediaSrc} />
-                              <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                              <div className="progress-bar-container" onClick={handleSeek}>
-                                <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                              </div>
-                              <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
-                            </div>
-                          )}
+                              ) : (
+                                <div className="audio-player">
+                                  <audio ref={audioPlayerRef} src={mediaSrc} />
+                                  <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                  <div className="progress-bar-container" onClick={handleSeek}>
+                                    <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
+                                  </div>
+                                  <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                </div>
+                              )}
                   </div>
-                  <div className="listening-modes" style={{marginTop: '1rem'}}>
-                      {fileType === 'video' && !audioCacheId && (
-                            <button 
-                                onClick={handleProcessAudio} 
-                                className="autoflash-btn"
-                                disabled={isProcessing}
-                            >
-                                {isProcessing ? 'Processing...' : '🎧 Process Audio from Video'}
-                            </button>
-                          )}
-                          <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={fileType === 'video' && !audioCacheId}>
-                            Auto-Flash <span className="beta-tag">Beta</span>
-                          </button>
-                      </div>
-                      
-                      {isUploadAutoFlashOn && (fileType === 'audio' || audioCacheId) && (
-                        <>
-                          <div className="slider-container">
-                            <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
-                            <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
+                    <div className="listening-modes" style={{marginTop: '1rem'}}>
+                          {fileType === 'video' && !audioCacheId && (
+                                <button 
+                                  onClick={handleProcessAudio} 
+                                  className="autoflash-btn"
+                                  disabled={isProcessing}
+                                >
+                                  {isProcessing ? 'Processing...' : '🎧 Process Audio from Video'}
+                                </button>
+                              )}
+                              <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={fileType === 'video' && !audioCacheId}>
+                                Auto-Flash <span className="beta-tag">Beta</span>
+                              </button>
                           </div>
-                          <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
-                        </>
-                      )}
-                  </>
-                )}
-                <div className="slider-container" style={{ marginTop: '1rem' }}>
-                  <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
-                  <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+                          
+                          {isUploadAutoFlashOn && (fileType === 'audio' || audioCacheId) && (
+                            <>
+                              <div className="slider-container">
+                                <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
+                                <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
+                              </div>
+                              <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
+                            </>
+                          )}
+                    </>
+                  )}
+                  <div className="slider-container" style={{ marginTop: '1rem' }}>
+                    <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
+                    <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
+                  </div>
+                  <button 
+                    onClick={handleUploadFlash} 
+                    className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
+                    disabled={!mediaSrc || isGenerating || (fileType === 'video' && !audioCacheId) || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
+                  >
+                    {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+                  </button>
+                </>
+              )}
+            </div>
+            {notification && <p className="notification">{notification}</p>}
+            {generatedFlashcards.length > 0 && (
+              <div className="card generated-cards-queue">
+                <div className="queue-header">
+                  <h3>Review Queue</h3>
+                  <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
                 </div>
-                <button 
-                  onClick={handleUploadFlash} 
-                  className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`} 
-                  disabled={!mediaSrc || isGenerating || (fileType === 'video' && !audioCacheId) || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
-                >
-                  {isGenerating ? 'Generating...' : '⚡ Flash It!'}
-                </button>
-              </>
+                {generatedFlashcards.map(card => (
+                  <div key={card.id} className="card generated-card">
+                    <div className="card-selection">
+                      <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
+                    </div>
+                    <div className="card-content">
+                      {renderCardContent(card, 'queue')}
+                      <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
+                    </div>
+                  </div>
+                ))}
+                <div className="folder-actions">
+                  <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                    <option value="" disabled>Select a folder...</option>
+                    {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                  </select>
+                  <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
+                </div>
+              </div>
             )}
-          </div>
-          {notification && <p className="notification">{notification}</p>}
-          {generatedFlashcards.length > 0 && (
-            <div className="card generated-cards-queue">
-              <div className="queue-header">
-                <h3>Review Queue</h3>
-                <button onClick={handleCheckAll} className="check-all-btn">Check All</button>
+            <div className="card folders-container">
+              <div className="folders-header">
+                <h2 className="section-heading-left">Your Folders</h2>
+                <button onClick={() => setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder })} className="create-folder-btn">Create New Folder</button>
               </div>
-              {generatedFlashcards.map(card => (
-                <div key={card.id} className="card generated-card">
-                  <div className="card-selection">
-                    <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
-                  </div>
-                  <div className="card-content">
-                    {renderCardContent(card, 'queue')}
-                    <button onClick={() => deleteFromQueue(card.id)} className="card-delete-btn">🗑️</button>
-                  </div>
-                </div>
-              ))}
-              <div className="folder-actions">
-                <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
-                  <option value="" disabled>Select a folder...</option>
-                  {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+              <div className="folder-sort-controls">
+                <label htmlFor="folder-sort">Sort by:</label>
+                <select id="folder-sort" className="folder-select" value={folderSortBy} onChange={(e) => setFolderSortBy(e.target.value)}>
+                  <option value="name">Name</option>
+                  <option value="dateCreated">Date Created</option>
+                  <option value="lastViewed">Last Viewed</option>
                 </select>
-                <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
+              </div>
+              <div className="folder-list">
+                {Object.values(folders).length > 0 ? getSortedFolders(folders).map(folder => (
+                  <FolderItem 
+                    key={folder.id} 
+                    folder={folder} 
+                    level={0} 
+                    allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
+                  />
+                )) : <p className="subtle-text">No folders created yet.</p>}
               </div>
             </div>
-          )}
-          <div className="card folders-container">
-            <div className="folders-header">
-              <h2 className="section-heading-left">Your Folders</h2>
-              <button onClick={() => setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder })} className="create-folder-btn">Create New Folder</button>
+            <div className="app-footer">
+              <button className="feedback-btn" onClick={() => setIsFeedbackModalOpen(true)}>Send Feedback</button>
             </div>
-            <div className="folder-sort-controls">
-              <label htmlFor="folder-sort">Sort by:</label>
-              <select id="folder-sort" className="folder-select" value={folderSortBy} onChange={(e) => setFolderSortBy(e.target.value)}>
-                <option value="name">Name</option>
-                <option value="dateCreated">Date Created</option>
-                <option value="lastViewed">Last Viewed</option>
-              </select>
-            </div>
-            <div className="folder-list">
-              {Object.values(folders).length > 0 ? getSortedFolders(folders).map(folder => (
-                <FolderItem 
-                  key={folder.id} 
-                  folder={folder} 
-                  level={0} 
-                  allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
-                />
-              )) : <p className="subtle-text">No folders created yet.</p>}
-            </div>
-          </div>
-          <div className="app-footer">
-            <button className="feedback-btn" onClick={() => setIsFeedbackModalOpen(true)}>Send Feedback</button>
-          </div>
-        </>
-      );
-    };
+          </>
+        );
+      };
 
 // --- HELPER COMPONENTS AND FUNCTIONS ---
 

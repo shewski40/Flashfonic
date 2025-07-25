@@ -390,9 +390,10 @@ input[type="range"]::-webkit-slider-thumb {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   margin-bottom: 1rem;
-  overflow: hidden;
-  /* Add styling for drag-and-drop */
+  /* overflow: hidden; */ /* REMOVED THIS LINE - WAS CAUSING CLIPPING ISSUES */
   transition: background-color 0.2s ease, border-color 0.2s ease;
+  position: relative; /* ADDED: To establish a stacking context for its children */
+  z-index: 1; /* ADDED: Give it a base z-index within its parent container */
 }
 
 .folder.dragging {
@@ -485,7 +486,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-top: 1px solid var(--border-color);
   background-color: var(--dark-bg); /* Slightly darker background for expanded content */
   position: relative; /* Added for z-index context */
-  z-index: 1; /* Ensure it's above other elements if needed */
+  z-index: 10; /* INCREASED Z-INDEX to ensure it's on top */
 }
 
 .folder-expanded-header {
