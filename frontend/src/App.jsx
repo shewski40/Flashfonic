@@ -617,7 +617,7 @@ const MainApp = () => {
   const handleCreateFolder = (folderName) => {
     const folderExists = Object.values(folders).some(folder => folder.name === folderName);
     if (folderExists) {
-      alert("A folder with this name already exists.");
+      setNotification("A folder with this name already exists."); // Changed from alert
     } else {
       const newFolderId = generateUUID();
       setFolders(prev => ({
@@ -640,7 +640,7 @@ const MainApp = () => {
     setFolders(prev => updateFolderById(prev, parentFolderId, (parentFolder) => {
       const subfolderExists = Object.values(parentFolder.subfolders).some(sf => sf.name === subfolderName);
       if (subfolderExists) {
-        alert("A subfolder with this name already exists in this folder.");
+        setNotification("A subfolder with this name already exists in this folder."); // Changed from alert
         return parentFolder; // Return original folder if exists
       }
       const newSubfolderId = generateUUID();
@@ -758,7 +758,7 @@ const MainApp = () => {
       onConfirm: (value) => {
         const cardsPerPage = parseInt(value, 10);
         if (![6, 8, 10].includes(cardsPerPage)) {
-          alert("Invalid number. Please choose 6, 8, or 10.");
+          setNotification("Invalid number. Please choose 6, 8, or 10."); // Changed from alert
           return;
         }
         const doc = new jsPDF();
@@ -837,7 +837,7 @@ const MainApp = () => {
       onConfirm: (value) => {
         const numCards = parseInt(value, 10);
         if (isNaN(numCards) || numCards <= 0) {
-            alert("Invalid number.");
+            setNotification("Invalid number."); // Changed from alert
             return;
         }
         const cards = folder.cards.slice(0, numCards);
@@ -1178,7 +1178,12 @@ const MainApp = () => {
               <div className="folder-actions-right">
                 {/* Small Study button is only visible when folder is NOT expanded */}
                 {!isExpanded && (
-                  <button onClick={(e) => { e.stopPropagation(); setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn-small">Study</button>
+                  <button onClick={(e) => { 
+                    e.stopPropagation(); 
+                    setStudyingFolder({ name: folder.name, cards: folder.cards }); 
+                    setModalConfig(null); // Close any other modals
+                    setIsFeedbackModalOpen(false); // Close feedback modal
+                  }} className="study-btn-small">Study</button>
                 )}
               </div>
             </div>
@@ -1187,15 +1192,32 @@ const MainApp = () => {
             <div className="folder-expanded-content">
               <div className="folder-expanded-header">
                 <h3 className="folder-expanded-name">{folder.name}</h3>
-                <button onClick={() => { if (isListening) stopListening(); setStudyingFolder({ name: folder.name, cards: folder.cards }); }} className="study-btn-large">Study</button>
+                <button onClick={() => { 
+                  if (isListening) stopListening(); 
+                  setStudyingFolder({ name: folder.name, cards: folder.cards }); 
+                  setModalConfig(null); // Close any other modals
+                  setIsFeedbackModalOpen(false); // Close feedback modal
+                }} className="study-btn-large">Study</button>
                 <div className="folder-expanded-actions">
                   <ActionsDropdown 
                     folder={folder} // Pass the whole folder object
                     exportPdf={exportFolderToPDF} 
                     exportCsv={exportFolderToCSV} 
-                    onAddSubfolder={(id) => setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) })}
-                    onRenameFolder={(id, name) => setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) })}
-                    onDeleteFolder={(id) => setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) })}
+                    onAddSubfolder={(id) => {
+                      setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
+                      setStudyingFolder(null); // Close study viewer if open
+                      setIsFeedbackModalOpen(false); // Close feedback modal
+                    }}
+                    onRenameFolder={(id, name) => {
+                      setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
+                      setStudyingFolder(null); // Close study viewer if open
+                      setIsFeedbackModalOpen(false); // Close feedback modal
+                    }}
+                    onDeleteFolder={(id) => {
+                      setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
+                      setStudyingFolder(null); // Close study viewer if open
+                      setIsFeedbackModalOpen(false); // Close feedback modal
+                    }}
                   />
                 </div>
               </div>
@@ -1453,7 +1475,11 @@ const MainApp = () => {
             <div className="card folders-container">
               <div className="folders-header">
                 <h2 className="section-heading-left">Your Folders</h2>
-                <button onClick={() => setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder })} className="create-folder-btn">Create New Folder</button>
+                <button onClick={() => {
+                  setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder });
+                  setStudyingFolder(null); // Close study viewer if open
+                  setIsFeedbackModalOpen(false); // Close feedback modal
+                }} className="create-folder-btn">Create New Folder</button>
               </div>
               <div className="folder-sort-controls">
                 <label htmlFor="folder-sort">Sort by:</label>
@@ -1475,7 +1501,11 @@ const MainApp = () => {
               </div>
             </div>
             <div className="app-footer">
-              <button className="feedback-btn" onClick={() => setIsFeedbackModalOpen(true)}>Send Feedback</button>
+              <button className="feedback-btn" onClick={() => {
+                setIsFeedbackModalOpen(true);
+                setStudyingFolder(null); // Close study viewer if open
+                setModalConfig(null); // Close other modals
+              }}>Send Feedback</button>
             </div>
           </>
         );
