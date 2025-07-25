@@ -484,6 +484,8 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 1em;
   border-top: 1px solid var(--border-color);
   background-color: var(--dark-bg); /* Slightly darker background for expanded content */
+  position: relative; /* Added for z-index context */
+  z-index: 1; /* Ensure it's above other elements if needed */
 }
 
 .folder-expanded-header {
