@@ -845,13 +845,14 @@ const MainApp = () => {
           });
         }
         doc.save(`${folder.name}-flashcards.pdf`);
-        setPromptModalConfig(null);
+        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
       },
       onClose: () => {
         console.log("PromptModal onClose for PDF"); // New diagnostic log
-        setPromptModalConfig(null);
+        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
       }
     });
+    console.log("setPromptModalConfig called for PDF export."); // New diagnostic log
   };
   
   const exportFolderToCSV = (folderId) => {
@@ -889,13 +890,14 @@ const MainApp = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setPromptModalConfig(null);
+        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
       },
       onClose: () => {
         console.log("PromptModal onClose for CSV"); // New diagnostic log
-        setPromptModalConfig(null);
+        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
       }
     });
+    console.log("setPromptModalConfig called for CSV export."); // New diagnostic log
   };
 
   const renderCardContent = (card, source, folderId = null) => {
