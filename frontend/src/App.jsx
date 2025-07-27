@@ -64,7 +64,7 @@ const LandingPage = ({ onEnter }) => {
             <h3>📚 Advanced Study Suite</h3>
             <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
           </div>
-          <div className="feature-card">
+          <div class="feature-card">
             <h3>📂 Organize & Export with Ease</h3>
             <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
           </div>
@@ -549,7 +549,7 @@ const MainApp = () => {
   // Helper to find folder by ID recursively
   const findFolderById = (foldersObj, folderId) => {
     for (const id in foldersObj) {
-      if (id === folderId) return foldersObj[id];
+      if (foldersObj[id].id === folderId) return foldersObj[id]; // Ensure checking .id property
       const foundInSub = findFolderById(foldersObj[id].subfolders, folderId);
       if (foundInSub) return foundInSub;
     }
@@ -560,7 +560,7 @@ const MainApp = () => {
   const updateFolderById = (foldersObj, folderId, updateFn) => {
     const newFolders = { ...foldersObj };
     for (const id in newFolders) {
-      if (id === folderId) {
+      if (newFolders[id].id === folderId) { // Ensure checking .id property
         newFolders[id] = updateFn(newFolders[id]);
         return newFolders;
       }
@@ -765,8 +765,13 @@ const MainApp = () => {
   };
 
   const exportFolderToPDF = (folderId) => {
+    console.log("Exporting PDF for folderId:", folderId); // Diagnostic log
     const folder = findFolderById(folders, folderId);
-    if (!folder) return;
+    console.log("Found folder for PDF export:", folder); // Diagnostic log
+    if (!folder) {
+      setNotification("Folder not found for export."); // Added notification
+      return;
+    }
 
     setPromptModalConfig({
       title: 'Export to PDF',
@@ -844,8 +849,13 @@ const MainApp = () => {
   };
   
   const exportFolderToCSV = (folderId) => {
+    console.log("Exporting CSV for folderId:", folderId); // Diagnostic log
     const folder = findFolderById(folders, folderId);
-    if (!folder) return;
+    console.log("Found folder for CSV export:", folder); // Diagnostic log
+    if (!folder) {
+      setNotification("Folder not found for export."); // Added notification
+      return;
+    }
 
     setPromptModalConfig({
       title: 'Export to CSV',
@@ -1029,7 +1039,7 @@ const MainApp = () => {
 
       const findAndExtract = (currentFolders, idToFind) => {
         for (const id in currentFolders) {
-          if (id === idToFind) {
+          if (currentFolders[id].id === idToFind) {
             const found = currentFolders[id];
             const newCurrentFolders = { ...currentFolders };
             delete newCurrentFolders[id];
@@ -1051,7 +1061,7 @@ const MainApp = () => {
       const insertIntoTarget = (currentFolders, targetId, itemToInsert) => {
         const newFolders = { ...currentFolders };
         for (const id in newFolders) {
-          if (id === targetId) {
+          if (newFolders[id].id === targetId) {
             // Insert at the same level as targetId
             const orderedKeys = Object.keys(newFolders);
             const targetIndex = orderedKeys.indexOf(targetId);
@@ -1849,7 +1859,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                   </div>
                 </div>
               </div>
-              <div className="viewer-nav">
+              <div class="viewer-nav">
                 <button onClick={goToPrev}>&larr; Prev</button>
                 <span>{currentIndex + 1} / {studyDeck.length}</span>
                 <button onClick={goToNext} >Next &rarr;</button>
@@ -1879,11 +1889,11 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                 </div>
               )}
             </div>
-            <div className="tts-slider-group">
+            <div class="tts-slider-group">
               <label>Front to back delay: {speechDelay}s</label>
               <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
             </div>
-            <div className="tts-slider-group">
+            <div class="tts-slider-group">
               <label>Speed: {speechRate}x</label>
               <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
             </div>
@@ -1943,7 +1953,7 @@ const ConfirmModal = ({ message, onClose, onConfirm }) => {
       <div className="modal-content">
         <h2>Confirm Action</h2>
         <p className="modal-message">{message}</p>
-        <div className="modal-actions">
+        <div class="modal-actions">
           <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
           <button type="button" className="modal-create-btn danger" onClick={() => { onConfirm(); onClose(); }}>Confirm</button>
         </div>
