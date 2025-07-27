@@ -109,7 +109,7 @@ const MainApp = () => {
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
-  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval = useState(20);
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -1154,124 +1154,122 @@ const MainApp = () => {
     const paddingLeft = level * 20; // Indentation for subfolders
 
     return (
-      <>
-        <details 
-          key={folder.id} 
-          className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
-          onToggle={(e) => handleFolderToggle(folder.id, e.target.open)}
-          open={isExpanded}
-          draggable
-          onDragStart={(e) => handleFolderDragStart(e, folder.id)}
-          onDragOver={handleFolderDragOver}
-          onDrop={(e) => handleFolderDrop(e, folder.id)}
-          onDragEnd={handleFolderDragEnd}
-          style={{ paddingLeft: `${paddingLeft}px` }}
-        >
-          {/* Removed onClick from summary to allow native toggle */}
-          <summary> 
-            <div className="folder-item-header">
-              <span className="folder-name-display">
-                {level > 0 && <span className="folder-icon">📁</span>} {/* Card icon for subfolders */}
-                {folder.name}
-                <span className="card-count-display"> ({countCardsRecursive(folder)} cards)</span>
-              </span>
-              <div className="folder-actions-right">
-                {/* Small Study button is only visible when folder is NOT expanded */}
-                {!isExpanded && (
-                  <button onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setStudyingFolder({ name: folder.name, cards: folder.cards }); 
-                    setModalConfig(null); // Close any other modals
-                    setIsFeedbackModalOpen(false); // Close feedback modal
-                  }} className="study-btn-small">Study</button>
-                )}
-              </div>
-            </div>
-          </summary>
-          {isExpanded && (
-            <div className="folder-expanded-content">
-              <div className="folder-expanded-header">
-                <h3 className="folder-expanded-name">{folder.name}</h3>
-                <button onClick={() => { 
-                  if (isListening) stopListening(); 
+      // Changed from <details> to <div>
+      <div 
+        key={folder.id} 
+        className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
+        draggable
+        onDragStart={(e) => handleFolderDragStart(e, folder.id)}
+        onDragOver={handleFolderDragOver}
+        onDrop={(e) => handleFolderDrop(e, folder.id)}
+        onDragEnd={handleFolderDragEnd}
+        style={{ paddingLeft: `${paddingLeft}px` }}
+      >
+        {/* Changed from <summary> to <div> */}
+        <div className="folder-summary-custom" onClick={() => handleFolderToggle(folder.id, !isExpanded)}> 
+          <div className="folder-item-header">
+            <span className="folder-name-display">
+              <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span> {/* Custom arrow */}
+              {level > 0 && <span className="folder-icon">📁</span>} {/* Card icon for subfolders */}
+              {folder.name}
+              <span className="card-count-display"> ({countCardsRecursive(folder)} cards)</span>
+            </span>
+            <div className="folder-actions-right">
+              {/* Small Study button is only visible when folder is NOT expanded */}
+              {!isExpanded && (
+                <button onClick={(e) => { 
+                  e.stopPropagation(); 
                   setStudyingFolder({ name: folder.name, cards: folder.cards }); 
                   setModalConfig(null); // Close any other modals
                   setIsFeedbackModalOpen(false); // Close feedback modal
-                }} className="study-btn-large">Study</button>
-                <div className="folder-expanded-actions">
-                  <ActionsDropdown 
-                    folder={folder} // Pass the whole folder object
-                    exportPdf={exportFolderToPDF} 
-                    exportCsv={exportFolderToCSV} 
-                    onAddSubfolder={(id) => {
-                      setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
-                      setStudyingFolder(null); // Close study viewer if open
-                      setIsFeedbackModalOpen(false); // Close feedback modal
-                    }}
-                    onRenameFolder={(id, name) => {
-                      setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
-                      setStudyingFolder(null); // Close study viewer if open
-                      setIsFeedbackModalOpen(false); // Close feedback modal
-                    }}
-                    onDeleteFolder={(id) => {
-                      setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
-                      setStudyingFolder(null); // Close study viewer if open
-                      setIsFeedbackModalOpen(false); // Close feedback modal
-                    }}
-                  />
-                </div>
-              </div>
-              {/* Render subfolders */}
-              {Object.values(folder.subfolders).length > 0 && (
-                <div className="subfolder-list">
-                  {getSortedFolders(folder.subfolders).map(subfolder => (
-                    <FolderItem 
-                      key={subfolder.id} 
-                      folder={subfolder} 
-                      level={level + 1} 
-                      allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
-                    />
-                  ))}
-                </div>
+                }} className="study-btn-small">Study</button>
               )}
-              {/* Card list with checkboxes */}
-              <div className="folder-card-list">
-                {folder.cards.length > 0 ? folder.cards.map((card) => (
-                  <div 
-                    key={card.id} 
-                    className="card saved-card-in-folder"
-                    draggable
-                    onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
-                    onDragOver={(e) => e.preventDefault()}
-                    onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
-                  >
-                    <div className="card-selection">
-                      <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
-                    </div>
-                    <div className="card-content">
-                      {renderCardContent(card, 'folder', folder.id)}
-                      <button onClick={() => deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
-                    </div>
-                  </div>
-                )) : <p className="subtle-text">No cards in this folder yet.</p>}
-              </div>
-              <div className="folder-card-actions">
-                <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
-                  <option value="" disabled>Move selected to...</option>
-                  {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
-                </select>
-                <button 
-                  onClick={() => handleMoveSelectedCardsFromExpandedFolder(selectedFolderForMove)} 
-                  className="move-to-folder-btn"
-                  disabled={Object.keys(selectedCardsInExpandedFolder).length === 0 || !selectedFolderForMove}
-                >
-                  Move Selected
-                </button>
+            </div>
+          </div>
+        </div>
+        {isExpanded && (
+          <div className="folder-expanded-content">
+            <div className="folder-expanded-header">
+              <h3 className="folder-expanded-name">{folder.name}</h3>
+              <button onClick={() => { 
+                if (isListening) stopListening(); 
+                setStudyingFolder({ name: folder.name, cards: folder.cards }); 
+                setModalConfig(null); // Close any other modals
+                setIsFeedbackModalOpen(false); // Close feedback modal
+              }} className="study-btn-large">Study</button>
+              <div className="folder-expanded-actions">
+                <ActionsDropdown 
+                  folder={folder} // Pass the whole folder object
+                  exportPdf={exportFolderToPDF} 
+                  exportCsv={exportFolderToCSV} 
+                  onAddSubfolder={(id) => {
+                    setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
+                    setStudyingFolder(null); // Close study viewer if open
+                    setIsFeedbackModalOpen(false); // Close feedback modal
+                  }}
+                  onRenameFolder={(id, name) => {
+                    setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
+                    setStudyingFolder(null); // Close study viewer if open
+                    setIsFeedbackModalOpen(false); // Close feedback modal
+                  }}
+                  onDeleteFolder={(id) => {
+                    setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
+                    setStudyingFolder(null); // Close study viewer if open
+                    setIsFeedbackModalOpen(false); // Close feedback modal
+                  }}
+                />
               </div>
             </div>
-          )}
-        </details>
-      </>
+            {/* Render subfolders */}
+            {Object.values(folder.subfolders).length > 0 && (
+              <div className="subfolder-list">
+                {getSortedFolders(folder.subfolders).map(subfolder => (
+                  <FolderItem 
+                    key={subfolder.id} 
+                    folder={subfolder} 
+                    level={level + 1} 
+                    allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
+                  />
+                ))}
+              </div>
+            )}
+            {/* Card list with checkboxes */}
+            <div className="folder-card-list">
+              {folder.cards.length > 0 ? folder.cards.map((card) => (
+                <div 
+                  key={card.id} 
+                  className="card saved-card-in-folder"
+                  draggable
+                  onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
+                >
+                  <div className="card-selection">
+                    <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
+                  </div>
+                  <div className="card-content">
+                    {renderCardContent(card, 'folder', folder.id)}
+                    <button onClick={() => deleteCardFromFolder(folder.id, card.id)} className="card-delete-btn">🗑️</button>
+                  </div>
+                </div>
+              )) : <p className="subtle-text">No cards in this folder yet.</p>}
+            </div>
+            <div className="folder-card-actions">
+              <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                <option value="" disabled>Move selected to...</option>
+                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+              </select>
+              <button 
+                onClick={() => handleMoveSelectedCardsFromExpandedFolder(selectedFolderForMove)} 
+                className="move-to-folder-btn"
+                disabled={Object.keys(selectedCardsInExpandedFolder).length === 0 || !selectedFolderForMove}
+              >
+                Move Selected
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
     );
   };
 

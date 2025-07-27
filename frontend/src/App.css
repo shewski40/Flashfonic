@@ -390,10 +390,9 @@ input[type="range"]::-webkit-slider-thumb {
   border: 1px solid var(--border-color);
   border-radius: 12px;
   margin-bottom: 1rem;
-  /* overflow: hidden; */ /* REMOVED THIS LINE - WAS CAUSING CLIPPING ISSUES */
   transition: background-color 0.2s ease, border-color 0.2s ease;
   position: relative; /* Ensure stacking context */
-  z-index: 1000; /* INCREASED Z-INDEX SIGNIFICANTLY for testing */
+  z-index: 1; /* Base z-index for folders */
 }
 
 .folder.dragging {
@@ -401,41 +400,33 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: var(--primary-purple);
 }
 
-.folder-list summary {
+/* NEW: Custom summary replacement */
+.folder-summary-custom {
   position: relative;
-  padding: 1em 1em; /* Removed left padding for arrow */
+  padding: 1em 1em;
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  list-style: none;
+  list-style: none; /* In case it inherits from summary */
   font-family: 'Poppins', sans-serif;
-  display: flex; /* Make summary a flex container */
-  justify-content: space-between; /* Space out name and actions */
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  pointer-events: auto; /* ADDED: Explicitly ensure summary is clickable */
+  pointer-events: auto; /* Explicitly ensure clickability */
 }
 
-.folder-list summary::-webkit-details-marker {
-  display: none;
-}
-
-/* REMOVED PURPLE ARROW */
-/*
-.folder-list summary::before {
-  content: '▶';
-  position: absolute;
-  left: 1em;
-  top: 50%;
-  transform: translateY(-50%) rotate(0deg);
+.folder-toggle-arrow {
+  display: inline-block;
+  margin-right: 0.5em;
   transition: transform 0.2s ease-in-out;
   font-size: 1.1em;
   color: var(--primary-purple);
 }
 
-.folder-list details[open] > summary::before {
-  transform: translateY(-50%) rotate(90deg);
+.folder-toggle-arrow.rotated {
+  transform: rotate(90deg);
 }
-*/
+
 
 /* NEW: Folder item header (for summary) */
 .folder-item-header {
@@ -487,8 +478,8 @@ input[type="range"]::-webkit-slider-thumb {
   border-top: 1px solid var(--border-color);
   background-color: var(--dark-bg); /* Slightly darker background for expanded content */
   position: relative; /* Added for z-index context */
-  z-index: 10; /* INCREASED Z-INDEX to ensure it's on top */
-  pointer-events: auto; /* ADDED: Explicitly ensure content is clickable */
+  z-index: 2; /* Ensure it's above other elements if needed */
+  pointer-events: auto; /* Explicitly ensure content is clickable */
 }
 
 .folder-expanded-header {
@@ -572,54 +563,6 @@ input[type="range"]::-webkit-slider-thumb {
 .actions-dropdown-menu button:hover {
   background-color: var(--primary-purple);
 }
-
-/* Removed Three Dot Menu styles */
-/*
-.three-dot-menu-container {
-  position: relative;
-}
-
-.three-dot-menu {
-  background-color: var(--content-bg);
-  color: var(--text-light);
-  border: 1px solid var(--primary-purple);
-  padding: 0.4em 0.6em;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 0.8em;
-  font-weight: bold;
-}
-
-.three-dot-menu-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: var(--content-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-  min-width: 150px;
-  z-index: 10;
-  display: flex;
-  flex-direction: column;
-  padding: 0.5rem 0;
-}
-
-.three-dot-menu-dropdown button {
-  background: none;
-  border: none;
-  color: var(--text-light);
-  padding: 0.6em 1em;
-  text-align: left;
-  cursor: pointer;
-  font-size: 0.9em;
-  transition: background-color 0.2s ease;
-}
-
-.three-dot-menu-dropdown button:hover {
-  background-color: var(--primary-purple);
-}
-*/
 
 .folder-card-list {
   max-height: 400px; /* Fixed height for scrollable area */
