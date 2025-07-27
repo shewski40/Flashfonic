@@ -1936,8 +1936,14 @@ const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) =
 };
 const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
   const [value, setValue] = useState(defaultValue || '');
+  // Diagnostic useEffect to see when modal renders and its value
+  useEffect(() => {
+    console.log(`PromptModal rendered: title='${title}', defaultValue='${defaultValue}', currentValue='${value}'`);
+  }, [title, defaultValue, value]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    console.log(`PromptModal handleSubmit triggered with value: ${value}`); // Diagnostic log
     if (value) onConfirm(value);
   };
   return (
