@@ -109,7 +109,7 @@ const MainApp = () => {
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
-  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20); // Corrected this line
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -1067,6 +1067,7 @@ const MainApp = () => {
 
   // Handle opening/closing folder details and updating lastViewed
   const handleFolderToggle = (folderId, isOpen) => {
+    console.log(`Toggling folder: ${folderId}, isOpen: ${isOpen}`); // Diagnostic log
     setExpandedFolderId(isOpen ? folderId : null);
     if (isOpen) {
       setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
