@@ -41,8 +41,8 @@ const LandingPage = ({ onEnter }) => {
             <h3>AI GENERATE</h3>
             <p>Our AI transcribes and creates a Q&A flashcard.</p>
           </div>
-          <div className="step">
-            <div className="step-number">3</div>
+          <div class="step">
+            <div class="step-number">3</div>
             <h3>STUDY</h3>
             <p>Master your material with our advanced study tools.</p>
           </div>
@@ -56,11 +56,11 @@ const LandingPage = ({ onEnter }) => {
             <h3>🤖 Revolutionary Audio-to-Card AI</h3>
             <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
           </div>
-          <div className="feature-card">
+          <div class="feature-card">
             <h3>⚡️ Hands-Free Capture Modes</h3>
             <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
           </div>
-          <div className="feature-card">
+          <div class="feature-card">
             <h3>📚 Advanced Study Suite</h3>
             <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
           </div>
@@ -549,7 +549,9 @@ const MainApp = () => {
   // Helper to find folder by ID recursively
   const findFolderById = (foldersObj, folderId) => {
     for (const id in foldersObj) {
-      if (foldersObj[id].id === folderId) return foldersObj[id]; // Ensure checking .id property
+      // Check if the current folder's ID matches
+      if (foldersObj[id].id === folderId) return foldersObj[id]; 
+      // Recursively search in subfolders
       const foundInSub = findFolderById(foldersObj[id].subfolders, folderId);
       if (foundInSub) return foundInSub;
     }
@@ -778,9 +780,10 @@ const MainApp = () => {
       message: 'How many flashcards per page? (6, 8, or 10)',
       defaultValue: '8',
       onConfirm: (value) => {
+        console.log("PromptModal onConfirm for PDF, value:", value); // New diagnostic log
         const cardsPerPage = parseInt(value, 10);
         if (![6, 8, 10].includes(cardsPerPage)) {
-          setNotification("Invalid number. Please choose 6, 8, or 10."); // Changed from alert
+          setNotification("Invalid number. Please choose 6, 8, or 10."); 
           return;
         }
         const doc = new jsPDF();
@@ -844,7 +847,10 @@ const MainApp = () => {
         doc.save(`${folder.name}-flashcards.pdf`);
         setPromptModalConfig(null);
       },
-      onClose: () => setPromptModalConfig(null)
+      onClose: () => {
+        console.log("PromptModal onClose for PDF"); // New diagnostic log
+        setPromptModalConfig(null);
+      }
     });
   };
   
@@ -862,9 +868,10 @@ const MainApp = () => {
       message: 'How many flashcards do you want to export?',
       defaultValue: folder.cards.length,
       onConfirm: (value) => {
+        console.log("PromptModal onConfirm for CSV, value:", value); // New diagnostic log
         const numCards = parseInt(value, 10);
         if (isNaN(numCards) || numCards <= 0) {
-            setNotification("Invalid number."); // Changed from alert
+            setNotification("Invalid number."); 
             return;
         }
         const cards = folder.cards.slice(0, numCards);
@@ -884,7 +891,10 @@ const MainApp = () => {
         document.body.removeChild(link);
         setPromptModalConfig(null);
       },
-      onClose: () => setPromptModalConfig(null)
+      onClose: () => {
+        console.log("PromptModal onClose for CSV"); // New diagnostic log
+        setPromptModalConfig(null);
+      }
     });
   };
 
@@ -1083,7 +1093,7 @@ const MainApp = () => {
         return { ...currentFolders, [itemToInsert.id]: itemToInsert };
       };
 
-      return insertIntoTarget(updatedSourceParentFolders, targetFolderId, draggedItem);
+      return insertIntoTarget(updatedSourceParentFolders, targetId, draggedItem);
     });
     setDraggedFolderId(null);
   };
@@ -1683,11 +1693,11 @@ const FeedbackModal = ({ onClose, formspreeUrl }) => {
               <option>Feature Request</option>
             </select>
           </div>
-          <div className="form-group">
+          <div class="form-group">
             <label htmlFor="message">Message</label>
             <textarea id="message" name="message" className="form-textarea" required />
           </div>
-          <div className="feedback-modal-actions">
+          <div class="feedback-modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Submit</button>
           </div>
@@ -1853,7 +1863,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
                     <p>{currentCard?.question}</p>
                   </div>
-                  <div className="card-face card-back">
+                  <div class="card-face card-back">
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
                     <p>{currentCard?.answer}</p>
                   </div>
@@ -1871,18 +1881,18 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
             </div>
           )}
-          <div className="tts-controls">
+          <div class="tts-controls">
             <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
-            <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+            <div class="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
               <label>Voice</label>
-              <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+              <div class="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
                 {selectedVoice || 'Select a voice...'}
-                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+                <span class={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
               </div>
               {isVoiceDropdownOpen && (
-                <div className="custom-select-options">
+                <div class="custom-select-options">
                   {voices.map(voice => (
-                    <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                    <div key={voice.name} class="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
                       {voice.name} ({voice.lang})
                     </div>
                   ))}
@@ -1915,7 +1925,7 @@ const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) =
         <h2>{title}</h2>
         <form onSubmit={handleSubmit}>
           <input type="text" className="modal-input" placeholder="Enter name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
-          <div className="modal-actions">
+          <div class="modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Create</button>
           </div>
@@ -1937,7 +1947,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
         <p className="modal-message">{message}</p>
         <form onSubmit={handleSubmit}>
           <input type="text" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <div className="modal-actions">
+          <div class="modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Confirm</button>
           </div>
