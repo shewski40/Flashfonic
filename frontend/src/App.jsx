@@ -1111,13 +1111,13 @@ const MainApp = () => {
   };
 
   // Move selected cards within an expanded folder to another folder
-  const handleMoveSelectedCardsFromExpandedFolder = (destinationFolderId) => {
-    if (!expandedFolderIds.has(expandedFolderId) || !destinationFolderId) { // Check if expandedFolderId exists in the set
+  const handleMoveSelectedCardsFromExpandedFolder = (sourceFolderId, destinationFolderId) => {
+    if (!sourceFolderId || !destinationFolderId) {
       setNotification("Please select a destination folder.");
       return;
     }
 
-    const cardsToMove = folders[expandedFolderId].cards.filter(card => selectedCardsInExpandedFolder[card.id]);
+    const cardsToMove = folders[sourceFolderId].cards.filter(card => selectedCardsInExpandedFolder[card.id]);
     if (cardsToMove.length === 0) {
       setNotification("Please select cards to move.");
       return;
@@ -1126,7 +1126,7 @@ const MainApp = () => {
     setFolders(prev => {
       let newFolders = { ...prev };
       // Remove from source folder
-      newFolders = updateFolderById(newFolders, expandedFolderId, (folder) => ({
+      newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
         ...folder,
         cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[card.id])
       }));
@@ -1290,7 +1290,7 @@ const MainApp = () => {
                 {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
               <button 
-                onClick={() => handleMoveSelectedCardsFromExpandedFolder(selectedFolderForMove)} 
+                onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)} 
                 className="move-to-folder-btn"
                 disabled={Object.keys(selectedCardsInExpandedFolder).length === 0 || !selectedFolderForMove}
               >
