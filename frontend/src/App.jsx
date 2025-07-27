@@ -117,7 +117,8 @@ const MainApp = () => {
   const [audioCacheId, setAudioCacheId] = useState(null);
   const [folderSortBy, setFolderSortBy] = useState('name'); // New state for folder sorting
   const [draggedFolderId, setDraggedFolderId] = useState(null); // For folder drag-and-drop
-  const [expandedFolderId, setExpandedFolderId] = useState(null); // To control which folder is open
+  // Changed to a Set to allow multiple folders to be expanded
+  const [expandedFolderIds, setExpandedFolderIds] = useState(new Set()); 
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({}); // Checkboxes in expanded folder
 
   // Centralized modal config for Add Subfolder, Rename, Delete
@@ -674,8 +675,24 @@ const MainApp = () => {
   // Function to delete a folder/subfolder
   const handleDeleteFolder = (folderId) => {
     setFolders(prev => deleteFolderById(prev, folderId));
+    // When a folder is deleted, ensure its ID is removed from expandedFolderIds
+    setExpandedFolderIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(folderId);
+      // Optionally, recursively remove subfolder IDs if they were expanded
+      const removeSubfolderIds = (currentFolder) => {
+        for (const subId in currentFolder.subfolders) {
+          newSet.delete(subId);
+          removeSubfolderIds(currentFolder.subfolders[subId]);
+        }
+      };
+      const deletedFolder = findFolderById(folders, folderId); // Need to find it before it's gone from state
+      if (deletedFolder) {
+        removeSubfolderIds(deletedFolder);
+      }
+      return newSet;
+    });
     setModalConfig(null); // Close modal
-    setExpandedFolderId(null); // Close if deleted
   };
 
   // Updated deleteCardFromFolder for new folder structure
@@ -1068,7 +1085,15 @@ const MainApp = () => {
   // Handle opening/closing folder details and updating lastViewed
   const handleFolderToggle = (folderId, isOpen) => {
     console.log(`Toggling folder: ${folderId}, isOpen: ${isOpen}`); // Diagnostic log
-    setExpandedFolderId(isOpen ? folderId : null);
+    setExpandedFolderIds(prev => {
+      const newSet = new Set(prev);
+      if (isOpen) {
+        newSet.add(folderId);
+      } else {
+        newSet.delete(folderId);
+      }
+      return newSet;
+    });
     if (isOpen) {
       setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
         ...folder,
@@ -1087,7 +1112,7 @@ const MainApp = () => {
 
   // Move selected cards within an expanded folder to another folder
   const handleMoveSelectedCardsFromExpandedFolder = (destinationFolderId) => {
-    if (!expandedFolderId || !destinationFolderId) {
+    if (!expandedFolderIds.has(expandedFolderId) || !destinationFolderId) { // Check if expandedFolderId exists in the set
       setNotification("Please select a destination folder.");
       return;
     }
@@ -1151,7 +1176,8 @@ const MainApp = () => {
 
   // Recursive component to render folders and subfolders
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
-    const isExpanded = expandedFolderId === folder.id;
+    // Check if this specific folder's ID is in the expandedFolderIds set
+    const isExpanded = expandedFolderIds.has(folder.id); 
     const paddingLeft = level * 20; // Indentation for subfolders
 
     return (
