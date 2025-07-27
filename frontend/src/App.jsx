@@ -1167,7 +1167,10 @@ const MainApp = () => {
         style={{ paddingLeft: `${paddingLeft}px` }}
       >
         {/* Changed from <summary> to <div> */}
-        <div className="folder-summary-custom" onClick={() => handleFolderToggle(folder.id, !isExpanded)}> 
+        <div className="folder-summary-custom" onClick={(e) => {
+          e.stopPropagation(); // Stop event bubbling
+          handleFolderToggle(folder.id, !isExpanded);
+        }}> 
           <div className="folder-item-header">
             <span className="folder-name-display">
               <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span> {/* Custom arrow */}
