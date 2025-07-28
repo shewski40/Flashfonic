@@ -36,8 +36,8 @@ const LandingPage = ({ onEnter }) => {
             <h3>CAPTURE</h3>
             <p>Record live audio or upload a file.</p>
           </div>
-          <div className="step">
-            <div className="step-number">2</div>
+          <div class="step">
+            <div class="step-number">2</div>
             <h3>AI GENERATE</h3>
             <p>Our AI transcribes and creates a Q&A flashcard.</p>
           </div>
@@ -109,7 +109,7 @@ const MainApp = () => {
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
-  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20); // Corrected this line
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20); 
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -793,6 +793,7 @@ const MainApp = () => {
         const cardsPerPage = parseInt(value, 10);
         if (![6, 8, 10].includes(cardsPerPage)) {
           setNotification("Invalid number. Please choose 6, 8, or 10."); 
+          setPromptModalConfig(null); // Ensure modal closes on invalid input
           return;
         }
         const doc = new jsPDF();
@@ -811,11 +812,11 @@ const MainApp = () => {
         const drawHeader = () => {
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(30);
-            doc.setTextColor("#8B5CF6");
+            doc.setTextColor(139, 92, 246); // RGB for --primary-purple
             doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
             doc.setFont('helvetica', 'normal');
             doc.setFontSize(16);
-            doc.setTextColor("#1F2937");
+            doc.setTextColor(31, 41, 55); // RGB for --content-bg (darker text for header)
             doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
         };
         for (let i = 0; i < cards.length; i += cardsPerPage) {
@@ -829,29 +830,32 @@ const MainApp = () => {
             const cardY = 40 + (row * (cardH + margin));
             doc.setLineWidth(0.5);
             doc.setDrawColor(0);
-            doc.setTextColor("#000000");
+            doc.setTextColor(0, 0, 0); // Black for card content
             doc.rect(cardX, cardY, cardW, cardH);
             doc.setFontSize(config.fontSize);
             const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
             const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
             doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
           });
-          doc.addPage();
-          drawHeader();
-          pageCards.forEach((card, index) => {
-            const row = Math.floor(index / config.cols);
-            const col = index % config.cols;
-            const cardX = margin + (col * (cardW + margin));
-            const cardY = 40 + (row * (cardH + margin));
-            doc.setLineWidth(0.5);
-            doc.setDrawColor(0);
-            doc.setTextColor("#000000");
-            doc.rect(cardX, cardY, cardW, cardH);
-            doc.setFontSize(config.fontSize);
-            const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
-            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-          });
+          // Only add a new page for answers if there are more cards or if this is the last page and it's not the very last card
+          if (i + cardsPerPage < cards.length || (i + cardsPerPage === cards.length && cards.length > 0)) {
+            doc.addPage();
+            drawHeader();
+            pageCards.forEach((card, index) => {
+              const row = Math.floor(index / config.cols);
+              const col = index % config.cols;
+              const cardX = margin + (col * (cardW + margin));
+              const cardY = 40 + (row * (cardH + margin));
+              doc.setLineWidth(0.5);
+              doc.setDrawColor(0);
+              doc.setTextColor(0, 0, 0); // Black for card content
+              doc.rect(cardX, cardY, cardW, cardH);
+              doc.setFontSize(config.fontSize);
+              const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
+              const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+              doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+            });
+          }
         }
         doc.save(`${folder.name}-flashcards.pdf`);
         setPromptModalConfig(null);
@@ -886,23 +890,27 @@ const MainApp = () => {
         const numCards = parseInt(value, 10);
         if (isNaN(numCards) || numCards <= 0) {
             setNotification("Invalid number."); 
+            setPromptModalConfig(null); // Ensure modal closes on invalid input
             return;
         }
         const cards = folder.cards.slice(0, numCards);
-        let csvContent = "data:text/csv;charset=utf-8,";
-        csvContent += "FlashFonic\nListen. Flash it. Learn.\n\n";
+        let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n"; // Header for CSV
         csvContent += "Question,Answer\n";
         cards.forEach(card => {
-            const row = `"${card.question.replace(/"/g, '""')}","${card.answer.replace(/"/g, '""')}"`;
-            csvContent += row + "\n";
+            // Escape double quotes by doubling them, then wrap the whole field in double quotes
+            const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
+            const escapedAnswer = `"${card.answer.replace(/"/g, '""')}"`;
+            csvContent += `${escapedQuestion},${escapedAnswer}\n`;
         });
-        const encodedUri = encodeURI(csvContent);
+        
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
         const link = document.createElement("a");
-        link.setAttribute("href", encodedUri);
-        link.setAttribute("download", `${folder.name}-flashcards.csv`);
+        link.href = URL.createObjectURL(blob);
+        link.download = `${folder.name}-flashcards.csv`;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+        URL.revokeObjectURL(link.href); // Clean up the object URL
         setPromptModalConfig(null);
       },
       onClose: () => {
@@ -1960,6 +1968,8 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
     e.preventDefault();
     console.log(`PromptModal handleSubmit triggered with value: ${value}`); // Diagnostic log
     if (value) onConfirm(value);
+    // Call onClose immediately after onConfirm to ensure it closes
+    onClose(); 
   };
   return (
     <div className="modal-overlay">
