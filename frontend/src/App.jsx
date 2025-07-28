@@ -1425,9 +1425,7 @@ const MainApp = () => {
     }
   };
 
-  // *** BUG FIX ***
-  // This function now correctly styles the HTML content before sending it to jsPDF,
-  // ensuring the text is black and has a readable font size.
+  // *** BUG FIX & FONT SIZE ADJUSTMENT ***
   const exportNotesToPDF = (folderName, notes) => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
@@ -1453,17 +1451,17 @@ const MainApp = () => {
     
     // Apply styles for the PDF
     pdfContainer.style.color = 'black';
-    pdfContainer.style.fontSize = '12.5pt'; // Changed to 12.5pt
+    pdfContainer.style.fontSize = '10pt'; // Adjusted font size
     pdfContainer.style.lineHeight = '1.5';
     pdfContainer.style.width = `${(pageW - 30)}px`; // Match PDF width
     
     // Style headings
     pdfContainer.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-      h.style.color = '#8B5CF6'; // --primary-purple
-      h.style.borderBottom = '1px solid #374151'; // --border-color
-      h.style.paddingBottom = '4px';
-      h.style.marginBottom = '12px';
-      h.style.fontSize = '13.5pt'; // Changed to 13.5pt
+      h.style.color = '#000000'; // Black for headings in PDF
+      h.style.borderBottom = '1px solid #cccccc';
+      h.style.paddingBottom = '2px';
+      h.style.marginBottom = '10px';
+      h.style.fontSize = '12pt'; // Adjusted heading font size
     });
 
     doc.html(pdfContainer, {
