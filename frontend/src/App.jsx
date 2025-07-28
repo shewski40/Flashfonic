@@ -1196,7 +1196,7 @@ const MainApp = () => {
 
     const cardsToMove = folders[sourceFolderId].cards.filter(card => selectedCardsInExpandedFolder[card.id]);
     if (cardsToMove.length === 0) {
-      setNotification("Please select cards to move.");
+      setNotification("Please check the cards to move.");
       return;
     }
 
