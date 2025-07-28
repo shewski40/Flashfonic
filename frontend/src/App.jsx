@@ -1425,7 +1425,8 @@ const MainApp = () => {
     }
   };
 
-  // *** FONT SIZE ADJUSTMENT FOR PDF EXPORT ***
+  // *** PDF EXPORT FIX ***
+  // This function now manually draws text to the PDF for precise control over styling.
   const exportNotesToPDF = (folderName, notes) => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
@@ -1456,31 +1457,41 @@ const MainApp = () => {
       }
     };
 
-    // Parse markdown into tokens
+    // Parse markdown into tokens to handle headings and lists
     const tokens = marked.lexer(notes);
 
     tokens.forEach(token => {
       if (token.type === 'heading') {
-        checkPageBreak(15); // Approximate height for a heading
+        checkPageBreak(15); 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12); // Adjusted heading font size
+        doc.setFontSize(12); // Correct heading font size
         doc.setTextColor(0, 0, 0);
         const headingText = doc.splitTextToSize(token.text, maxWidth);
         doc.text(headingText, margin, currentY);
-        currentY += (headingText.length * 5) + 4; // Move Y down
+        currentY += (headingText.length * 5) + 2; // Move Y down
         doc.setDrawColor(200, 200, 200);
-        doc.line(margin, currentY - 2, margin + maxWidth, currentY - 2); // Underline
+        doc.line(margin, currentY, margin + maxWidth, currentY); // Underline
+        currentY += 4; // Space after underline
       }
       if (token.type === 'list') {
         token.items.forEach(item => {
-          checkPageBreak(10); // Approx height for a list item
+          checkPageBreak(10); 
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10); // Adjusted body font size
+          doc.setFontSize(10); // Correct body font size
           doc.setTextColor(0, 0, 0);
           const itemText = doc.splitTextToSize(`• ${item.text}`, maxWidth - 5); // Indent bullet
           doc.text(itemText, margin + 5, currentY);
-          currentY += (itemText.length * 5) + 2;
+          currentY += (itemText.length * 4) + 2; // Adjust line height based on wrapped lines
         });
+      }
+       if (token.type === 'paragraph') {
+        checkPageBreak(10);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+        doc.setTextColor(0, 0, 0);
+        const pText = doc.splitTextToSize(token.text, maxWidth);
+        doc.text(pText, margin, currentY);
+        currentY += (pText.length * 4) + 2;
       }
       if (token.type === 'space') {
         currentY += 5;
@@ -1697,7 +1708,7 @@ const MainApp = () => {
             <div className="folder-actions">
               <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                 <option value="" disabled>Select a folder...</option>
-                {allFoldersForMoveDropdown.map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
               </select>
               <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
             </div>
