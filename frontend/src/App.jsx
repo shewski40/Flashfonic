@@ -36,13 +36,13 @@ const LandingPage = ({ onEnter }) => {
             <h3>CAPTURE</h3>
             <p>Record live audio or upload a file.</p>
           </div>
-          <div class="step">
-            <div class="step-number">2</div>
+          <div className="step">
+            <div className="step-number">2</div>
             <h3>AI GENERATE</h3>
             <p>Our AI transcribes and creates a Q&A flashcard.</p>
           </div>
-          <div class="step">
-            <div class="step-number">3</div>
+          <div className="step">
+            <div className="step-number">3</div>
             <h3>STUDY</h3>
             <p>Master your material with our advanced study tools.</p>
           </div>
@@ -56,15 +56,15 @@ const LandingPage = ({ onEnter }) => {
             <h3>🤖 Revolutionary Audio-to-Card AI</h3>
             <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
           </div>
-          <div class="feature-card">
+          <div className="feature-card">
             <h3>⚡️ Hands-Free Capture Modes</h3>
             <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
           </div>
-          <div class="feature-card">
+          <div className="feature-card">
             <h3>📚 Advanced Study Suite</h3>
             <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
           </div>
-          <div class="feature-card">
+          <div className="feature-card">
             <h3>📂 Organize & Export with Ease</h3>
             <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
           </div>
@@ -1370,8 +1370,17 @@ const MainApp = () => {
   return (
     <>
       {studyingFolder && ( <FlashcardViewer folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={() => setStudyingFolder(null)} /> )}
+      {/* Conditionally render PromptModal based on promptModalConfig state */}
+      {promptModalConfig && (
+        <PromptModal
+          title={promptModalConfig.title}
+          message={promptModalConfig.message}
+          defaultValue={promptModalConfig.defaultValue}
+          onConfirm={promptModalConfig.onConfirm}
+          onClose={promptModalConfig.onClose}
+        />
+      )}
       {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
-      {modalConfig && modalConfig.type === 'prompt' && ( <PromptModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} title={modalConfig.title} message={modalConfig.message} defaultValue={modalConfig.defaultValue} /> )}
       {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
       {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
 
@@ -1726,11 +1735,11 @@ const FeedbackModal = ({ onClose, formspreeUrl }) => {
               <option>Feature Request</option>
             </select>
           </div>
-          <div class="form-group">
+          <div className="form-group">
             <label htmlFor="message">Message</label>
             <textarea id="message" name="message" className="form-textarea" required />
           </div>
-          <div class="feedback-modal-actions">
+          <div className="feedback-modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Submit</button>
           </div>
@@ -1896,13 +1905,13 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
                     <p>{currentCard?.question}</p>
                   </div>
-                  <div class="card-face card-back">
+                  <div className="card-face card-back">
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${flaggedCards[currentCard.id] ? 'active' : ''}`}>&#9873;</button>
                     <p>{currentCard?.answer}</p>
                   </div>
                 </div>
               </div>
-              <div class="viewer-nav">
+              <div className="viewer-nav">
                 <button onClick={goToPrev}>&larr; Prev</button>
                 <span>{currentIndex + 1} / {studyDeck.length}</span>
                 <button onClick={goToNext} >Next &rarr;</button>
@@ -1914,29 +1923,29 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
             </div>
           )}
-          <div class="tts-controls">
+          <div className="tts-controls">
             <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
-            <div class="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+            <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
               <label>Voice</label>
-              <div class="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+              <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
                 {selectedVoice || 'Select a voice...'}
-                <span class={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
               </div>
               {isVoiceDropdownOpen && (
-                <div class="custom-select-options">
+                <div className="custom-select-options">
                   {voices.map(voice => (
-                    <div key={voice.name} class="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                    <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
                       {voice.name} ({voice.lang})
                     </div>
                   ))}
                 </div>
               )}
             </div>
-            <div class="tts-slider-group">
+            <div className="tts-slider-group">
               <label>Front to back delay: {speechDelay}s</label>
               <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
             </div>
-            <div class="tts-slider-group">
+            <div className="tts-slider-group">
               <label>Speed: {speechRate}x</label>
               <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
             </div>
@@ -1958,7 +1967,7 @@ const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) =
         <h2>{title}</h2>
         <form onSubmit={handleSubmit}>
           <input type="text" className="modal-input" placeholder="Enter name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
-          <div class="modal-actions">
+          <div className="modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Create</button>
           </div>
@@ -1988,7 +1997,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
         <p className="modal-message">{message}</p>
         <form onSubmit={handleSubmit}>
           <input type="text" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <div class="modal-actions">
+          <div className="modal-actions">
             <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
             <button type="submit" className="modal-create-btn">Confirm</button>
           </div>
@@ -2004,7 +2013,7 @@ const ConfirmModal = ({ message, onClose, onConfirm }) => {
       <div className="modal-content">
         <h2>Confirm Action</h2>
         <p className="modal-message">{message}</p>
-        <div class="modal-actions">
+        <div className="modal-actions">
           <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
           <button type="button" className="modal-create-btn danger" onClick={() => { onConfirm(); onClose(); }}>Confirm</button>
         </div>
