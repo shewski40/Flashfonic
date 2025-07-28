@@ -488,7 +488,7 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  gap: 0.5rem; /* Space between items */
+  gap: 1rem; /* Space between items */
 }
 
 .folder-expanded-name {
@@ -499,9 +499,14 @@ input[type="range"]::-webkit-slider-thumb {
   flex-grow: 1; /* Allow name to take available space */
 }
 
-.study-btn-large {
-  background-color: var(--success-green) !important;
-  border-color: var(--success-green) !important;
+/* NEW: Container for main action buttons */
+.folder-main-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.study-btn-large, .flash-notes-btn {
   padding: 0.8em 1.5em !important;
   font-size: 1em !important;
   font-weight: 700 !important;
@@ -509,7 +514,17 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
   cursor: pointer;
   flex-shrink: 0; /* Prevent shrinking */
+  border: none;
 }
+
+.study-btn-large {
+  background-color: var(--success-green) !important;
+}
+
+.flash-notes-btn {
+  background-color: var(--secondary-pink) !important;
+}
+
 
 .folder-expanded-actions {
   display: flex;
@@ -1790,4 +1805,49 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 6px;
   font-size: 0.7rem;
   font-style: italic;
+}
+
+/* NEW: Styles for Flash Notes feature */
+.flash-notes-container {
+  width: 100%;
+  max-width: 800px;
+  background-color: var(--content-bg);
+  padding: 2rem;
+  border-radius: 12px;
+  max-height: 80vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.flash-notes-content {
+  color: var(--text-light);
+  line-height: 1.6;
+  /* Prevent text selection */
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+}
+
+.flash-notes-content h1,
+.flash-notes-content h2,
+.flash-notes-content h3 {
+  color: var(--primary-purple);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+  margin-top: 1.5em;
+  margin-bottom: 1em;
+}
+
+.flash-notes-content p {
+  margin-bottom: 1em;
+}
+
+.flash-notes-content ul,
+.flash-notes-content ol {
+  padding-left: 1.5em;
+}
+
+.flash-notes-content li {
+  margin-bottom: 0.5em;
 }

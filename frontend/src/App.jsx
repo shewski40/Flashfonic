@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import jsPDF from 'jspdf';
+import { marked } from 'marked'; // NEW: For converting markdown to HTML for PDF export
 import './App.css';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -117,12 +118,18 @@ const MainApp = () => {
   const [audioCacheId, setAudioCacheId] = useState(null);
   const [folderSortBy, setFolderSortBy] = useState('name'); // New state for folder sorting
   const [draggedFolderId, setDraggedFolderId] = useState(null); // For folder drag-and-drop
-  // Changed to a Set to allow multiple folders to be expanded
   const [expandedFolderIds, setExpandedFolderIds] = useState(new Set()); 
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({}); // Checkboxes in expanded folder
 
   // Centralized modal config for Add Subfolder, Rename, Delete
   const [modalConfig, setModalConfig] = useState(null);   
+  
+  // NEW: State for Flash Notes feature
+  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); // { folderId, folderName, cards }
+  const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
+  const [flashNotesContent, setFlashNotesContent] = useState(null); // { folderName, notes }
+  const [showFlashNotesViewer, setShowFlashNotesViewer] = useState(false);
+
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -1291,12 +1298,15 @@ const MainApp = () => {
           <div className="folder-expanded-content">
             <div className="folder-expanded-header">
               <h3 className="folder-expanded-name">{folder.name}</h3>
-              <button onClick={() => { 
-                if (isListening) stopListening(); 
-                setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards }); 
-                setModalConfig(null); // Close any other modals
-                setIsFeedbackModalOpen(false); // Close feedback modal
-              }} className="study-btn-large">Study</button>
+              <div className="folder-main-actions">
+                <button onClick={() => { 
+                  if (isListening) stopListening(); 
+                  setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards }); 
+                  setModalConfig(null); // Close any other modals
+                  setIsFeedbackModalOpen(false); // Close feedback modal
+                }} className="study-btn-large">Study</button>
+                <button onClick={() => setFlashNotesActionModal({ folderId: folder.id, folderName: folder.name, cards: folder.cards })} className="flash-notes-btn">Flash Notes</button>
+              </div>
               <div className="folder-expanded-actions">
                 <ActionsDropdown 
                   folder={folder} // Pass the whole folder object
@@ -1384,10 +1394,75 @@ const MainApp = () => {
   };
   const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
+  // NEW: Function to handle Flash Notes generation
+  const handleGenerateNotes = async (folder, action) => {
+    setFlashNotesActionModal(null); // Close the action modal
+    setIsGeneratingNotes(true);
+    setNotification('Synthesizing your Flash Notes with AI...');
+    try {
+      const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-notes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cards: folder.cards }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to generate notes.');
+      }
+
+      if (action === 'view') {
+        setFlashNotesContent({ folderName: folder.folderName, notes: data.notes });
+        setShowFlashNotesViewer(true);
+      } else if (action === 'export') {
+        exportNotesToPDF(folder.folderName, data.notes);
+      }
+      setNotification('Flash Notes generated!');
+    } catch (error) {
+      console.error("Error generating notes:", error);
+      setNotification(`Error: ${error.message}`);
+    } finally {
+      setIsGeneratingNotes(false);
+    }
+  };
+
+  // NEW: Function to export notes to PDF
+  const exportNotesToPDF = (folderName, notes) => {
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    
+    // Draw Header
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(30);
+    doc.setTextColor(139, 92, 246); // --primary-purple
+    doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(16);
+    doc.setTextColor(31, 41, 55); // --content-bg
+    doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
+
+    // Draw Title
+    doc.setFontSize(22);
+    doc.text(`Flash Notes: ${folderName}`, pageW / 2, 45, { align: 'center' });
+
+    // Convert markdown to something jsPDF can render
+    const html = marked(notes);
+    const element = document.createElement('div');
+    element.innerHTML = html;
+    
+    doc.html(element, {
+      x: 15,
+      y: 55,
+      width: pageW - 30,
+      windowWidth: pageW - 30,
+      callback: function (doc) {
+        doc.save(`${folderName}-FlashNotes.pdf`);
+      }
+    });
+  };
+
   return (
     <>
       {studyingFolder && ( <FlashcardViewer key={studyingFolder.id} folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={handleStudySessionEnd} /> )}
-      {/* Conditionally render PromptModal based on promptModalConfig state */}
       {promptModalConfig && (
         <PromptModal
           title={promptModalConfig.title}
@@ -1400,6 +1475,24 @@ const MainApp = () => {
       {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
       {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
       {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
+      
+      {/* NEW: Flash Notes Modals */}
+      {flashNotesActionModal && (
+        <FlashNotesActionModal
+          folder={flashNotesActionModal}
+          onClose={() => setFlashNotesActionModal(null)}
+          onGenerate={handleGenerateNotes}
+          isGenerating={isGeneratingNotes}
+        />
+      )}
+      {showFlashNotesViewer && flashNotesContent && (
+        <FlashNotesViewer
+          folderName={flashNotesContent.folderName}
+          notes={flashNotesContent.notes}
+          onClose={() => setShowFlashNotesViewer(false)}
+        />
+      )}
+
 
       <div className="header">
         <h1>FlashFonic</h1>
@@ -2099,6 +2192,62 @@ const ConfirmModal = ({ message, onClose, onConfirm }) => {
     </div>
   );
 };
+
+// NEW: Component for Flash Notes action choice
+const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) => {
+  return (
+    <div className="modal-overlay">
+      <div className="modal-content">
+        <h2>Flash Notes for "{folder.folderName}"</h2>
+        <p className="modal-message">Generate themed summary notes from your flashcards.</p>
+        <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
+          <button onClick={() => onGenerate(folder, 'view')} className="modal-create-btn" disabled={isGenerating}>
+            {isGenerating ? 'Generating...' : 'View in FlashFonic'}
+          </button>
+          <button onClick={() => onGenerate(folder, 'export')} className="modal-create-btn" disabled={isGenerating}>
+            {isGenerating ? 'Generating...' : 'Export to PDF'}
+          </button>
+          <button type="button" className="modal-cancel-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// NEW: Component to display Flash Notes
+const FlashNotesViewer = ({ folderName, notes, onClose }) => {
+  const contentRef = useRef(null);
+
+  useEffect(() => {
+    const disableRightClick = (e) => e.preventDefault();
+    const contentElement = contentRef.current;
+    if (contentElement) {
+      contentElement.addEventListener('contextmenu', disableRightClick);
+    }
+    return () => {
+      if (contentElement) {
+        contentElement.removeEventListener('contextmenu', disableRightClick);
+      }
+    };
+  }, []);
+
+  return (
+    <div className="viewer-overlay">
+      <div className="viewer-header">
+        <h2>Flash Notes: {folderName}</h2>
+        <button onClick={onClose} className="viewer-close-btn">&times;</button>
+      </div>
+      <div className="flash-notes-container">
+        <div 
+          ref={contentRef}
+          className="flash-notes-content" 
+          dangerouslySetInnerHTML={{ __html: marked(notes) }} 
+        />
+      </div>
+    </div>
+  );
+};
+
 
 const formatTime = (time) => {
   if (isNaN(time) || time === 0) return '00:00';
