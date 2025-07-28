@@ -109,7 +109,7 @@ const MainApp = () => {
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
-  const [uploadAutoFlashInterval, setUploadAutoFlashInterval = useState(20);
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20); // Corrected this line
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -247,7 +247,7 @@ const MainApp = () => {
         if (!isDevMode) {
             setUsage(prevUsage => {
                 const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
-                localStorage.setItem('flashfonic-usage', JSON.stringify(newUsage));
+                localStorage.setItem('flashfonic', JSON.stringify(newUsage));
                 return newUsage;
             });
         }
