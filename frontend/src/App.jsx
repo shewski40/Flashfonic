@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import jsPDF from 'jspdf';
-import { marked } from 'marked'; // NEW: For converting markdown to HTML for PDF export
+import { marked } from 'marked'; // For converting markdown to HTML
 import './App.css';
 import { Analytics } from '@vercel/analytics/react';
 
@@ -217,6 +217,8 @@ const MainApp = () => {
             if (!newFolder.lastViewed) newFolder.lastViewed = Date.now();
             if (!newFolder.cards) newFolder.cards = [];
             if (!newFolder.subfolders) newFolder.subfolders = {};
+             // NEW: Ensure flashNotes property exists
+            if (newFolder.flashNotes === undefined) newFolder.flashNotes = null;
             // Recursively convert subfolders
             newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
           }
@@ -644,7 +646,8 @@ const MainApp = () => {
           createdAt: Date.now(),
           lastViewed: Date.now(),
           cards: [],
-          subfolders: {}
+          subfolders: {},
+          flashNotes: null // Initialize flashNotes
         }
       }));
     }
@@ -670,7 +673,8 @@ const MainApp = () => {
             createdAt: Date.now(),
             lastViewed: Date.now(),
             cards: [],
-            subfolders: {}
+            subfolders: {},
+            flashNotes: null // Initialize flashNotes
           }
         }
       };
@@ -1305,7 +1309,7 @@ const MainApp = () => {
                   setModalConfig(null); // Close any other modals
                   setIsFeedbackModalOpen(false); // Close feedback modal
                 }} className="study-btn-large">Study</button>
-                <button onClick={() => setFlashNotesActionModal({ folderId: folder.id, folderName: folder.name, cards: folder.cards })} className="flash-notes-btn">Flash Notes</button>
+                <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
               </div>
               <div className="folder-expanded-actions">
                 <ActionsDropdown 
@@ -1395,8 +1399,20 @@ const MainApp = () => {
   const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
   // NEW: Function to handle Flash Notes generation
-  const handleGenerateNotes = async (folder, action) => {
+  const handleGenerateNotes = async (folder, action, forceRegenerate = false) => {
     setFlashNotesActionModal(null); // Close the action modal
+    
+    // Use cached notes if they exist and we are not forcing regeneration
+    if (folder.flashNotes && !forceRegenerate) {
+      if (action === 'view') {
+        setFlashNotesContent({ folderName: folder.name, notes: folder.flashNotes });
+        setShowFlashNotesViewer(true);
+      } else if (action === 'export') {
+        exportNotesToPDF(folder.name, folder.flashNotes);
+      }
+      return;
+    }
+
     setIsGeneratingNotes(true);
     setNotification('Synthesizing your Flash Notes with AI...');
     try {
@@ -1410,11 +1426,14 @@ const MainApp = () => {
         throw new Error(data.error || 'Failed to generate notes.');
       }
 
+      // Save the newly generated notes to the folder state
+      setFolders(prev => updateFolderById(prev, folder.id, f => ({ ...f, flashNotes: data.notes })));
+      
       if (action === 'view') {
-        setFlashNotesContent({ folderName: folder.folderName, notes: data.notes });
+        setFlashNotesContent({ folderName: folder.name, notes: data.notes });
         setShowFlashNotesViewer(true);
       } else if (action === 'export') {
-        exportNotesToPDF(folder.folderName, data.notes);
+        exportNotesToPDF(folder.name, data.notes);
       }
       setNotification('Flash Notes generated!');
     } catch (error) {
@@ -1468,10 +1487,7 @@ const MainApp = () => {
         doc.setTextColor(0, 0, 0);
         const headingText = doc.splitTextToSize(token.text, maxWidth);
         doc.text(headingText, margin, currentY);
-        currentY += (headingText.length * 5) + 2; // Move Y down
-        doc.setDrawColor(200, 200, 200);
-        doc.line(margin, currentY, margin + maxWidth, currentY); // Underline
-        currentY += 4; // Space after underline
+        currentY += (headingText.length * 5) + 4; // Move Y down
       }
       if (token.type === 'list') {
         token.items.forEach(item => {
@@ -2240,15 +2256,22 @@ const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) =>
   return (
     <div className="modal-overlay">
       <div className="modal-content">
-        <h2>Flash Notes for "{folder.folderName}"</h2>
-        <p className="modal-message">Generate themed summary notes from your flashcards.</p>
+        <h2>Flash Notes for "{folder.name}"</h2>
+        <p className="modal-message">
+          {folder.flashNotes ? 'Your notes are ready. View them or generate a new version.' : 'Generate themed summary notes from your flashcards.'}
+        </p>
         <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
           <button onClick={() => onGenerate(folder, 'view')} className="modal-create-btn" disabled={isGenerating}>
-            {isGenerating ? 'Generating...' : 'View in FlashFonic'}
+            {isGenerating ? 'Please wait...' : (folder.flashNotes ? 'View Notes' : 'Generate & View')}
           </button>
           <button onClick={() => onGenerate(folder, 'export')} className="modal-create-btn" disabled={isGenerating}>
-            {isGenerating ? 'Generating...' : 'Export to PDF'}
+            {isGenerating ? 'Please wait...' : (folder.flashNotes ? 'Export Notes' : 'Generate & Export')}
           </button>
+          {folder.flashNotes && (
+             <button onClick={() => onGenerate(folder, 'view', true)} className="modal-create-btn danger" disabled={isGenerating}>
+              {isGenerating ? 'Generating...' : 'Regenerate Notes'}
+            </button>
+          )}
           <button type="button" className="modal-cancel-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
         </div>
       </div>
