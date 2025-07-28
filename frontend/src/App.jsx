@@ -826,11 +826,11 @@ const MainApp = () => {
           const drawHeader = () => {
               doc.setFont('helvetica', 'bold');
               doc.setFontSize(30);
-              doc.setTextColor(139, 92, 246); // RGB for --primary-purple
+              doc.setTextColor(139, 92, 246); // --primary-purple
               doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
               doc.setFont('helvetica', 'normal');
               doc.setFontSize(16);
-              doc.setTextColor(31, 41, 55); // RGB for --content-bg (darker text for header)
+              doc.setTextColor(31, 41, 55); // --content-bg
               doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
           };
 
@@ -1425,7 +1425,9 @@ const MainApp = () => {
     }
   };
 
-  // NEW: Function to export notes to PDF
+  // *** BUG FIX ***
+  // This function now correctly styles the HTML content before sending it to jsPDF,
+  // ensuring the text is black and has a readable font size.
   const exportNotesToPDF = (folderName, notes) => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
@@ -1442,14 +1444,31 @@ const MainApp = () => {
 
     // Draw Title
     doc.setFontSize(22);
+    doc.setTextColor(0, 0, 0); // Black for the title
     doc.text(`Flash Notes: ${folderName}`, pageW / 2, 45, { align: 'center' });
 
-    // Convert markdown to something jsPDF can render
-    const html = marked(notes);
-    const element = document.createElement('div');
-    element.innerHTML = html;
+    // Create a temporary, styled element for PDF generation
+    const pdfContainer = document.createElement('div');
+    pdfContainer.innerHTML = marked(notes);
     
-    doc.html(element, {
+    // Apply styles for the PDF
+    pdfContainer.style.color = 'black';
+    pdfContainer.style.fontSize = '12px';
+    pdfContainer.style.lineHeight = '1.5';
+    pdfContainer.style.width = `${(pageW - 30)}px`; // Match PDF width
+    
+    // Style headings
+    pdfContainer.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+      h.style.color = '#8B5CF6'; // --primary-purple
+      h.style.borderBottom = '1px solid #374151'; // --border-color
+      h.style.paddingBottom = '4px';
+      h.style.marginBottom = '12px';
+    });
+    pdfContainer.querySelectorAll('h1').forEach(h => h.style.fontSize = '18px');
+    pdfContainer.querySelectorAll('h2').forEach(h => h.style.fontSize = '16px');
+    pdfContainer.querySelectorAll('h3').forEach(h => h.style.fontSize = '14px');
+
+    doc.html(pdfContainer, {
       x: 15,
       y: 55,
       width: pageW - 30,
