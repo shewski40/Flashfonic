@@ -850,6 +850,14 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.9em;
 }
 
+/* NEW: Active state for viewer control buttons */
+.viewer-controls button.active {
+  background-color: var(--primary-purple);
+  color: white;
+  font-weight: bold;
+}
+
+
 .viewer-main {
   width: 100%;
   max-width: 600px;
@@ -1745,4 +1753,41 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1.5rem;
+}
+
+/* NEW STYLES FOR "NEEDS REVIEW" FEATURE */
+.needs-review-controls {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  width: 100%;
+}
+
+.needs-review-controls label {
+  color: var(--text-soft);
+  font-size: 0.9em;
+}
+
+.needs-review-controls select {
+  background-color: var(--content-bg);
+  color: var(--text-light);
+  border: 1px solid var(--primary-purple);
+  padding: 0.4em 0.8em;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+
+.last-viewed-banner {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  background-color: rgba(0,0,0,0.4);
+  color: var(--text-soft);
+  padding: 0.2em 0.6em;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-style: italic;
 }
