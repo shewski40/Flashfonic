@@ -1425,11 +1425,14 @@ const MainApp = () => {
     }
   };
 
-  // *** BUG FIX & FONT SIZE ADJUSTMENT ***
+  // *** FONT SIZE ADJUSTMENT FOR PDF EXPORT ***
   const exportNotesToPDF = (folderName, notes) => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
-    
+    const margin = 15;
+    const maxWidth = pageW - (margin * 2);
+    let currentY = 55; // Start position after title
+
     // Draw Header
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(30);
@@ -1445,35 +1448,48 @@ const MainApp = () => {
     doc.setTextColor(0, 0, 0); // Black for the title
     doc.text(`Flash Notes: ${folderName}`, pageW / 2, 45, { align: 'center' });
 
-    // Create a temporary, styled element for PDF generation
-    const pdfContainer = document.createElement('div');
-    pdfContainer.innerHTML = marked(notes);
-    
-    // Apply styles for the PDF
-    pdfContainer.style.color = 'black';
-    pdfContainer.style.fontSize = '10pt'; // Adjusted font size
-    pdfContainer.style.lineHeight = '1.5';
-    pdfContainer.style.width = `${(pageW - 30)}px`; // Match PDF width
-    
-    // Style headings
-    pdfContainer.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
-      h.style.color = '#000000'; // Black for headings in PDF
-      h.style.borderBottom = '1px solid #cccccc';
-      h.style.paddingBottom = '2px';
-      h.style.marginBottom = '10px';
-      h.style.fontSize = '12pt'; // Adjusted heading font size
-    });
+    // Function to check for page breaks
+    const checkPageBreak = (heightNeeded) => {
+      if (currentY + heightNeeded > doc.internal.pageSize.getHeight() - margin) {
+        doc.addPage();
+        currentY = margin;
+      }
+    };
 
-    doc.html(pdfContainer, {
-      x: 15,
-      y: 55,
-      width: pageW - 30,
-      windowWidth: pageW - 30,
-      callback: function (doc) {
-        doc.save(`${folderName}-FlashNotes.pdf`);
+    // Parse markdown into tokens
+    const tokens = marked.lexer(notes);
+
+    tokens.forEach(token => {
+      if (token.type === 'heading') {
+        checkPageBreak(15); // Approximate height for a heading
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(12); // Adjusted heading font size
+        doc.setTextColor(0, 0, 0);
+        const headingText = doc.splitTextToSize(token.text, maxWidth);
+        doc.text(headingText, margin, currentY);
+        currentY += (headingText.length * 5) + 4; // Move Y down
+        doc.setDrawColor(200, 200, 200);
+        doc.line(margin, currentY - 2, margin + maxWidth, currentY - 2); // Underline
+      }
+      if (token.type === 'list') {
+        token.items.forEach(item => {
+          checkPageBreak(10); // Approx height for a list item
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(10); // Adjusted body font size
+          doc.setTextColor(0, 0, 0);
+          const itemText = doc.splitTextToSize(`• ${item.text}`, maxWidth - 5); // Indent bullet
+          doc.text(itemText, margin + 5, currentY);
+          currentY += (itemText.length * 5) + 2;
+        });
+      }
+      if (token.type === 'space') {
+        currentY += 5;
       }
     });
+
+    doc.save(`${folderName}-FlashNotes.pdf`);
   };
+
 
   return (
     <>
