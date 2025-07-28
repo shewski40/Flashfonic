@@ -109,7 +109,7 @@ const MainApp = () => {
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
-  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval = useState(20);
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -676,23 +676,28 @@ const MainApp = () => {
 
   // Function to delete a folder/subfolder
   const handleDeleteFolder = (folderId) => {
-    setFolders(prev => deleteFolderById(prev, folderId));
-    // When a folder is deleted, ensure its ID is removed from expandedFolderIds
-    setExpandedFolderIds(prev => {
-      const newSet = new Set(prev);
-      newSet.delete(folderId);
-      // Optionally, recursively remove subfolder IDs if they were expanded
-      const removeSubfolderIds = (currentFolder) => {
-        for (const subId in currentFolder.subfolders) {
-          newSet.delete(subId);
-          removeSubfolderIds(currentFolder.subfolders[subId]);
+    setFolders(prev => {
+      // Find the folder to be deleted BEFORE modifying the state
+      const deletedFolder = findFolderById(prev, folderId); 
+      const updatedFolders = deleteFolderById(prev, folderId);
+
+      // When a folder is deleted, ensure its ID is removed from expandedFolderIds
+      setExpandedFolderIds(currentExpandedIds => {
+        const newSet = new Set(currentExpandedIds);
+        newSet.delete(folderId);
+        // Recursively remove subfolder IDs if they were expanded
+        const removeSubfolderIds = (currentFolder) => {
+          for (const subId in currentFolder.subfolders) {
+            newSet.delete(subId);
+            removeSubfolderIds(currentFolder.subfolders[subId]);
+          }
+        };
+        if (deletedFolder) { // Only call if the folder was actually found
+          removeSubfolderIds(deletedFolder);
         }
-      };
-      const deletedFolder = findFolderById(folders, folderId); // Need to find it before it's gone from state
-      if (deletedFolder) {
-        removeSubfolderIds(deletedFolder);
-      }
-      return newSet;
+        return newSet;
+      });
+      return updatedFolders;
     });
     setModalConfig(null); // Close modal
   };
@@ -767,20 +772,24 @@ const MainApp = () => {
   };
 
   const exportFolderToPDF = (folderId) => {
-    console.log("Exporting PDF for folderId:", folderId); // Diagnostic log
+    console.log("Exporting PDF for folderId:", folderId); 
     const folder = findFolderById(folders, folderId);
-    console.log("Found folder for PDF export:", folder); // Diagnostic log
+    console.log("Found folder for PDF export:", folder); 
     if (!folder) {
-      setNotification("Folder not found for export."); // Added notification
+      setNotification("Folder not found for export."); 
       return;
     }
+
+    // Ensure other modals/viewers are closed before opening this one
+    setStudyingFolder(null); 
+    setIsFeedbackModalOpen(false);
 
     setPromptModalConfig({
       title: 'Export to PDF',
       message: 'How many flashcards per page? (6, 8, or 10)',
       defaultValue: '8',
       onConfirm: (value) => {
-        console.log("PromptModal onConfirm for PDF, value:", value); // New diagnostic log
+        console.log("PromptModal onConfirm for PDF, value:", value); 
         const cardsPerPage = parseInt(value, 10);
         if (![6, 8, 10].includes(cardsPerPage)) {
           setNotification("Invalid number. Please choose 6, 8, or 10."); 
@@ -845,31 +854,35 @@ const MainApp = () => {
           });
         }
         doc.save(`${folder.name}-flashcards.pdf`);
-        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
+        setPromptModalConfig(null);
       },
       onClose: () => {
-        console.log("PromptModal onClose for PDF"); // New diagnostic log
-        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
+        console.log("PromptModal onClose for PDF"); 
+        setPromptModalConfig(null);
       }
     });
-    console.log("setPromptModalConfig called for PDF export."); // New diagnostic log
+    console.log("setPromptModalConfig called for PDF export."); 
   };
   
   const exportFolderToCSV = (folderId) => {
-    console.log("Exporting CSV for folderId:", folderId); // Diagnostic log
+    console.log("Exporting CSV for folderId:", folderId); 
     const folder = findFolderById(folders, folderId);
-    console.log("Found folder for CSV export:", folder); // Diagnostic log
+    console.log("Found folder for CSV export:", folder); 
     if (!folder) {
-      setNotification("Folder not found for export."); // Added notification
+      setNotification("Folder not found for export."); 
       return;
     }
+
+    // Ensure other modals/viewers are closed before opening this one
+    setStudyingFolder(null); 
+    setIsFeedbackModalOpen(false);
 
     setPromptModalConfig({
       title: 'Export to CSV',
       message: 'How many flashcards do you want to export?',
       defaultValue: folder.cards.length,
       onConfirm: (value) => {
-        console.log("PromptModal onConfirm for CSV, value:", value); // New diagnostic log
+        console.log("PromptModal onConfirm for CSV, value:", value); 
         const numCards = parseInt(value, 10);
         if (isNaN(numCards) || numCards <= 0) {
             setNotification("Invalid number."); 
@@ -890,14 +903,14 @@ const MainApp = () => {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
-        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
+        setPromptModalConfig(null);
       },
       onClose: () => {
-        console.log("PromptModal onClose for CSV"); // New diagnostic log
-        setTimeout(() => setPromptModalConfig(null), 50); // Small delay to ensure modal renders
+        console.log("PromptModal onClose for CSV"); 
+        setPromptModalConfig(null);
       }
     });
-    console.log("setPromptModalConfig called for CSV export."); // New diagnostic log
+    console.log("setPromptModalConfig called for CSV export."); 
   };
 
   const renderCardContent = (card, source, folderId = null) => {
