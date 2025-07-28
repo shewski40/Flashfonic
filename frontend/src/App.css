@@ -1854,3 +1854,32 @@ input[type="range"]::-webkit-slider-thumb {
 .flash-notes-content li {
   margin-bottom: 0.5em;
 }
+
+/* NEW: Styles for Games */
+.games-section-container {
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color);
+  text-align: center;
+}
+
+.games-section-container h3 {
+  color: var(--secondary-pink);
+  margin-bottom: 1rem;
+}
+
+.game-launch-btn {
+  background: var(--brand-gradient);
+  color: white;
+  border: none;
+  padding: 0.8em 1.5em;
+  font-size: 1em;
+  font-weight: bold;
+  border-radius: 30px;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.game-launch-btn:hover {
+  transform: scale(1.05);
+}

@@ -3,6 +3,7 @@ import jsPDF from 'jspdf';
 import { marked } from 'marked'; // For converting markdown to HTML
 import './App.css';
 import { Analytics } from '@vercel/analytics/react';
+import * as Tone from 'tone';
 
 // Helper function to generate a simple UUID for browser compatibility
 const generateUUID = () => {
@@ -130,6 +131,9 @@ const MainApp = () => {
   const [flashNotesContent, setFlashNotesContent] = useState(null); // { folderName, notes }
   const [showFlashNotesViewer, setShowFlashNotesViewer] = useState(false);
 
+  // NEW: State for Game Mode
+  const [gameModeFolder, setGameModeFolder] = useState(null);
+
 
   const [isSafari, setIsSafari] = useState(false);
   useEffect(() => {
@@ -217,8 +221,9 @@ const MainApp = () => {
             if (!newFolder.lastViewed) newFolder.lastViewed = Date.now();
             if (!newFolder.cards) newFolder.cards = [];
             if (!newFolder.subfolders) newFolder.subfolders = {};
-             // NEW: Ensure flashNotes property exists
+             // NEW: Ensure flashNotes and leaderboard properties exist
             if (newFolder.flashNotes === undefined) newFolder.flashNotes = null;
+            if (newFolder.leaderboard === undefined) newFolder.leaderboard = [];
             // Recursively convert subfolders
             newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
           }
@@ -647,7 +652,8 @@ const MainApp = () => {
           lastViewed: Date.now(),
           cards: [],
           subfolders: {},
-          flashNotes: null // Initialize flashNotes
+          flashNotes: null, // Initialize flashNotes
+          leaderboard: [] // Initialize leaderboard
         }
       }));
     }
@@ -674,7 +680,8 @@ const MainApp = () => {
             lastViewed: Date.now(),
             cards: [],
             subfolders: {},
-            flashNotes: null // Initialize flashNotes
+            flashNotes: null, // Initialize flashNotes
+            leaderboard: [] // Initialize leaderboard
           }
         }
       };
@@ -1255,6 +1262,17 @@ const MainApp = () => {
     setStudyingFolder(null);
   };
 
+  // NEW: Handler for when a game session ends to save the score
+  const handleGameEnd = (folderId, finalScore) => {
+    setFolders(prev => updateFolderById(prev, folderId, folder => {
+      const newLeaderboard = [...(folder.leaderboard || []), { score: finalScore, date: Date.now() }];
+      // Sort by score descending, then by date descending
+      newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
+      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) }; // Keep top 10
+    }));
+    setGameModeFolder(null);
+  };
+
   // Recursive component to render folders and subfolders
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
     // Check if this specific folder's ID is in the expandedFolderIds set
@@ -1331,6 +1349,7 @@ const MainApp = () => {
                     setStudyingFolder(null); // Close study viewer if open
                     setIsFeedbackModalOpen(false); // Close feedback modal
                   }}
+                  onPlayGame={(folder) => setGameModeFolder(folder)}
                 />
               </div>
             </div>
@@ -1371,7 +1390,7 @@ const MainApp = () => {
             <div className="folder-card-actions">
               <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                 <option value="" disabled>Move selected to...</option>
-                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
               </select>
               <button 
                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)} 
@@ -1520,7 +1539,8 @@ const MainApp = () => {
 
   return (
     <>
-      {studyingFolder && ( <FlashcardViewer key={studyingFolder.id} folderName={studyingFolder.name} cards={studyingFolder.cards} onClose={handleStudySessionEnd} /> )}
+      {studyingFolder && ( <FlashcardViewer key={studyingFolder.id} folder={studyingFolder} onClose={handleStudySessionEnd} onLaunchGame={(folder) => { setStudyingFolder(null); setGameModeFolder(folder); }} /> )}
+      {gameModeFolder && ( <GameViewer key={gameModeFolder.id} folder={gameModeFolder} onClose={handleGameEnd} onBackToStudy={(folder) => { setGameModeFolder(null); setStudyingFolder(folder); }} /> )}
       {promptModalConfig && (
         <PromptModal
           title={promptModalConfig.title}
@@ -1772,7 +1792,7 @@ const MainApp = () => {
 // --- HELPER COMPONENTS AND FUNCTIONS ---
 
 // Component for the Actions dropdown
-const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder }) => {
+const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder, onPlayGame }) => {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -1797,6 +1817,8 @@ const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenam
           <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
           <button onClick={(e) => { e.stopPropagation(); exportPdf(folder.id); setIsOpen(false); }}>Export PDF</button>
           <button onClick={(e) => { e.stopPropagation(); exportCsv(folder.id); setIsOpen(false); }}>Export CSV</button>
+          <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
+          <button onClick={(e) => { e.stopPropagation(); onPlayGame(folder); setIsOpen(false); }}>Verbatim Master AI</button>
         </div>
       )}
     </div>
@@ -1918,8 +1940,8 @@ const FeedbackModal = ({ onClose, formspreeUrl }) => {
   );
 };
 
-const FlashcardViewer = ({ folderName, cards, onClose }) => {
-  const [deck, setDeck] = useState([...cards]);
+const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
+  const [deck, setDeck] = useState([...folder.cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isArrangeMode, setIsArrangeMode] = useState(false);
@@ -2079,7 +2101,7 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
   return (
     <div className="viewer-overlay">
       <div className="viewer-header">
-        <h2>Studying: {folderName}</h2>
+        <h2>Studying: {folder.name}</h2>
         <button onClick={() => onClose(deck)} className="viewer-close-btn">&times;</button>
       </div>
       <div className="viewer-controls">
@@ -2178,6 +2200,11 @@ const FlashcardViewer = ({ folderName, cards, onClose }) => {
               <label>Speed: {speechRate}x</label>
               <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
             </div>
+          </div>
+          {/* NEW: Games Section */}
+          <div className="games-section-container">
+            <h3>Games</h3>
+            <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
           </div>
         </>
       )}
