@@ -783,92 +783,99 @@ const MainApp = () => {
     setStudyingFolder(null); 
     setIsFeedbackModalOpen(false);
 
-    setPromptModalConfig({
-      title: 'Export to PDF',
-      message: 'How many flashcards per page? (6, 8, or 10)',
-      defaultValue: '8',
-      onConfirm: (value) => {
-        const cardsPerPage = parseInt(value, 10);
-        if (![6, 8, 10].includes(cardsPerPage)) {
-          setNotification("Invalid number. Please choose 6, 8, or 10."); 
-          return; // Do not proceed if input is invalid
-        }
-        
-        const doc = new jsPDF();
-        const cards = folder.cards; 
-        const pageW = doc.internal.pageSize.getWidth();
-        const pageH = doc.internal.pageSize.getHeight();
-        const layoutConfig = {
-          6: { rows: 3, cols: 2, fontSize: 12 },
-          8: { rows: 4, cols: 2, fontSize: 10 },
-          10: { rows: 5, cols: 2, fontSize: 9 },
-        };
-        const config = layoutConfig[cardsPerPage];
-        const margin = 15;
-        const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
-        const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
-
-        const drawHeader = () => {
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(30);
-            doc.setTextColor(139, 92, 246); // RGB for --primary-purple
-            doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(16);
-            doc.setTextColor(31, 41, 55); // RGB for --content-bg (darker text for header)
-            doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
-        };
-
-        let currentPageIndex = 0;
-        while (currentPageIndex < cards.length) {
-          const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
+    // Defer setting promptModalConfig to ensure it renders
+    setTimeout(() => {
+      setPromptModalConfig({
+        title: 'Export to PDF',
+        message: 'How many flashcards per page? (6, 8, or 10)',
+        defaultValue: '8',
+        onConfirm: (value) => {
+          const cardsPerPage = parseInt(value, 10);
+          if (![6, 8, 10].includes(cardsPerPage)) {
+            setNotification("Invalid number. Please choose 6, 8, or 10."); 
+            return; // Do not proceed if input is invalid
+          }
           
-          // Add page for Questions
-          if (currentPageIndex > 0) doc.addPage();
-          drawHeader();
-          pageCards.forEach((card, index) => {
-            const row = Math.floor(index / config.cols);
-            const col = index % config.cols;
-            const cardX = margin + (col * (cardW + margin));
-            const cardY = 40 + (row * (cardH + margin));
-            doc.setLineWidth(0.5);
-            doc.setDrawColor(0);
-            doc.setTextColor(0, 0, 0); // Black for card content
-            doc.rect(cardX, cardY, cardW, cardH);
-            doc.setFontSize(config.fontSize);
-            const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
-            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-          });
+          const doc = new jsPDF();
+          const cards = folder.cards; 
+          const pageW = doc.internal.pageSize.getWidth();
+          const pageH = doc.internal.pageSize.getHeight();
+          const layoutConfig = {
+            6: { rows: 3, cols: 2, fontSize: 12 },
+            8: { rows: 4, cols: 2, fontSize: 10 },
+            10: { rows: 5, cols: 2, fontSize: 9 },
+          };
+          const config = layoutConfig[cardsPerPage];
+          const margin = 15;
+          const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
+          const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
 
-          // Add page for Answers
-          doc.addPage();
-          drawHeader();
-          pageCards.forEach((card, index) => {
-            const row = Math.floor(index / config.cols);
-            const col = index % config.cols;
-            const cardX = margin + (col * (cardW + margin));
-            const cardY = 40 + (row * (cardH + margin));
-            doc.setLineWidth(0.5);
-            doc.setDrawColor(0);
-            doc.setTextColor(0, 0, 0); // Black for card content
-            doc.rect(cardX, cardY, cardW, cardH);
-            doc.setFontSize(config.fontSize);
-            const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
-            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-          });
+          const drawHeader = () => {
+              doc.setFont('helvetica', 'bold');
+              doc.setFontSize(30);
+              doc.setTextColor(139, 92, 246); // RGB for --primary-purple
+              doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+              doc.setFont('helvetica', 'normal');
+              doc.setFontSize(16);
+              doc.setTextColor(31, 41, 55); // RGB for --content-bg (darker text for header)
+              doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
+          };
 
-          currentPageIndex += cardsPerPage;
+          let currentPageIndex = 0;
+          while (currentPageIndex < cards.length) {
+            const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
+            
+            // Add page for Questions
+            if (currentPageIndex > 0) doc.addPage();
+            drawHeader();
+            pageCards.forEach((card, index) => {
+              const row = Math.floor(index / config.cols);
+              const col = index % config.cols;
+              const cardX = margin + (col * (cardW + margin));
+              const cardY = 40 + (row * (cardH + margin));
+              doc.setLineWidth(0.5);
+              doc.setDrawColor(0);
+              doc.setTextColor(0, 0, 0); // Black for card content
+              doc.rect(cardX, cardY, cardW, cardH);
+              doc.setFontSize(config.fontSize);
+              const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
+              const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+              doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+            });
+
+            // Add page for Answers
+            // Only add a new page for answers if there are more cards OR if this is the last page and it's not the very last card
+            // This condition ensures we don't add an extra blank page at the very end if the last card's answer fits.
+            if (pageCards.length > 0) { // Ensure there are cards on this "answer" page
+              doc.addPage();
+              drawHeader();
+              pageCards.forEach((card, index) => {
+                const row = Math.floor(index / config.cols);
+                const col = index % config.cols;
+                const cardX = margin + (col * (cardW + margin));
+                const cardY = 40 + (row * (cardH + margin));
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(0);
+                doc.setTextColor(0, 0, 0); // Black for card content
+                doc.rect(cardX, cardY, cardW, cardH);
+                doc.setFontSize(config.fontSize);
+                const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
+                const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+                doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+              });
+            }
+
+            currentPageIndex += cardsPerPage;
+          }
+          
+          doc.save(`${folder.name}-flashcards.pdf`);
+          setPromptModalConfig(null); // Close modal after successful generation
+        },
+        onClose: () => {
+          setPromptModalConfig(null); // Ensure modal closes on cancel
         }
-        
-        doc.save(`${folder.name}-flashcards.pdf`);
-        setPromptModalConfig(null); // Close modal after successful generation
-      },
-      onClose: () => {
-        setPromptModalConfig(null); // Ensure modal closes on cancel
-      }
-    });
+      });
+    }, 0); // Use setTimeout to defer state update
   };
   
   const exportFolderToCSV = (folderId) => {
@@ -882,42 +889,45 @@ const MainApp = () => {
     setStudyingFolder(null); 
     setIsFeedbackModalOpen(false);
 
-    setPromptModalConfig({
-      title: 'Export to CSV',
-      message: 'How many flashcards do you want to export?',
-      defaultValue: folder.cards.length.toString(), // Default value should be a string
-      onConfirm: (value) => {
-        const numCards = parseInt(value, 10);
-        if (isNaN(numCards) || numCards <= 0 || numCards > folder.cards.length) {
-            setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`); 
-            return; // Do not proceed if input is invalid
+    // Defer setting promptModalConfig to ensure it renders
+    setTimeout(() => {
+      setPromptModalConfig({
+        title: 'Export to CSV',
+        message: 'How many flashcards do you want to export?',
+        defaultValue: folder.cards.length.toString(), // Default value should be a string
+        onConfirm: (value) => {
+          const numCards = parseInt(value, 10);
+          if (isNaN(numCards) || numCards <= 0 || numCards > folder.cards.length) {
+              setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`); 
+              return; // Do not proceed if input is invalid
+          }
+          const cardsToExport = folder.cards.slice(0, numCards);
+          
+          let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n"; // Header for CSV
+          csvContent += "Question,Answer\n";
+          cardsToExport.forEach(card => {
+              // Escape double quotes by doubling them, then wrap the whole field in double quotes
+              const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
+              const escapedAnswer = `"${card.answer.replace(/"/g, '""')}"`;
+              csvContent += `${escapedQuestion},${escapedAnswer}\n`;
+          });
+          
+          const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+          const link = document.createElement("a");
+          link.href = URL.createObjectURL(blob);
+          link.download = `${folder.name}-flashcards.csv`;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+          URL.revokeObjectURL(link.href); // Clean up the object URL
+          setNotification(`Exported ${numCards} cards to ${folder.name}-flashcards.csv`);
+          setPromptModalConfig(null); // Close modal after successful generation
+        },
+        onClose: () => {
+          setPromptModalConfig(null); // Ensure modal closes on cancel
         }
-        const cardsToExport = folder.cards.slice(0, numCards);
-        
-        let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n"; // Header for CSV
-        csvContent += "Question,Answer\n";
-        cardsToExport.forEach(card => {
-            // Escape double quotes by doubling them, then wrap the whole field in double quotes
-            const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
-            const escapedAnswer = `"${card.answer.replace(/"/g, '""')}"`;
-            csvContent += `${escapedQuestion},${escapedAnswer}\n`;
-        });
-        
-        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-        const link = document.createElement("a");
-        link.href = URL.createObjectURL(blob);
-        link.download = `${folder.name}-flashcards.csv`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(link.href); // Clean up the object URL
-        setNotification(`Exported ${numCards} cards to ${folder.name}-flashcards.csv`);
-        setPromptModalConfig(null); // Close modal after successful generation
-      },
-      onClose: () => {
-        setPromptModalConfig(null); // Ensure modal closes on cancel
-      }
-    });
+      });
+    }, 0); // Use setTimeout to defer state update
   };
   // REBUILT EXPORT FUNCTIONS END HERE
 
