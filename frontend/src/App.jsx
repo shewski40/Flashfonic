@@ -1453,20 +1453,18 @@ const MainApp = () => {
     
     // Apply styles for the PDF
     pdfContainer.style.color = 'black';
-    pdfContainer.style.fontSize = '12px';
+    pdfContainer.style.fontSize = '12.5pt'; // Changed to 12.5pt
     pdfContainer.style.lineHeight = '1.5';
     pdfContainer.style.width = `${(pageW - 30)}px`; // Match PDF width
     
     // Style headings
-    pdfContainer.querySelectorAll('h1, h2, h3, h4').forEach(h => {
+    pdfContainer.querySelectorAll('h1, h2, h3, h4, h5, h6').forEach(h => {
       h.style.color = '#8B5CF6'; // --primary-purple
       h.style.borderBottom = '1px solid #374151'; // --border-color
       h.style.paddingBottom = '4px';
       h.style.marginBottom = '12px';
+      h.style.fontSize = '13.5pt'; // Changed to 13.5pt
     });
-    pdfContainer.querySelectorAll('h1').forEach(h => h.style.fontSize = '18px');
-    pdfContainer.querySelectorAll('h2').forEach(h => h.style.fontSize = '16px');
-    pdfContainer.querySelectorAll('h3').forEach(h => h.style.fontSize = '14px');
 
     doc.html(pdfContainer, {
       x: 15,
@@ -1685,7 +1683,7 @@ const MainApp = () => {
             <div className="folder-actions">
               <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                 <option value="" disabled>Select a folder...</option>
-                {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                {allFoldersForMoveDropdown.map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
               </select>
               <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
             </div>
