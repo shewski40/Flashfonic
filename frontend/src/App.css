@@ -252,6 +252,21 @@ input[type="range"]::-webkit-slider-thumb {
   margin: 0;
 }
 
+/* Updated Games Section Heading */
+.games-section-container h3 {
+  font-size: 2rem; /* Larger font size */
+  font-weight: 900; /* More robust */
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  background-image: var(--brand-gradient); /* Keep the gradient */
+  text-align: center;
+  margin-bottom: 1.5rem;
+  letter-spacing: 1px; /* Add some spacing */
+  text-shadow: 0 0 10px rgba(236, 72, 153, 0.5); /* Subtle glow */
+}
+
+
 .generated-cards-queue .queue-header {
   display: flex;
   flex-direction: column;
@@ -322,7 +337,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 8px;
   cursor: pointer;
   font-family: 'Poppins', sans-serif;
-  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3csvg%3e");
   background-position: right 0.5rem center;
   background-repeat: no-repeat;
   background-size: 1.5em 1.5em;
@@ -504,7 +519,7 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
 }
 
-.study-btn-large, .flash-notes-btn {
+.study-btn-large, .flash-notes-btn, .game-button-in-folder {
   padding: 0.8em 1.5em !important;
   font-size: 1em !important;
   font-weight: 700 !important;
@@ -521,6 +536,10 @@ input[type="range"]::-webkit-slider-thumb {
 
 .flash-notes-btn {
   background-color: var(--secondary-pink) !important;
+}
+
+.game-button-in-folder {
+  background-color: var(--primary-purple) !important; /* New style for game button */
 }
 
 
@@ -1806,11 +1825,6 @@ input[type="range"]::-webkit-slider-thumb {
   text-align: center;
 }
 
-.games-section-container h3 {
-  color: var(--secondary-pink);
-  margin-bottom: 1rem;
-}
-
 .game-launch-btn {
   background: var(--brand-gradient);
   color: white;
@@ -1976,7 +1990,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .incorrect-x {
- animation: popInX 0.5s ease-out;
+  animation: popInX 0.5s ease-out;
 }
 
 @keyframes popIn {
@@ -2061,18 +2075,19 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
 }
 
+/* Updated Leaderboard Styling */
 .leaderboard-container {
-  font-family: 'Press Start 2P', cursive;
+  font-family: 'Poppins', sans-serif; /* Use Poppins for a sleeker look */
   width: 100%;
   max-width: 500px;
-  background-color: #000;
-  border: 4px solid var(--primary-purple);
-  box-shadow: 0 0 10px var(--primary-purple), inset 0 0 10px var(--primary-purple);
+  background-color: var(--dark-bg); /* Darker background for sleekness */
+  border: 2px solid var(--primary-purple); /* Thinner, primary color border */
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5); /* Softer, subtle glow */
   padding: 1.5rem;
   border-radius: 16px;
-  color: #fff;
+  color: var(--text-light); /* Light text for contrast */
   margin-top: 1rem;
-  text-transform: uppercase;
+  text-transform: none; /* Remove uppercase for general text */
 }
 
 .leaderboard-container.full-page {
@@ -2085,12 +2100,14 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .leaderboard-container h3, .leaderboard-container h2 {
+  font-family: 'Press Start 2P', cursive; /* Keep retro font for headings */
   font-size: 1.5rem;
   color: var(--secondary-pink);
   text-shadow: 0 0 5px var(--secondary-pink);
   margin-top: 0;
   margin-bottom: 1.5rem;
   text-align: center;
+  text-transform: uppercase; /* Keep uppercase for retro headings */
 }
 
 .leaderboard-list {
@@ -2106,18 +2123,25 @@ input[type="range"]::-webkit-slider-thumb {
   padding: 0.5rem 0;
   font-size: 1rem;
   align-items: center;
-  color: var(--text-light);
-  text-shadow: 0 0 2px rgba(255,255,255,0.7);
+  color: var(--text-soft); /* Softer text color for entries */
+  text-shadow: none; /* Remove text shadow for entries */
+  border-bottom: 1px dashed rgba(139, 92, 246, 0.2); /* Subtle separator */
+}
+
+.leaderboard-list li:last-child {
+  border-bottom: none; /* No border on last item */
 }
 
 .leaderboard-list li span:nth-child(1) {
   color: var(--primary-purple);
-  text-shadow: 0 0 5px var(--primary-purple);
+  text-shadow: none; /* Remove text shadow */
+  font-weight: bold; /* Make rank number bold */
 }
 .leaderboard-list li span:nth-child(3) {
   text-align: right;
-  color: var(--gold);
-  text-shadow: 0 0 5px var(--gold);
+  color: var(--gold); /* Keep gold for score */
+  text-shadow: none; /* Remove text shadow */
+  font-weight: bold; /* Make score bold */
 }
 
 
@@ -2328,4 +2352,145 @@ input[type="range"]::-webkit-slider-thumb {
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }
+}
+
+/* New Anamnesis Nemesis Landing Page Styles */
+.anamnesis-landing-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    width: 100%;
+    height: 100%;
+    background-color: #0A0A0A; /* Darker background */
+    background-image:
+        linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), /* Dark overlay */
+        url('https://www.gstatic.com/images/branding/product/1x/gemini_2023_logo_48dp.png'); /* User provided image */
+    background-size: cover;
+    background-position: center;
+    color: var(--text-light);
+    text-align: center;
+    padding: 2rem;
+    box-sizing: border-box;
+}
+
+.anamnesis-title {
+    font-family: 'Uncial Antiqua', cursive;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    background-image: linear-gradient(to right, #FF0000, #FFD700); /* Fiery gradient */
+    text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
+    letter-spacing: 3px;
+    margin-bottom: 0.5rem;
+}
+
+.anamnesis-tagline {
+    font-size: 1.5rem;
+    font-style: italic;
+    color: var(--text-soft);
+    margin-bottom: 1rem;
+}
+
+.anamnesis-description {
+    font-size: 1.2rem;
+    color: var(--text-light);
+    max-width: 700px;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.anamnesis-features-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    max-width: 800px;
+    width: 100%;
+    margin-bottom: 2rem;
+}
+
+.anamnesis-feature-card {
+    background-color: rgba(31, 41, 55, 0.7); /* Semi-transparent content background */
+    border: 1px solid rgba(255, 0, 0, 0.5); /* Red border */
+    border-radius: 12px;
+    padding: 1.5rem;
+    box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
+    text-align: left;
+}
+
+.anamnesis-feature-card h3 {
+    font-size: 1.3rem;
+    color: #FFD700; /* Gold for feature titles */
+    margin-top: 0;
+    margin-bottom: 0.75rem;
+}
+
+.anamnesis-feature-card p {
+    font-size: 1rem;
+    color: var(--text-soft);
+    line-height: 1.5;
+}
+
+.anamnesis-cta-button {
+    padding: 1em 2.5em;
+    font-size: 1.2em;
+    font-weight: bold;
+    border: none;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background: linear-gradient(to right, #FF0000, #FFD700); /* Fiery gradient */
+    color: white;
+    box-shadow: 0 10px 20px -10px rgba(255, 0, 0, 0.7);
+}
+
+.anamnesis-cta-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px -5px rgba(255, 0, 0, 0.9);
+}
+
+@media (min-width: 768px) {
+    .anamnesis-title {
+        font-size: 4.5rem;
+    }
+    .anamnesis-tagline {
+        font-size: 1.8rem;
+    }
+    .anamnesis-description {
+        font-size: 1.3rem;
+    }
+    .anamnesis-features-grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* Games Modal Styles - Reusing existing modal styles */
+.games-modal-content {
+    min-height: 0; /* Added to remove warning */
+}
+
+.games-modal-content .game-selection-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.games-modal-content .game-selection-grid button {
+    padding: 1em;
+    font-size: 1.1em;
+    font-weight: bold;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background-color: var(--primary-purple);
+    color: white;
+}
+
+.games-modal-content .game-selection-grid button:hover {
+    background-color: var(--secondary-pink);
 }
