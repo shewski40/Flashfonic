@@ -711,17 +711,17 @@ const MainApp = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState('');
   const [mediaSrc, setMediaSrc] = useState(null);
-  const [fileType, setFileType] = useState(null);
+  const [fileType, setFileType] = null;
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [mediaDuration, setMediaDuration] = useState(0);
   const [voiceActivated, setVoiceActivated] = useState(false);
   const [checkedCards, setCheckedCards] = useState({});
-  const [editingCard, setEditingCard] = useState(null);
-  const [studyingFolder, setStudyingFolder] = useState(null);
-  const [promptModalConfig, setPromptModalConfig] = useState(null);
+  const [editingCard, setEditingCard] = null;
+  const [studyingFolder, setStudyingFolder] = null;
+  const [promptModalConfig, setPromptModalConfig] = null;
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
-  const [movingCard, setMovingCard] = useState(null);
+  const [movingCard, setMovingCard] = null;
   const [listeningDuration, setListeningDuration] = useState(1);
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
@@ -730,11 +730,12 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null);
+  const [uploadedFile, setUploadedFile] = null;
   const [audioCacheId, setAudioCacheId] = useState(null);
   const [folderSortBy, setFolderSortBy] = useState('name');
   const [draggedFolderId, setDraggedFolderId] = useState(null);
-  const [expandedFolderIds, setExpandedFolderIds] = new Set();  
+  // FIX: Corrected useState initialization for expandedFolderIds
+  const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());  
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
   const [modalConfig, setModalConfig] = useState(null);    
@@ -1008,7 +1009,7 @@ const MainApp = () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      recognition.current = null;
+      recognitionRef.current = null; // Corrected: Use .current
     }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
