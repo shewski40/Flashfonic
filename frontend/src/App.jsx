@@ -85,9 +85,9 @@ const LandingPage = ({ onEnter }) => {
 // --- HOW TO PLAY MODAL ---
 const HowToPlayModal = ({ onClose }) => {
     return (
-        <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-overlay how-to-play-overlay" onClick={onClose}>
             <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <h2 className="how-to-play-title">How to Play: Verbatim Master AI</h2>
+                <h2 className="how-to-play-title">How to Play: Verbatim Master</h2>
                 <div className="how-to-play-content">
                     <p><strong>The Goal:</strong> Prove you're a master of recall! Your mission is to listen to the question and then speak the answer exactly as it appears on the flashcard.</p>
                     
@@ -98,14 +98,15 @@ const HowToPlayModal = ({ onClose }) => {
                         <li><strong>Get Scored:</strong> Our Verbatim Master AI will instantly score your answer based on how close it is to the correct one.</li>
                     </ol>
 
-                    <h3>Scoring & Medals</h3>
+                    <h3>Scoring & Ranks</h3>
+                    <p>Your final score is tallied and you're awarded a rank based on your performance:</p>
                     <ul>
-                        <li><strong>Perfect (100 pts):</strong> A flawless match!</li>
-                        <li><strong>Excellent (70-99 pts):</strong> You've got the key concepts down.</li>
-                        <li><strong>Good (30-69 pts):</strong> A solid attempt, but some details were missed.</li>
-                        <li><strong>Incorrect (0-29 pts):</strong> This one needs more review. No points awarded.</li>
+                        <li><strong>Verbatim Master (100%):</strong> 🏆 Flawless recall!</li>
+                        <li><strong>Synapse Slayer (90-99%):</strong> 🧠 A truly elite memory.</li>
+                        <li><strong>Recall Assassin (80-89%):</strong> 🗡️ Sharp and deadly accurate.</li>
+                        <li><strong>Mind Sniper (70-79%):</strong> 🎯 On target, but aim for perfection.</li>
+                        <li><strong>Mnemonic Casualty (&lt;70%):</strong> 🩹 A valiant effort. Review and try again!</li>
                     </ul>
-                    <p>At the end of the game, your total score determines if you earn a <strong>Bronze, Silver, or Gold Medal!</strong> 🥇</p>
                     
                     <h3>The Benefit</h3>
                     <p>This isn't just a game; it's a powerful study tool. Recalling information verbatim strengthens neural pathways, dramatically improving your long-term memory and mastery of the subject.</p>
@@ -128,7 +129,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
     const [userAnswer, setUserAnswer] = useState('');
     const [lastScore, setLastScore] = useState(null);
     const [isListening, setIsListening] = useState(false);
-    const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     
@@ -144,7 +144,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
 
     const currentCard = deck[currentIndex];
 
-    // Sound effects setup using Tone.js
     const sounds = useMemo(() => {
         const createSynth = (oscillatorType) => new Tone.Synth({
             oscillator: { type: oscillatorType },
@@ -196,7 +195,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         askQuestion();
     };
 
-    // Load voices for TTS
     useEffect(() => {
         const loadVoices = () => {
           const availableVoices = window.speechSynthesis.getVoices();
@@ -343,8 +341,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             setCurrentIndex(i => i + 1);
             setGameState('starting');
         } else {
-            setGameState('game_over');
             onClose(folder.id, score);
+            setGameState('game_over');
         }
     };
     
@@ -354,21 +352,20 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         setScore(0);
         setUserAnswer('');
         setLastScore(null);
-        setShowLeaderboard(false);
         setGameState('starting');
     };
 
     const getMedal = () => {
         const totalPossible = deck.length * 100;
-        if (totalPossible === 0) return null;
+        if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation' };
         const percentage = (score / totalPossible) * 100;
-        if (percentage >= 95) return { type: '🥇', name: 'Gold Medal', animation: 'gold-medal-animation' };
-        if (percentage >= 80) return { type: '🥈', name: 'Silver Medal', animation: 'silver-medal-animation' };
-        if (percentage >= 60) return { type: '🥉', name: 'Bronze Medal', animation: 'bronze-medal-animation' };
-        return null;
-    };
 
-    const medal = getMedal();
+        if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
+        if (percentage >= 90) return { name: 'Synapse Slayer', animation: 'gold-medal-animation', icon: '🧠' };
+        if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
+        if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
+        return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
+    };
 
     const renderVoiceSelector = () => (
         <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
@@ -452,19 +449,32 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                     </div>
                 );
             case 'game_over':
+                const totalPossibleScore = deck.length * 100;
+                const finalMedal = getMedal();
+                const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
+
                 return (
                     <div className="game-over-container">
-                        <h2 className="game-over-title">Game Over!</h2>
-                        {medal && (
-                            <div className={`medal-container ${medal.animation}`}>
-                                <span className="medal-icon">{medal.type}</span>
-                                <p>{medal.name}</p>
-                            </div>
-                        )}
-                        <p className="final-score-display">Final Score: {score}</p>
+                        <h2 className="game-over-title">{finalMedal.name}</h2>
+                        <div className={`medal-container ${finalMedal.animation}`}>
+                            <span className="medal-icon">{finalMedal.icon}</span>
+                        </div>
+                        <p className="final-score-display">
+                            Total Score: {score} / {totalPossibleScore}
+                        </p>
+                        <div className="leaderboard-container">
+                            <h3>Leaderboard</h3>
+                            <ol className="leaderboard-list">
+                               {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
+                                   <li key={index}>
+                                       <span>{new Date(entry.date).toLocaleDateString()}</span>
+                                       <span>{entry.score} pts</span>
+                                   </li>
+                               )) : <p>No scores yet. Be the first!</p>}
+                            </ol>
+                        </div>
                         <div className="game-end-actions">
                             <button className="game-action-btn" onClick={playAgain}>Play Again</button>
-                            <button className="game-action-btn" onClick={() => setShowLeaderboard(true)}>View Leaderboard</button>
                             <button className="game-action-btn" onClick={() => onBackToStudy(folder)}>Back to Study</button>
                         </div>
                     </div>
@@ -473,37 +483,12 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                 return null;
         }
     };
-    
-    if (showLeaderboard) {
-        const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
-        return (
-            <div className="viewer-overlay game-mode">
-                 {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
-                <div className="leaderboard-container">
-                    <h2>Leaderboard: {folder.name}</h2>
-                    <ol className="leaderboard-list">
-                       {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
-                           <li key={index}>
-                               <span>{new Date(entry.date).toLocaleDateString()}</span>
-                               <span>{entry.score} pts</span>
-                           </li>
-                       )) : <p>No scores yet. Be the first!</p>}
-                    </ol>
-                    <div className="game-end-actions">
-                        <button className="game-action-btn" onClick={playAgain}>Play Again</button>
-                        <button className="game-action-btn" onClick={() => onBackToStudy(folder)}>Back to Study</button>
-                    </div>
-                </div>
-            </div>
-        )
-    }
-
 
     return (
         <div className="viewer-overlay game-mode">
             {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
             
-            {gameState !== 'landing' && (
+            {gameState !== 'landing' && gameState !== 'game_over' && (
                 <>
                     <div className="game-header">
                         <h3>Verbatim Master</h3>
@@ -521,7 +506,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                     <div className="in-game-voice-selector">
                         {renderVoiceSelector()}
                     </div>
-                    {gameState !== 'game_over' && !isPaused && (
+                    {!isPaused && (
                         <div className="in-game-controls">
                             <button onClick={handlePause}>Pause</button>
                             <button onClick={handleExit}>Exit</button>
@@ -1663,7 +1648,7 @@ const MainApp = () => {
       newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
       return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
     }));
-    setGameModeFolder(null);
+    // Do not set gameModeFolder to null here, let the game_over screen handle it
   };
 
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
