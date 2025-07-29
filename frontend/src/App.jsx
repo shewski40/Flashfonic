@@ -473,7 +473,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                             <button className="game-action-btn" onClick={() => setGameState('name_entry')}>Start Game</button>
                             <button className="game-action-btn" onClick={() => setShowHowToPlay(true)}>How to Play</button>
                             <button className="game-action-btn" onClick={() => setShowLeaderboard(true)}>Leaderboard</button>
-                            <button className="game-action-btn" onClick={handleBackButton}>Back</button>
                         </div>
                         <div className="game-play-mode-selector">
                             <button
@@ -492,6 +491,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                         <div className="game-landing-voice-selector">
                             {renderVoiceSelector()}
                         </div>
+                        <button className="game-action-btn" onClick={handleBackButton}>Back</button>
                     </div>
                 );
             case 'name_entry':
