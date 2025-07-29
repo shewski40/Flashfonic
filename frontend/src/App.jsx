@@ -174,7 +174,7 @@ const GamesModal = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis })
 // --- ANAMNESIS NEMESIS LANDING PAGE COMPONENT ---
 const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
     return (
-        <div className="anamnesis-landing-page">
+        <div className="viewer-overlay anamnesis-landing-page"> {/* Added viewer-overlay class */}
             <h1 className="anamnesis-title">ANAMNESIS NEMESIS</h1>
             <p className="anamnesis-tagline">The AI that never forgets, and never forgives.</p>
             <p className="anamnesis-description">
@@ -717,11 +717,11 @@ const MainApp = () => {
   const [mediaDuration, setMediaDuration] = useState(0);
   const [voiceActivated, setVoiceActivated] = useState(false);
   const [checkedCards, setCheckedCards] = useState({});
-  const [editingCard, setEditingCard] = useState(null); // Corrected initialization
-  const [studyingFolder, setStudyingFolder] = useState(null); // Corrected initialization
-  const [promptModalConfig, setPromptModalConfig] = useState(null); // Corrected initialization
+  const [editingCard, setEditingCard] = useState(null); 
+  const [studyingFolder, setStudyingFolder] = useState(null); 
+  const [promptModalConfig, setPromptModalConfig] = useState(null); 
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
-  const [movingCard, setMovingCard] = useState(null); // Corrected initialization
+  const [movingCard, setMovingCard] = useState(null); 
   const [listeningDuration, setListeningDuration] = useState(1);
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
@@ -730,22 +730,21 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = useState(null); // Corrected initialization
-  const [audioCacheId, setAudioCacheId] = useState(null); // Corrected initialization
+  const [uploadedFile, setUploadedFile] = useState(null); 
+  const [audioCacheId, setAudioCacheId] = useState(null); 
   const [folderSortBy, setFolderSortBy] = useState('name');
   const [draggedFolderId, setDraggedFolderId] = useState(null);
-  // FIX: Corrected useState initialization for expandedFolderIds
   const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());  
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
-  const [modalConfig, setModalConfig] = useState(null);    // Corrected initialization
+  const [modalConfig, setModalConfig] = useState(null);    
   
-  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); // Corrected initialization
+  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); 
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-  const [flashNotesContent, setFlashNotesContent] = useState(null); // Corrected initialization
+  const [flashNotesContent, setFlashNotesContent] = useState(null); 
   const [showFlashNotesViewer, setShowFlashNotesViewer] = useState(false);
 
-  const [gameModeFolder, setGameModeFolder] = useState(null); // Corrected initialization
+  const [gameModeFolder, setGameModeFolder] = useState(null); 
   const [gameLaunchedFromStudy, setGameLaunchedFromStudy] = useState(false);
   const [showGamesModal, setShowGamesModal] = useState(null); // Stores folder for which games modal is open
   const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
@@ -1832,14 +1831,16 @@ const MainApp = () => {
   };
 
   const handlePlayGame = (folder) => {
-    setGameModeFolder(folder);
+    // Ensure a new object reference is passed to force GameViewer remount
+    setGameModeFolder({ ...folder }); 
     setGameLaunchedFromStudy(false);
   };
 
   const handleLaunchAnamnesisNemesis = (folder) => {
     setShowAnamnesisNemesisLanding(true);
     setShowGamesModal(null); // Close the games modal
-    setGameModeFolder(folder); // Keep track of the folder for the new game
+    // Ensure a new object reference is passed to force AnamnesisNemesisLandingPage remount
+    setGameModeFolder({ ...folder }); 
   };
 
   const handleStartAnamnesisNemesisGame = () => {
@@ -2114,8 +2115,14 @@ const MainApp = () => {
           onClose={handleStudySessionEnd}
           onLaunchGame={(folder) => {
             setStudyingFolder(null);
-            setGameModeFolder(folder);
+            setGameModeFolder({ ...folder }); // Pass a new object reference
             setGameLaunchedFromStudy(true);
+          }}
+          onLaunchAnamnesisNemesis={(folder) => { // Pass this prop down
+            setStudyingFolder(null);
+            setGameModeFolder({ ...folder }); // Pass a new object reference
+            setGameLaunchedFromStudy(true); // Indicate it came from study mode
+            setShowAnamnesisNemesisLanding(true);
           }}
         />
       )}
@@ -2181,7 +2188,7 @@ const MainApp = () => {
           onClose={() => setShowGamesModal(null)}
           onLaunchGame={(folder) => {
             setShowGamesModal(null); // Close games modal
-            setGameModeFolder(folder); // Set folder for Verbatim Master
+            setGameModeFolder({ ...folder }); // Set folder for Verbatim Master (new object reference)
             setGameLaunchedFromStudy(true); // Indicate it came from study mode
           }}
           onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
@@ -2557,7 +2564,7 @@ const FeedbackModal = ({ onClose, formspreeUrl }) => {
   );
 };
 
-const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
+const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => { // Added onLaunchAnamnesisNemesis
   const [deck, setDeck] = useState([...folder.cards]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
@@ -2781,9 +2788,9 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
           </div>
           <div className="games-section-container">
             <h3>Games</h3>
-            {/* The Verbatim Master AI launch button is now handled by the GamesModal */}
-            {/* <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button> */}
-            <p className="subtle-text">Select "Games" from the folder actions to launch a game.</p>
+            {/* Added both game buttons here */}
+            <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
+            <button className="game-launch-btn" onClick={() => onLaunchAnamnesisNemesis(folder)}>Anamnesis Nemesis</button>
           </div>
         </>
       )}
