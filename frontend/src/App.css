@@ -2118,7 +2118,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .leaderboard-list li {
   display: grid;
-  grid-template-columns: 1fr 3fr 1.5fr;
+  grid-template-columns: 0.5fr 2fr 1fr 1.5fr; /* Added column for Level */
   gap: 1rem;
   padding: 0.5rem 0;
   font-size: 1rem;
@@ -2132,15 +2132,24 @@ input[type="range"]::-webkit-slider-thumb {
   border-bottom: none; /* No border on last item */
 }
 
+.leaderboard-list li span {
+  font-weight: normal; /* Reset default bold for all spans */
+}
+
 .leaderboard-list li span:nth-child(1) {
   color: var(--primary-purple);
-  text-shadow: none; /* Remove text shadow */
   font-weight: bold; /* Make rank number bold */
 }
-.leaderboard-list li span:nth-child(3) {
+.leaderboard-list li span:nth-child(2) { /* Name column */
+  font-weight: normal;
+}
+.leaderboard-list li span:nth-child(3) { /* Level column */
+  color: var(--secondary-pink); /* Style for level */
+  font-weight: bold;
+}
+.leaderboard-list li span:nth-child(4) { /* Score column */
   text-align: right;
   color: var(--gold); /* Keep gold for score */
-  text-shadow: none; /* Remove text shadow */
   font-weight: bold; /* Make score bold */
 }
 
@@ -2364,9 +2373,10 @@ input[type="range"]::-webkit-slider-thumb {
     width: 100%;
     height: 100%;
     background-color: #0A0A0A; /* Darker background */
+    /* Updated background-image to use the provided image URL */
     background-image:
         linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), /* Dark overlay */
-        url('https://www.gstatic.com/images/branding/product/1x/gemini_2023_logo_48dp.png'); /* User provided image */
+        url('https://www.gstatic.com/images/branding/product/1x/gemini_2023_logo_48dp.png'); /* Placeholder image, replace with your actual public URL */
     background-size: cover;
     background-position: center;
     color: var(--text-light);
@@ -2377,7 +2387,8 @@ input[type="range"]::-webkit-slider-thumb {
 
 .anamnesis-title {
     font-family: 'Uncial Antiqua', cursive;
-    font-size: 3.5rem;
+    font-size: 3rem; /* Adjusted font size to prevent overflow */
+    line-height: 1.2; /* Adjusted line height */
     font-weight: 700;
     color: transparent;
     background-clip: text;

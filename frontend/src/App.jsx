@@ -192,7 +192,7 @@ const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
                 </div>
                 <div className="anamnesis-feature-card">
                     <h3>Study Party (Multiplayer)</h3>
-                    <p>Host a study session where everyone gets roasted! Multiple players answer simultaneously, and the Nemesis AI provides collective (and individual) feedback. Perfect for group learning, or just group humiliation.</p>
+                    <p>Host a study session where everyone gets roasted! Multiple players answer simultaneously, and the Nemesis AI provides collective (and individual) feedback. All games use the same scoring system as Verbatim Master.</p>
                 </div>
             </div>
 
@@ -324,10 +324,10 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             setGameState('starting');
         } else {
             // Game over, pass folder ID, final score, and player name to parent
-            onClose(folder.id, score, playerName); 
+            onClose(folder.id, score, playerName, getMedal().name); // Pass level name here
             setGameState('game_over');
         }
-    }, [currentIndex, deck.length, onClose, folder.id, score, playerName]);
+    }, [currentIndex, deck.length, onClose, folder.id, score, playerName, getMedal]); // Added getMedal to dependencies
 
     const submitAnswer = useCallback(async () => {
         if (!userAnswer.trim()) {
@@ -471,10 +471,11 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
         setScore(0);
         setUserAnswer('');
         setLastScore(null);
-        setGameState('name_entry');
+        // FIX: Go directly to 'ready' if player name is already set
+        setGameState(playerName ? 'ready' : 'name_entry'); 
     };
 
-    const getMedal = () => {
+    const getMedal = useCallback(() => { // Wrapped in useCallback
         const totalPossible = deck.length * 100;
         if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
         const percentage = (score / totalPossible) * 100;
@@ -484,7 +485,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
         if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
         if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
         return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
-    };
+    }, [deck.length, score]); // Added dependencies
 
     const renderVoiceSelector = () => (
         <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
@@ -613,14 +614,22 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                         </p>
                         <div className="leaderboard-container">
                             <h3>High Scores</h3>
+                            {/* Leaderboard Headers */}
+                            <div className="leaderboard-list" style={{fontWeight: 'bold', borderBottom: '2px solid var(--border-color)'}}>
+                                <span>Rank</span>
+                                <span>Name</span>
+                                <span>Level</span>
+                                <span style={{textAlign: 'right'}}>Score</span>
+                            </div>
                             <ol className="leaderboard-list">
-                               {sortedLeaderboard.slice(0, 5).map((entry, index) => (
+                               {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
                                     <li key={index}>
                                         <span>#{index + 1}</span>
                                         <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
+                                        <span>{entry.level}</span> {/* Display the level here */}
                                         <span>{entry.score}</span>
                                     </li>
-                               ))}
+                               )) : <p>No scores yet. Be the first!</p>}
                             </ol>
                         </div>
                         <div className="game-end-actions">
@@ -640,11 +649,19 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             <div className="viewer-overlay game-mode">
                 <div className="leaderboard-container full-page">
                     <h2>Leaderboard: {folder.name}</h2>
+                    {/* Leaderboard Headers for full page */}
+                    <div className="leaderboard-list" style={{fontWeight: 'bold', borderBottom: '2px solid var(--border-color)'}}>
+                        <span>Rank</span>
+                        <span>Name</span>
+                        <span>Level</span>
+                        <span style={{textAlign: 'right'}}>Score</span>
+                    </div>
                     <ol className="leaderboard-list">
                        {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
                             <li key={index}>
                                 <span>#{index + 1}</span>
                                 <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
+                                <span>{entry.level}</span> {/* Display the level here */}
                                 <span>{entry.score}</span>
                             </li>
                        )) : <p>No scores yet. Be the first!</p>}
@@ -675,7 +692,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                     {gameState !== 'ready' && (
                         <div className="game-card-area">
                             <div className="game-card">
-                                <p className="game-question">{currentCard?.question}</p>
+                                <p className="game-question"><strong>Q:</strong> {currentCard?.question}</p> {/* Changed <b> to <strong> */}
                             </div>
                         </div>
                     )}
@@ -1821,9 +1838,9 @@ const MainApp = () => {
     setStudyingFolder(null);
   };
 
-  const handleGameEnd = (folderId, finalScore, playerName) => {
+  const handleGameEnd = (folderId, finalScore, playerName, levelName) => { // Added levelName
     setFolders(prev => updateFolderById(prev, folderId, folder => {
-      const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now() }];
+      const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now(), level: levelName }]; // Store levelName
       // Sort by score descending, then by date descending for ties
       newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
       return { ...folder, leaderboard: newLeaderboard.slice(0, 10) }; // Keep top 10 scores
@@ -2428,7 +2445,7 @@ const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenam
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickAll);
   }, []);
 
   return (
@@ -2739,11 +2756,11 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                   <div className="card-face card-front">
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                    <p>{currentCard?.question}</p>
+                    <p><strong>Q:</strong> {currentCard?.question}</p> 
                   </div>
                   <div className="card-face card-back">
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                    <p>{currentCard?.answer}</p>
+                    <p><strong>A:</strong> {currentCard?.answer}</p> 
                   </div>
                 </div>
               </div>
