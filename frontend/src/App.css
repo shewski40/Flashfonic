@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&family=Uncial+Antiqua&display=swap');
+
 :root {
   --primary-purple: #8B5CF6;
   --secondary-pink: #EC4899;
@@ -237,7 +239,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 1.5rem;
 }
 
-/* NEW: Left-aligned heading for folders */
 .section-heading-left {
   font-size: 1.5rem;
   font-weight: 700;
@@ -245,8 +246,8 @@ input[type="range"]::-webkit-slider-thumb {
   background-clip: text;
   -webkit-background-clip: text;
   background-image: var(--brand-gradient);
-  text-align: left; /* Aligned left */
-  margin: 0; /* Remove default margin */
+  text-align: left;
+  margin: 0;
 }
 
 .generated-cards-queue .queue-header {
@@ -337,7 +338,6 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 
-/* NEW: Folders Header */
 .folders-header {
   display: flex;
   justify-content: space-between;
@@ -352,10 +352,9 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 1rem;
 }
 
-/* NEW: Create folder button positioning */
 .create-folder-btn {
   display: block;
-  margin: 0; /* Remove auto margins */
+  margin: 0;
   padding: 0.8em 1.5em;
   font-size: 1.1em;
   font-weight: bold;
@@ -367,13 +366,12 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
 }
 
-/* NEW: Folder sort controls */
 .folder-sort-controls {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   margin-bottom: 1rem;
-  justify-content: flex-end; /* Align to the right */
+  justify-content: flex-end;
   width: 100%;
 }
 
@@ -383,7 +381,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .folder-sort-controls .folder-select {
-  width: auto; /* Adjust width based on content */
+  width: auto;
   padding: 0.5em 1em;
 }
 
@@ -394,8 +392,8 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 12px;
   margin-bottom: 1rem;
   transition: background-color 0.2s ease, border-color 0.2s ease;
-  position: relative; /* Ensure stacking context */
-  z-index: 1; /* Base z-index for folders */
+  position: relative;
+  z-index: 1;
 }
 
 .folder.dragging {
@@ -403,19 +401,18 @@ input[type="range"]::-webkit-slider-thumb {
   border-color: var(--primary-purple);
 }
 
-/* NEW: Custom summary replacement */
 .folder-summary-custom {
   position: relative;
   padding: 1em 1em;
   font-weight: 600;
   cursor: pointer;
   outline: none;
-  list-style: none; /* In case it inherits from summary */
+  list-style: none;
   font-family: 'Poppins', sans-serif;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  pointer-events: auto; /* Explicitly ensure clickability */
+  pointer-events: auto;
 }
 
 .folder-toggle-arrow {
@@ -431,7 +428,6 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 
-/* NEW: Folder item header (for summary) */
 .folder-item-header {
   display: flex;
   justify-content: space-between;
@@ -448,7 +444,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .folder-icon {
-  font-size: 1.2em; /* Adjust size of folder emoji */
+  font-size: 1.2em;
   line-height: 1;
 }
 
@@ -457,7 +453,6 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-dark);
 }
 
-/* NEW: Actions right for summary (small study button) */
 .folder-actions-right {
   display: flex;
   gap: 0.5rem;
@@ -475,23 +470,22 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-/* NEW: Expanded folder content */
 .folder-expanded-content {
   padding: 1em;
   border-top: 1px solid var(--border-color);
-  background-color: var(--dark-bg); /* Slightly darker background for expanded content */
-  position: relative; /* Added for z-index context */
-  z-index: 2; /* Ensure it's above other elements if needed */
-  pointer-events: auto; /* Explicitly ensure content is clickable */
+  background-color: var(--dark-bg);
+  position: relative;
+  z-index: 2;
+  pointer-events: auto;
 }
 
 .folder-expanded-header {
   display: flex;
-  flex-wrap: wrap; /* Allow wrapping on smaller screens */
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
-  gap: 1rem; /* Space between items */
+  gap: 1rem;
 }
 
 .folder-expanded-name {
@@ -499,10 +493,9 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 1.3rem;
   color: var(--text-light);
   text-align: left;
-  flex-grow: 1; /* Allow name to take available space */
+  flex-grow: 1;
 }
 
-/* NEW: Container for main action buttons */
 .folder-main-actions {
   display: flex;
   gap: 0.5rem;
@@ -516,7 +509,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 8px;
   color: white;
   cursor: pointer;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
   border: none;
 }
 
@@ -536,7 +529,6 @@ input[type="range"]::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 
-/* Actions Dropdown */
 .actions-dropdown-container {
   position: relative;
 }
@@ -561,7 +553,7 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 8px;
   box-shadow: 0 4px 12px rgba(0,0,0,0.2);
   min-width: 120px;
-  z-index: 100; /* Increased z-index */
+  z-index: 100;
   display: flex;
   flex-direction: column;
   padding: 0.5rem 0;
@@ -583,26 +575,26 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .folder-card-list {
-  max-height: 400px; /* Fixed height for scrollable area */
+  max-height: 400px;
   overflow-y: auto;
-  padding-right: 5px; /* For scrollbar */
+  padding-right: 5px;
 }
 
 .folder-card-list .card {
   background-color: var(--content-bg);
-  margin: 0.5em 0; /* Adjust margin for cards within the list */
+  margin: 0.5em 0;
   border-radius: 8px;
   padding: 1em;
   border: 1px solid var(--border-color);
   display: flex;
   align-items: flex-start;
   gap: 0.5rem;
-  cursor: grab; /* Indicate draggable */
+  cursor: grab;
   transition: background-color 0.2s ease;
 }
 
 .folder-card-list .card:hover {
-  background-color: rgba(139, 92, 246, 0.1); /* Light hover effect */
+  background-color: rgba(139, 92, 246, 0.1);
 }
 
 .folder-card-list .card.dragging {
@@ -616,7 +608,7 @@ input[type="range"]::-webkit-slider-thumb {
   gap: 0.5rem;
   margin-top: 1rem;
   padding-top: 1rem;
-  border-top: 1px solid var(--border-color); /* Separator */
+  border-top: 1px solid var(--border-color);
 }
 
 .folder-card-actions .folder-select {
@@ -627,10 +619,9 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-/* NEW: Subfolder list styling */
 .subfolder-list {
-  padding-left: 1em; /* Indent subfolders */
-  border-left: 1px dashed var(--border-color); /* Visual line */
+  padding-left: 1em;
+  border-left: 1px dashed var(--border-color);
   margin-left: 0.5em;
   margin-top: 0.5em;
   margin-bottom: 0.5em;
@@ -715,7 +706,6 @@ input[type="range"]::-webkit-slider-thumb {
   flex-shrink: 0;
 }
 
-/* --- VIDEO PLAYER STYLES (NEW) --- */
 .player-container {
   margin: 1.5rem 0;
 }
@@ -868,7 +858,6 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 0.9em;
 }
 
-/* NEW: Active state for viewer control buttons */
 .viewer-controls button.active {
   background-color: var(--primary-purple);
   color: white;
@@ -1228,7 +1217,6 @@ input[type="range"]::-webkit-slider-thumb {
   cursor: pointer;
 }
 
-/* --- MEDIA QUERIES FOR RESPONSIVENESS --- */
 @media (min-width: 768px) {
   .main-app-container {
     padding: 2rem;
@@ -1271,7 +1259,6 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 1.8rem;
   }
 
-  /* NEW: Responsive for left-aligned heading */
   .section-heading-left {
     font-size: 1.8rem;
   }
@@ -1293,13 +1280,12 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
   }
 
-  /* NEW: Folders header responsive */
   .folders-header {
     flex-direction: row;
   }
 
   .create-folder-btn {
-    margin: 0; /* Ensure no auto margins on desktop */
+    margin: 0;
   }
 
   .folder-sort-controls {
@@ -1375,7 +1361,6 @@ input[type="range"]::-webkit-slider-thumb {
     font-size: 1.75rem;
   }
 
-  /* NEW: Expanded folder header responsive */
   .folder-expanded-header {
     flex-direction: row;
   }
@@ -1395,7 +1380,6 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* --- LANDING PAGE STYLES --- */
 .landing-page {
   max-width: 100%;
   padding: 0;
@@ -1596,7 +1580,6 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* --- AUTO-FLASH STYLES --- */
 .listening-modes {
   display: flex;
   gap: 1rem;
@@ -1650,7 +1633,6 @@ input[type="range"]::-webkit-slider-thumb {
   }
 }
 
-/* --- BRAND BLING STYLES --- */
 @keyframes shimmer {
   0% { background-position: -500% 0; }
   100% { background-position: 500% 0; }
@@ -1666,9 +1648,6 @@ input[type="range"]::-webkit-slider-thumb {
   animation: shimmer 5s linear infinite;
 }
 
-/* --- NEW STYLES FROM HERE DOWN --- */
-
-/* Animation for Flash It Button */
 @keyframes pulse-blue {
   0% {
     box-shadow: 0 0 0 0 rgba(129, 140, 248, 0.7);
@@ -1685,7 +1664,6 @@ input[type="range"]::-webkit-slider-thumb {
   animation: pulse-blue 2s infinite;
 }
 
-/* Styles for Feedback Modal */
 .app-footer {
   text-align: center;
   margin-top: 2rem;
@@ -1705,7 +1683,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .feedback-btn:hover {
-  background-color: #059669; /* A darker green for hover */
+  background-color: #059669;
 }
 
 .feedback-modal-overlay {
@@ -1773,7 +1751,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin-top: 1.5rem;
 }
 
-/* NEW STYLES FOR "NEEDS REVIEW" FEATURE */
 .needs-review-controls {
   display: flex;
   align-items: center;
@@ -1810,7 +1787,6 @@ input[type="range"]::-webkit-slider-thumb {
   font-style: italic;
 }
 
-/* NEW: Styles for Flash Notes feature */
 .flash-notes-container {
   width: 100%;
   max-width: 800px;
@@ -1825,7 +1801,6 @@ input[type="range"]::-webkit-slider-thumb {
 .flash-notes-content {
   color: var(--text-light);
   line-height: 1.6;
-  /* Prevent text selection */
   user-select: none;
   -webkit-user-select: none;
   -moz-user-select: none;
@@ -1840,25 +1815,24 @@ input[type="range"]::-webkit-slider-thumb {
   padding-bottom: 0.3em;
   margin-top: 1.5em;
   margin-bottom: 1em;
-  font-size: 1.2rem; /* Consistent font size */
+  font-size: 1.2rem;
 }
 
 .flash-notes-content p {
   margin-bottom: 1em;
-  font-size: 1rem; /* Consistent font size */
+  font-size: 1rem;
 }
 
 .flash-notes-content ul,
 .flash-notes-content ol {
-  padding-left: 1.5em;
-  font-size: 1rem; /* Consistent font size */
+  padding-left: 1.5rem;
+  font-size: 1rem;
 }
 
 .flash-notes-content li {
   margin-bottom: 0.5em;
 }
 
-/* NEW: Styles for Games */
 .games-section-container {
   margin-top: 2rem;
   padding-top: 1rem;
@@ -1887,7 +1861,6 @@ input[type="range"]::-webkit-slider-thumb {
   transform: scale(1.05);
 }
 
-/* --- VERBATIM MASTER AI GAME STYLES --- */
 .viewer-overlay.game-mode {
   justify-content: center;
   gap: 1rem;
@@ -1901,6 +1874,11 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   color: var(--text-light);
   padding: 0 1rem;
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1002;
 }
 
 .game-header h3 {
@@ -1957,7 +1935,7 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1001; /* Above game card but below header */
+  z-index: 1001;
 }
 
 .game-status-fullscreen {
@@ -2046,7 +2024,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .correct-answer-reveal {
-  font-size: 1rem;
+  font-size: 1.4rem;
   font-style: italic;
   color: var(--text-soft);
   max-width: 80%;
@@ -2168,4 +2146,112 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .bronze-medal-animation {
   color: var(--bronze);
+}
+
+.game-landing-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    width: 100%;
+    height: 100%;
+    background: var(--dark-bg) radial-gradient(circle, rgba(139, 92, 246, 0.15) 0%, rgba(17, 24, 39, 0) 70%);
+}
+
+.game-landing-title {
+    font-size: 3rem;
+    font-weight: 700;
+    font-family: 'Uncial Antiqua', cursive;
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    background-image: var(--brand-gradient);
+    text-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+    letter-spacing: 2px;
+}
+
+.game-landing-actions {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.game-landing-voice-selector {
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 300px;
+}
+
+.how-to-play-title {
+    background-image: var(--brand-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+}
+
+.how-to-play-content {
+    text-align: left;
+    color: var(--text-soft);
+    line-height: 1.6;
+}
+
+.how-to-play-content h3 {
+    color: var(--primary-purple);
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.how-to-play-content ol, .how-to-play-content ul {
+    padding-left: 1.5rem;
+}
+
+.how-to-play-content li {
+    margin-bottom: 0.5rem;
+}
+
+.in-game-controls {
+    position: absolute;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 1002;
+}
+
+.in-game-controls button {
+    background-color: rgba(31, 41, 55, 0.8);
+    color: var(--text-soft);
+    border: 1px solid var(--border-color);
+    padding: 0.5em 1em;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9em;
+    font-weight: 500;
+}
+
+.game-pause-overlay {
+    background-color: rgba(17, 24, 39, 0.95);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    width: 100%;
+    height: 100%;
+    color: var(--text-light);
+}
+
+.game-pause-overlay h2 {
+    font-size: 2.5rem;
+}
+
+.in-game-voice-selector {
+    position: absolute;
+    bottom: 4rem;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 300px;
+    z-index: 1002;
 }

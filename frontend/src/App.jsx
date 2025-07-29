@@ -131,6 +131,12 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    
+    // Voice selection state
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState('');
+    const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
+    const voiceDropdownRef = useRef(null);
 
     const recognitionRef = useRef(null);
     const silenceTimerRef = useRef(null);
@@ -187,16 +193,31 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
 
     const handleResume = () => {
         setIsPaused(false);
-        // Restart the current round
         askQuestion();
     };
+
+    // Load voices for TTS
+    useEffect(() => {
+        const loadVoices = () => {
+          const availableVoices = window.speechSynthesis.getVoices();
+          const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+          setVoices(englishVoices);
+          if (englishVoices.length > 0 && !selectedVoice) {
+            setSelectedVoice(englishVoices[0].name);
+          }
+        };
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+        return () => {
+          window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, [selectedVoice]);
 
     const speak = (text, onEndCallback) => {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
-        const voices = window.speechSynthesis.getVoices();
-        const englishVoice = voices.find(v => v.lang.startsWith('en') && v.name.includes('Google'));
-        utterance.voice = englishVoice || voices.find(v => v.lang.startsWith('en'));
+        const voice = voices.find(v => v.name === selectedVoice);
+        if (voice) utterance.voice = voice;
         utterance.rate = 1;
         utterance.onend = onEndCallback;
         window.speechSynthesis.speak(utterance);
@@ -235,25 +256,23 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             }
             setUserAnswer(finalTranscript + interimTranscript);
 
-            // Stop recognition after a pause in speech
             speechEndTimerRef.current = setTimeout(() => {
                 if (recognitionRef.current) {
                     recognitionRef.current.stop();
                     setGameState('scoring');
                 }
-            }, 1500); // 1.5 seconds of silence
+            }, 1500);
         };
 
         recognitionRef.current.start();
         setGameState('listening');
 
-        // Safety timeout to prevent listening forever
         silenceTimerRef.current = setTimeout(() => {
             if (recognitionRef.current) {
                 recognitionRef.current.stop();
                 setGameState('scoring');
             }
-        }, 10000); // Max 10 seconds listening
+        }, 10000);
     }, []);
 
     const askQuestion = useCallback(() => {
@@ -262,7 +281,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         speak(`Question: ${currentCard.question}`, () => {
             startListening();
         });
-    }, [currentCard, speak, startListening]);
+    }, [currentCard, speak, startListening, voices, selectedVoice]);
 
     useEffect(() => {
         if (gameState === 'starting') {
@@ -325,7 +344,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             setGameState('starting');
         } else {
             setGameState('game_over');
-            onClose(folder.id, score); // Save score to leaderboard
+            onClose(folder.id, score);
         }
     };
     
@@ -351,6 +370,25 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
 
     const medal = getMedal();
 
+    const renderVoiceSelector = () => (
+        <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+            <label>Voice</label>
+            <div className="custom-select-trigger" onClick={() => setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+                {selectedVoice || 'Select a voice...'}
+                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+            </div>
+            {isVoiceDropdownOpen && (
+                <div className="custom-select-options">
+                    {voices.map(voice => (
+                        <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                            {voice.name} ({voice.lang})
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+
     const renderGameState = () => {
         if (isPaused) {
             return (
@@ -367,10 +405,13 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             case 'landing':
                  return (
                     <div className="game-landing-page">
-                        <h1 className="game-landing-title">Verbatim Master AI</h1>
+                        <h1 className="game-landing-title">Verbatim Master</h1>
                         <div className="game-landing-actions">
                             <button className="game-action-btn" onClick={() => setGameState('starting')}>Start Game</button>
                             <button className="game-action-btn" onClick={() => setShowHowToPlay(true)}>How to Play</button>
+                        </div>
+                        <div className="game-landing-voice-selector">
+                            {renderVoiceSelector()}
                         </div>
                     </div>
                 );
@@ -461,25 +502,34 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
     return (
         <div className="viewer-overlay game-mode">
             {showHowToPlay && <HowToPlayModal onClose={() => setShowHowToPlay(false)} />}
-            <div className="game-header">
-                <h3>Verbatim Master AI</h3>
-                <div className="game-info">
-                    <span>Card: {currentIndex + 1} / {deck.length}</span>
-                    <span>Score: {score}</span>
-                </div>
-                <button onClick={handleExit} className="viewer-close-btn">&times;</button>
-            </div>
-            <div className="game-card-area">
-                <div className="game-card">
-                    <p className="game-question">{currentCard?.question}</p>
-                </div>
-            </div>
-             {gameState !== 'landing' && gameState !== 'game_over' && !isPaused && (
-                <div className="in-game-controls">
-                    <button onClick={handlePause}>Pause</button>
-                    <button onClick={handleExit}>Exit</button>
-                </div>
+            
+            {gameState !== 'landing' && (
+                <>
+                    <div className="game-header">
+                        <h3>Verbatim Master</h3>
+                        <div className="game-info">
+                            <span>Card: {currentIndex + 1} / {deck.length}</span>
+                            <span>Score: {score}</span>
+                        </div>
+                        <button onClick={handleExit} className="viewer-close-btn">&times;</button>
+                    </div>
+                    <div className="game-card-area">
+                        <div className="game-card">
+                            <p className="game-question">{currentCard?.question}</p>
+                        </div>
+                    </div>
+                    <div className="in-game-voice-selector">
+                        {renderVoiceSelector()}
+                    </div>
+                    {gameState !== 'game_over' && !isPaused && (
+                        <div className="in-game-controls">
+                            <button onClick={handlePause}>Pause</button>
+                            <button onClick={handleExit}>Exit</button>
+                        </div>
+                    )}
+                </>
             )}
+            
             <div className="game-state-overlay">
                 {renderGameState()}
             </div>
@@ -495,7 +545,6 @@ const MainApp = () => {
   const [notification, setNotification] = useState('');
   const [duration, setDuration] = useState(15);
   const [generatedFlashcards, setGeneratedFlashcards] = useState([]);
-  // Updated folders state to store objects with metadata and nested subfolders
   const [folders, setFolders] = useState({});
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -509,7 +558,7 @@ const MainApp = () => {
   const [checkedCards, setCheckedCards] = useState({});
   const [editingCard, setEditingCard] = useState(null);
   const [studyingFolder, setStudyingFolder] = useState(null);
-  const [promptModalConfig, setPromptModalConfig] = useState(null); // For export prompts
+  const [promptModalConfig, setPromptModalConfig] = useState(null);
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
   const [movingCard, setMovingCard] = useState(null);
   const [listeningDuration, setListeningDuration] = useState(1);
@@ -522,21 +571,18 @@ const MainApp = () => {
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
   const [uploadedFile, setUploadedFile] = useState(null);
   const [audioCacheId, setAudioCacheId] = useState(null);
-  const [folderSortBy, setFolderSortBy] = useState('name'); // New state for folder sorting
-  const [draggedFolderId, setDraggedFolderId] = useState(null); // For folder drag-and-drop
+  const [folderSortBy, setFolderSortBy] = useState('name');
+  const [draggedFolderId, setDraggedFolderId] = useState(null);
   const [expandedFolderIds, setExpandedFolderIds] = useState(new Set()); 
-  const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({}); // Checkboxes in expanded folder
+  const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
-  // Centralized modal config for Add Subfolder, Rename, Delete
   const [modalConfig, setModalConfig] = useState(null);   
   
-  // NEW: State for Flash Notes feature
-  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); // { folderId, folderName, cards }
+  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-  const [flashNotesContent, setFlashNotesContent] = useState(null); // { folderName, notes }
+  const [flashNotesContent, setFlashNotesContent] = useState(null);
   const [showFlashNotesViewer, setShowFlashNotesViewer] = useState(false);
 
-  // NEW: State for Game Mode
   const [gameModeFolder, setGameModeFolder] = useState(null);
 
 
@@ -598,18 +644,16 @@ const MainApp = () => {
     localStorage.setItem('flashfonic-usage', JSON.stringify(currentUsage));
   }, []);
 
-  // Load folders with new structure
   useEffect(() => {
     const storedFolders = localStorage.getItem('flashfonic-folders');
     if (storedFolders) {
       const parsedFolders = JSON.parse(storedFolders);
-      // Function to recursively convert old folder structure or ensure new properties
       const convertFolderStructure = (oldFolders) => {
         const newFolders = {};
         for (const key in oldFolders) {
           const folder = oldFolders[key];
           let newFolder;
-          if (Array.isArray(folder)) { // Old format: "folderName": [cards]
+          if (Array.isArray(folder)) {
             const folderId = generateUUID();
             newFolder = {
               id: folderId,
@@ -619,20 +663,17 @@ const MainApp = () => {
               cards: folder,
               subfolders: {}
             };
-          } else { // Already new format, but ensure all properties exist
+          } else {
             newFolder = { ...folder };
             if (!newFolder.id) newFolder.id = generateUUID();
             if (!newFolder.createdAt) newFolder.createdAt = Date.now();
             if (!newFolder.lastViewed) newFolder.lastViewed = Date.now();
             if (!newFolder.cards) newFolder.cards = [];
             if (!newFolder.subfolders) newFolder.subfolders = {};
-             // NEW: Ensure flashNotes and leaderboard properties exist
             if (newFolder.flashNotes === undefined) newFolder.flashNotes = null;
             if (newFolder.leaderboard === undefined) newFolder.leaderboard = [];
-            // Recursively convert subfolders
             newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
           }
-          // NEW: Data migration for individual cards
           newFolder.cards = (newFolder.cards || []).map(card => ({
             ...card,
             lastViewed: card.lastViewed || null,
@@ -646,7 +687,6 @@ const MainApp = () => {
     }
   }, []);
 
-  // Save folders with new structure
   useEffect(() => {
     localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
   }, [folders]);
@@ -761,10 +801,8 @@ const MainApp = () => {
     };
 
     if (audioCacheId) {
-        // FAST PATH: Use the cached audio ID
         requestBody.audioId = audioCacheId;
     } else {
-        // SLOW PATH (Audio files): Upload the whole file
         if (!uploadedFile) return;
         const reader = new FileReader();
         reader.readAsDataURL(uploadedFile);
@@ -773,7 +811,7 @@ const MainApp = () => {
             requestBody.audio_data = base64Audio;
             generateFlashcardRequest(requestBody);
         };
-        return; // Exit here because the request is async
+        return;
     }
     
     generateFlashcardRequest(requestBody);
@@ -971,23 +1009,19 @@ const MainApp = () => {
     setCheckedCards(newCheckedCards);
   };
 
-  // Helper to find folder by ID recursively
   const findFolderById = (foldersObj, folderId) => {
     for (const id in foldersObj) {
-      // Check if the current folder's ID matches
       if (foldersObj[id].id === folderId) return foldersObj[id]; 
-      // Recursively search in subfolders
       const foundInSub = findFolderById(foldersObj[id].subfolders, folderId);
       if (foundInSub) return foundInSub;
     }
     return null;
   };
 
-  // Helper to update folder by ID recursively
   const updateFolderById = (foldersObj, folderId, updateFn) => {
     const newFolders = { ...foldersObj };
     for (const id in newFolders) {
-      if (newFolders[id].id === folderId) { // Ensure checking .id property
+      if (newFolders[id].id === folderId) {
         newFolders[id] = updateFn(newFolders[id]);
         return newFolders;
       }
@@ -997,10 +1031,9 @@ const MainApp = () => {
         return newFolders;
       }
     }
-    return foldersObj; // No change if not found
+    return foldersObj;
   };
 
-  // Helper to delete folder by ID recursively
   const deleteFolderById = (currentFolders, idToDelete) => {
     const newFolders = { ...currentFolders };
     if (newFolders[idToDelete]) {
@@ -1017,7 +1050,6 @@ const MainApp = () => {
     return currentFolders;
   };
 
-  // Updated handleMoveToFolder for new folder structure (from queue)
   const handleMoveToFolder = () => {
     if (!selectedFolderForMove) {
       setNotification("Please select a folder first.");
@@ -1041,11 +1073,10 @@ const MainApp = () => {
     setNotification(`${cardsToMove.length} card(s) moved.`);
   };
 
-  // Updated handleCreateFolder for new folder structure
   const handleCreateFolder = (folderName) => {
     const folderExists = Object.values(folders).some(folder => folder.name === folderName);
     if (folderExists) {
-      setNotification("A folder with this name already exists."); // Changed from alert
+      setNotification("A folder with this name already exists.");
     } else {
       const newFolderId = generateUUID();
       setFolders(prev => ({
@@ -1057,21 +1088,20 @@ const MainApp = () => {
           lastViewed: Date.now(),
           cards: [],
           subfolders: {},
-          flashNotes: null, // Initialize flashNotes
-          leaderboard: [] // Initialize leaderboard
+          flashNotes: null,
+          leaderboard: []
         }
       }));
     }
-    setModalConfig(null); // Close modal
+    setModalConfig(null);
   };
 
-  // Function to add a subfolder
   const handleAddSubfolder = (parentFolderId, subfolderName) => {
     setFolders(prev => updateFolderById(prev, parentFolderId, (parentFolder) => {
       const subfolderExists = Object.values(parentFolder.subfolders).some(sf => sf.name === subfolderName);
       if (subfolderExists) {
-        setNotification("A subfolder with this name already exists in this folder."); // Changed from alert
-        return parentFolder; // Return original folder if exists
+        setNotification("A subfolder with this name already exists in this folder.");
+        return parentFolder;
       }
       const newSubfolderId = generateUUID();
       return {
@@ -1085,53 +1115,47 @@ const MainApp = () => {
             lastViewed: Date.now(),
             cards: [],
             subfolders: {},
-            flashNotes: null, // Initialize flashNotes
-            leaderboard: [] // Initialize leaderboard
+            flashNotes: null,
+            leaderboard: []
           }
         }
       };
     }));
-    setModalConfig(null); // Close modal
+    setModalConfig(null);
   };
 
-  // Function to rename a folder/subfolder
   const handleRenameFolder = (folderId, newName) => {
     setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
       ...folder,
       name: newName
     })));
-    setModalConfig(null); // Close modal
+    setModalConfig(null);
   };
 
-  // Function to delete a folder/subfolder
   const handleDeleteFolder = (folderId) => {
     setFolders(prev => {
-      // Find the folder to be deleted BEFORE modifying the state
       const deletedFolder = findFolderById(prev, folderId); 
       const updatedFolders = deleteFolderById(prev, folderId);
 
-      // When a folder is deleted, ensure its ID is removed from expandedFolderIds
       setExpandedFolderIds(currentExpandedIds => {
         const newSet = new Set(currentExpandedIds);
         newSet.delete(folderId);
-        // Recursively remove subfolder IDs if they were expanded
         const removeSubfolderIds = (currentFolder) => {
           for (const subId in currentFolder.subfolders) {
             newSet.delete(subId);
             removeSubfolderIds(currentFolder.subfolders[subId]);
           }
         };
-        if (deletedFolder) { // Only call if the folder was actually found
+        if (deletedFolder) {
           removeSubfolderIds(deletedFolder);
         }
         return newSet;
       });
       return updatedFolders;
     });
-    setModalConfig(null); // Close modal
+    setModalConfig(null);
   };
 
-  // Updated deleteCardFromFolder for new folder structure
   const deleteCardFromFolder = (folderId, cardId) => {
     setFolders(prevFolders => updateFolderById(prevFolders, folderId, (folder) => ({
       ...folder,
@@ -1148,13 +1172,11 @@ const MainApp = () => {
     setMovingCard(null);
   };
 
-  // Removed individual card move button, so this function is less critical for UI
   const startMove = (card, folderId) => {
     setMovingCard({ id: card.id, folderId });
     setEditingCard(null);
   };
 
-  // Updated saveEdit for new folder structure
   const saveEdit = () => {
     if (!editingCard) return;
     const { id, question, answer, source, folderId } = editingCard;
@@ -1173,7 +1195,6 @@ const MainApp = () => {
     setEditingCard(null);
   };
 
-  // Updated handleConfirmMove for new folder structure
   const handleConfirmMove = (destinationFolderId) => {
     if (!movingCard || !destinationFolderId || movingCard.folderId === destinationFolderId) {
         setMovingCard(null);
@@ -1190,7 +1211,7 @@ const MainApp = () => {
           };
         });
 
-        if (!cardToMove) return prevFolders; // Card not found in source
+        if (!cardToMove) return prevFolders;
 
         return updateFolderById(newFolders, destinationFolderId, (folder) => ({
           ...folder,
@@ -1200,7 +1221,6 @@ const MainApp = () => {
     setMovingCard(null);
   };
 
-  // REBUILT EXPORT FUNCTIONS START HERE
   const exportFolderToPDF = (folderId) => {
     const folder = findFolderById(folders, folderId);
     if (!folder || folder.cards.length === 0) {
@@ -1208,11 +1228,9 @@ const MainApp = () => {
       return;
     }
 
-    // Ensure other modals/viewers are closed before opening this one
     setStudyingFolder(null); 
     setIsFeedbackModalOpen(false);
 
-    // Defer setting promptModalConfig to ensure it renders
     setTimeout(() => {
       setPromptModalConfig({
         title: 'Export to PDF',
@@ -1222,7 +1240,7 @@ const MainApp = () => {
           const cardsPerPage = parseInt(value, 10);
           if (![6, 8, 10].includes(cardsPerPage)) {
             setNotification("Invalid number. Please choose 6, 8, or 10."); 
-            return; // Do not proceed if input is invalid
+            return;
           }
           
           const doc = new jsPDF();
@@ -1242,11 +1260,11 @@ const MainApp = () => {
           const drawHeader = () => {
               doc.setFont('helvetica', 'bold');
               doc.setFontSize(30);
-              doc.setTextColor(139, 92, 246); // --primary-purple
+              doc.setTextColor(139, 92, 246);
               doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
               doc.setFont('helvetica', 'normal');
               doc.setFontSize(16);
-              doc.setTextColor(31, 41, 55); // --content-bg
+              doc.setTextColor(31, 41, 55);
               doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
           };
 
@@ -1254,7 +1272,6 @@ const MainApp = () => {
           while (currentPageIndex < cards.length) {
             const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
             
-            // Add page for Questions
             if (currentPageIndex > 0) doc.addPage();
             drawHeader();
             pageCards.forEach((card, index) => {
@@ -1264,7 +1281,7 @@ const MainApp = () => {
               const cardY = 40 + (row * (cardH + margin));
               doc.setLineWidth(0.5);
               doc.setDrawColor(0);
-              doc.setTextColor(0, 0, 0); // Black for card content
+              doc.setTextColor(0, 0, 0);
               doc.rect(cardX, cardY, cardW, cardH);
               doc.setFontSize(config.fontSize);
               const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
@@ -1272,10 +1289,7 @@ const MainApp = () => {
               doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
             });
 
-            // Add page for Answers
-            // Only add a new page for answers if there are more cards OR if this is the last page and it's not the very last card
-            // This condition ensures we don't add an extra blank page at the very end if the last card's answer fits.
-            if (pageCards.length > 0) { // Ensure there are cards on this "answer" page
+            if (pageCards.length > 0) {
               doc.addPage();
               drawHeader();
               pageCards.forEach((card, index) => {
@@ -1285,7 +1299,7 @@ const MainApp = () => {
                 const cardY = 40 + (row * (cardH + margin));
                 doc.setLineWidth(0.5);
                 doc.setDrawColor(0);
-                doc.setTextColor(0, 0, 0); // Black for card content
+                doc.setTextColor(0, 0, 0);
                 doc.rect(cardX, cardY, cardW, cardH);
                 doc.setFontSize(config.fontSize);
                 const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
@@ -1298,13 +1312,13 @@ const MainApp = () => {
           }
           
           doc.save(`${folder.name}-flashcards.pdf`);
-          setPromptModalConfig(null); // Close modal after successful generation
+          setPromptModalConfig(null);
         },
         onClose: () => {
-          setPromptModalConfig(null); // Ensure modal closes on cancel
+          setPromptModalConfig(null);
         }
       });
-    }, 0); // Use setTimeout to defer state update
+    }, 0);
   };
   
   const exportFolderToCSV = (folderId) => {
@@ -1314,28 +1328,25 @@ const MainApp = () => {
       return;
     }
 
-    // Ensure other modals/viewers are closed before opening this one
     setStudyingFolder(null); 
     setIsFeedbackModalOpen(false);
 
-    // Defer setting promptModalConfig to ensure it renders
     setTimeout(() => {
       setPromptModalConfig({
         title: 'Export to CSV',
         message: 'How many flashcards do you want to export?',
-        defaultValue: folder.cards.length.toString(), // Default value should be a string
+        defaultValue: folder.cards.length.toString(),
         onConfirm: (value) => {
           const numCards = parseInt(value, 10);
           if (isNaN(numCards) || numCards <= 0 || numCards > folder.cards.length) {
               setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`); 
-              return; // Do not proceed if input is invalid
+              return;
           }
           const cardsToExport = folder.cards.slice(0, numCards);
           
-          let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n"; // Header for CSV
+          let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n";
           csvContent += "Question,Answer\n";
           cardsToExport.forEach(card => {
-              // Escape double quotes by doubling them, then wrap the whole field in double quotes
               const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
               const escapedAnswer = `"${card.answer.replace(/"/g, '""')}"`;
               csvContent += `${escapedQuestion},${escapedAnswer}\n`;
@@ -1348,17 +1359,16 @@ const MainApp = () => {
           document.body.appendChild(link);
           link.click();
           document.body.removeChild(link);
-          URL.revokeObjectURL(link.href); // Clean up the object URL
+          URL.revokeObjectURL(link.href);
           setNotification(`Exported ${numCards} cards to ${folder.name}-flashcards.csv`);
-          setPromptModalConfig(null); // Close modal after successful generation
+          setPromptModalConfig(null);
         },
         onClose: () => {
-          setPromptModalConfig(null); // Ensure modal closes on cancel
+          setPromptModalConfig(null);
         }
       });
-    }, 0); // Use setTimeout to defer state update
+    }, 0);
   };
-  // REBUILT EXPORT FUNCTIONS END HERE
 
   const renderCardContent = (card, source, folderId = null) => {
     if (editingCard && editingCard.id === card.id) {
@@ -1373,9 +1383,7 @@ const MainApp = () => {
         </div>
       );
     }
-    // Removed individual card move button as per request
     if (movingCard && movingCard.id === card.id) {
-        // Build a flat list of all folders and subfolders for the dropdown
         const allFolders = [];
         const collectFolders = (currentFolders) => {
           for (const id in currentFolders) {
@@ -1404,7 +1412,6 @@ const MainApp = () => {
     return (
       <>
         <div className="card-top-actions">
-          {/* Removed individual card move button: {source === 'folder' && <button onClick={() => startMove(card, folderId)} className="card-move-btn">⇄ Move</button>} */}
           <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
         </div>
         <p><strong>Q:</strong> {card.question}</p>
@@ -1449,7 +1456,6 @@ const MainApp = () => {
     return 4 + (seconds - 60) / 30;
   };
 
-  // Helper function to format date for display
   const formatDate = (timestamp) => {
     return new Date(timestamp).toLocaleDateString(undefined, {
       year: 'numeric',
@@ -1458,7 +1464,6 @@ const MainApp = () => {
     });
   };
 
-  // Helper to count all cards in a folder and its subfolders
   const countCardsRecursive = (folder) => {
     let count = folder.cards.length;
     for (const subfolderId in folder.subfolders) {
@@ -1467,7 +1472,6 @@ const MainApp = () => {
     return count;
   };
 
-  // Folder sorting logic
   const getSortedFolders = (folderObj) => {
     const folderArray = Object.values(folderObj);
     return folderArray.sort((a, b) => {
@@ -1476,20 +1480,19 @@ const MainApp = () => {
       } else if (folderSortBy === 'dateCreated') {
         return a.createdAt - b.createdAt;
       } else if (folderSortBy === 'lastViewed') {
-        return b.lastViewed - a.lastViewed; // Most recent first
+        return b.lastViewed - a.lastViewed;
       }
       return 0;
     });
   };
 
-  // Drag and drop for folders
   const handleFolderDragStart = (e, folderId) => {
     e.dataTransfer.setData("folderId", folderId);
     setDraggedFolderId(folderId);
   };
 
   const handleFolderDragOver = (e) => {
-    e.preventDefault(); // Necessary to allow dropping
+    e.preventDefault();
     e.dataTransfer.dropEffect = "move";
   };
 
@@ -1503,7 +1506,6 @@ const MainApp = () => {
     }
 
     setFolders(prevFolders => {
-      // Find the folder and its parent in the nested structure
       let sourceFolder = null;
       let sourceParent = null;
       let targetFolder = null;
@@ -1527,20 +1529,18 @@ const MainApp = () => {
       };
 
       const [draggedItem, updatedSourceParentFolders] = findAndExtract(prevFolders, sourceFolderId);
-      if (!draggedItem) return prevFolders; // Should not happen
+      if (!draggedItem) return prevFolders;
 
-      // Now insert draggedItem into the target location
       const insertIntoTarget = (currentFolders, targetId, itemToInsert) => {
         const newFolders = { ...currentFolders };
         for (const id in newFolders) {
           if (newFolders[id].id === targetId) {
-            // Insert at the same level as targetId
             const orderedKeys = Object.keys(newFolders);
             const targetIndex = orderedKeys.indexOf(targetId);
-            orderedKeys.splice(targetIndex + 1, 0, itemToInsert.id); // Insert after target
+            orderedKeys.splice(targetIndex + 1, 0, itemToInsert.id);
             const reordered = {};
             orderedKeys.forEach(key => {
-              reordered[key] = newFolders[key] || itemToInsert; // Use existing or inserted item
+              reordered[key] = newFolders[key] || itemToInsert;
             });
             return reordered;
           }
@@ -1550,8 +1550,6 @@ const MainApp = () => {
             return newFolders;
           }
         }
-        // If targetId is not found, assume it's a top-level drop
-        // This case might need more refinement depending on exact UX
         return { ...currentFolders, [itemToInsert.id]: itemToInsert };
       };
 
@@ -1564,9 +1562,8 @@ const MainApp = () => {
     setDraggedFolderId(null);
   };
 
-  // Handle opening/closing folder details and updating lastViewed
   const handleFolderToggle = (folderId, isOpen) => {
-    console.log(`Toggling folder: ${folderId}, isOpen: ${isOpen}`); // Diagnostic log
+    console.log(`Toggling folder: ${folderId}, isOpen: ${isOpen}`);
     setExpandedFolderIds(prev => {
       const newSet = new Set(prev);
       if (isOpen) {
@@ -1584,7 +1581,6 @@ const MainApp = () => {
     }
   };
 
-  // Handle checkbox in expanded folder view
   const handleSelectedCardInExpandedFolder = (cardId) => {
     setSelectedCardsInExpandedFolder(prev => ({
       ...prev,
@@ -1592,7 +1588,6 @@ const MainApp = () => {
     }));
   };
 
-  // Move selected cards within an expanded folder to another folder
   const handleMoveSelectedCardsFromExpandedFolder = (sourceFolderId, destinationFolderId) => {
     if (!sourceFolderId || !destinationFolderId) {
       setNotification("Please select a destination folder.");
@@ -1607,23 +1602,20 @@ const MainApp = () => {
 
     setFolders(prev => {
       let newFolders = { ...prev };
-      // Remove from source folder
       newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
         ...folder,
         cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[card.id])
       }));
-      // Add to destination folder
       newFolders = updateFolderById(newFolders, destinationFolderId, (folder) => ({
         ...folder,
         cards: [...folder.cards, ...cardsToMove]
       }));
       return newFolders;
     });
-    setSelectedCardsInExpandedFolder({}); // Clear selection
+    setSelectedCardsInExpandedFolder({});
     setNotification(`${cardsToMove.length} card(s) moved to ${findFolderById(folders, destinationFolderId)?.name}.`);
   };
 
-  // Drag and drop for cards within expanded folder
   const handleCardInFolderDragStart = (e, cardId, folderId) => {
     e.dataTransfer.setData("cardId", cardId);
     e.dataTransfer.setData("sourceFolderId", folderId);
@@ -1635,7 +1627,6 @@ const MainApp = () => {
     const sourceFolderId = e.dataTransfer.getData("sourceFolderId");
 
     if (sourceFolderId !== targetFolderId) {
-      // Moving between folders is handled by "Move to Folder" button for now
       return;
     }
 
@@ -1656,7 +1647,6 @@ const MainApp = () => {
     }));
   };
 
-  // NEW: Handler for when the study session ends to persist card updates
   const handleStudySessionEnd = (updatedDeck) => {
     if (studyingFolder && updatedDeck) {
       setFolders(prev => updateFolderById(prev, studyingFolder.id, (folder) => ({
@@ -1667,25 +1657,20 @@ const MainApp = () => {
     setStudyingFolder(null);
   };
 
-  // NEW: Handler for when a game session ends to save the score
   const handleGameEnd = (folderId, finalScore) => {
     setFolders(prev => updateFolderById(prev, folderId, folder => {
       const newLeaderboard = [...(folder.leaderboard || []), { score: finalScore, date: Date.now() }];
-      // Sort by score descending, then by date descending
       newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
-      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) }; // Keep top 10
+      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
     }));
     setGameModeFolder(null);
   };
 
-  // Recursive component to render folders and subfolders
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
-    // Check if this specific folder's ID is in the expandedFolderIds set
     const isExpanded = expandedFolderIds.has(folder.id); 
-    const paddingLeft = level * 20; // Indentation for subfolders
+    const paddingLeft = level * 20;
 
     return (
-      // Changed from <details> to <div>
       <div 
         key={folder.id} 
         className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
@@ -1696,26 +1681,24 @@ const MainApp = () => {
         onDragEnd={handleFolderDragEnd}
         style={{ paddingLeft: `${paddingLeft}px` }}
       >
-        {/* Changed from <summary> to <div> */}
         <div className="folder-summary-custom" onClick={(e) => {
-          e.stopPropagation(); // Stop event bubbling
+          e.stopPropagation();
           handleFolderToggle(folder.id, !isExpanded);
         }}> 
           <div className="folder-item-header">
             <span className="folder-name-display">
-              <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span> {/* Custom arrow */}
-              {level > 0 && <span className="folder-icon">📁</span>} {/* Card icon for subfolders */}
+              <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span>
+              {level > 0 && <span className="folder-icon">📁</span>}
               {folder.name}
               <span className="card-count-display"> ({countCardsRecursive(folder)} cards)</span>
             </span>
             <div className="folder-actions-right">
-              {/* Small Study button is only visible when folder is NOT expanded */}
               {!isExpanded && (
                 <button onClick={(e) => { 
                   e.stopPropagation(); 
                   setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards }); 
-                  setModalConfig(null); // Close any other modals
-                  setIsFeedbackModalOpen(false); // Close feedback modal
+                  setModalConfig(null);
+                  setIsFeedbackModalOpen(false);
                 }} className="study-btn-small">Study</button>
               )}
             </div>
@@ -1729,36 +1712,35 @@ const MainApp = () => {
                 <button onClick={() => { 
                   if (isListening) stopListening(); 
                   setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards }); 
-                  setModalConfig(null); // Close any other modals
-                  setIsFeedbackModalOpen(false); // Close feedback modal
+                  setModalConfig(null);
+                  setIsFeedbackModalOpen(false);
                 }} className="study-btn-large">Study</button>
                 <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
               </div>
               <div className="folder-expanded-actions">
                 <ActionsDropdown 
-                  folder={folder} // Pass the whole folder object
+                  folder={folder}
                   exportPdf={exportFolderToPDF} 
                   exportCsv={exportFolderToCSV} 
                   onAddSubfolder={(id) => {
                     setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
-                    setStudyingFolder(null); // Close study viewer if open
-                    setIsFeedbackModalOpen(false); // Close feedback modal
+                    setStudyingFolder(null);
+                    setIsFeedbackModalOpen(false);
                   }}
                   onRenameFolder={(id, name) => {
                     setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
-                    setStudyingFolder(null); // Close study viewer if open
-                    setIsFeedbackModalOpen(false); // Close feedback modal
+                    setStudyingFolder(null);
+                    setIsFeedbackModalOpen(false);
                   }}
                   onDeleteFolder={(id) => {
                     setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
-                    setStudyingFolder(null); // Close study viewer if open
-                    setIsFeedbackModalOpen(false); // Close feedback modal
+                    setStudyingFolder(null);
+                    setIsFeedbackModalOpen(false);
                   }}
                   onPlayGame={(folder) => setGameModeFolder(folder)}
                 />
               </div>
             </div>
-            {/* Render subfolders */}
             {Object.values(folder.subfolders).length > 0 && (
               <div className="subfolder-list">
                 {getSortedFolders(folder.subfolders).map(subfolder => (
@@ -1771,7 +1753,6 @@ const MainApp = () => {
                 ))}
               </div>
             )}
-            {/* Card list with checkboxes */}
             <div className="folder-card-list">
               {folder.cards.length > 0 ? folder.cards.map((card) => (
                 <div 
@@ -1811,7 +1792,6 @@ const MainApp = () => {
     );
   };
 
-  // Collect all folders and subfolders for the move dropdown
   const getAllFoldersFlat = (foldersObj) => {
     let flatList = [];
     for (const id in foldersObj) {
@@ -1822,11 +1802,9 @@ const MainApp = () => {
   };
   const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
-  // NEW: Function to handle Flash Notes generation
   const handleGenerateNotes = async (folder, action, forceRegenerate = false) => {
-    setFlashNotesActionModal(null); // Close the action modal
+    setFlashNotesActionModal(null);
     
-    // Use cached notes if they exist and we are not forcing regeneration
     if (folder.flashNotes && !forceRegenerate) {
       if (action === 'view') {
         setFlashNotesContent({ folderName: folder.name, notes: folder.flashNotes });
@@ -1850,7 +1828,6 @@ const MainApp = () => {
         throw new Error(data.error || 'Failed to generate notes.');
       }
 
-      // Save the newly generated notes to the folder state
       setFolders(prev => updateFolderById(prev, folder.id, f => ({ ...f, flashNotes: data.notes })));
       
       if (action === 'view') {
@@ -1868,31 +1845,26 @@ const MainApp = () => {
     }
   };
 
-  // *** PDF EXPORT FIX ***
-  // This function now manually draws text to the PDF for precise control over styling.
   const exportNotesToPDF = (folderName, notes) => {
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
     const margin = 15;
     const maxWidth = pageW - (margin * 2);
-    let currentY = 55; // Start position after title
+    let currentY = 55;
 
-    // Draw Header
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(30);
-    doc.setTextColor(139, 92, 246); // --primary-purple
+    doc.setTextColor(139, 92, 246);
     doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
     doc.setFont('helvetica', 'normal');
     doc.setFontSize(16);
-    doc.setTextColor(31, 41, 55); // --content-bg
+    doc.setTextColor(31, 41, 55);
     doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
 
-    // Draw Title
     doc.setFontSize(22);
-    doc.setTextColor(0, 0, 0); // Black for the title
+    doc.setTextColor(0, 0, 0);
     doc.text(`Flash Notes: ${folderName}`, pageW / 2, 45, { align: 'center' });
 
-    // Function to check for page breaks
     const checkPageBreak = (heightNeeded) => {
       if (currentY + heightNeeded > doc.internal.pageSize.getHeight() - margin) {
         doc.addPage();
@@ -1900,28 +1872,27 @@ const MainApp = () => {
       }
     };
 
-    // Parse markdown into tokens to handle headings and lists
     const tokens = marked.lexer(notes);
 
     tokens.forEach(token => {
       if (token.type === 'heading') {
         checkPageBreak(15); 
         doc.setFont('helvetica', 'bold');
-        doc.setFontSize(12); // Correct heading font size
+        doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
         const headingText = doc.splitTextToSize(token.text, maxWidth);
         doc.text(headingText, margin, currentY);
-        currentY += (headingText.length * 5) + 4; // Move Y down
+        currentY += (headingText.length * 5) + 4;
       }
       if (token.type === 'list') {
         token.items.forEach(item => {
           checkPageBreak(10); 
           doc.setFont('helvetica', 'normal');
-          doc.setFontSize(10); // Correct body font size
+          doc.setFontSize(10);
           doc.setTextColor(0, 0, 0);
-          const itemText = doc.splitTextToSize(`• ${item.text}`, maxWidth - 5); // Indent bullet
+          const itemText = doc.splitTextToSize(`• ${item.text}`, maxWidth - 5);
           doc.text(itemText, margin + 5, currentY);
-          currentY += (itemText.length * 4) + 2; // Adjust line height based on wrapped lines
+          currentY += (itemText.length * 4) + 2;
         });
       }
        if (token.type === 'paragraph') {
@@ -1959,7 +1930,6 @@ const MainApp = () => {
       {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
       {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
       
-      {/* NEW: Flash Notes Modals */}
       {flashNotesActionModal && (
         <FlashNotesActionModal
           folder={flashNotesActionModal}
@@ -2160,8 +2130,8 @@ const MainApp = () => {
           <h2 className="section-heading-left">Your Folders</h2>
           <button onClick={() => {
             setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder });
-            setStudyingFolder(null); // Close study viewer if open
-            setIsFeedbackModalOpen(false); // Close feedback modal
+            setStudyingFolder(null);
+            setIsFeedbackModalOpen(false);
           }} className="create-folder-btn">Create New Folder</button>
         </div>
         <div className="folder-sort-controls">
@@ -2186,8 +2156,8 @@ const MainApp = () => {
       <div className="app-footer">
         <button className="feedback-btn" onClick={() => {
           setIsFeedbackModalOpen(true);
-          setStudyingFolder(null); // Close study viewer if open
-          setModalConfig(null); // Close other modals
+          setStudyingFolder(null);
+          setModalConfig(null);
         }}>Send Feedback</button>
       </div>
     </>
@@ -2350,8 +2320,8 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isArrangeMode, setIsArrangeMode] = useState(false);
-  const [reviewMode, setReviewMode] = useState('all'); // 'all', 'flagged', 'needsReview'
-  const [needsReviewDuration, setNeedsReviewDuration] = useState(24 * 3600 * 1000); // Default: 24 hours in ms
+  const [reviewMode, setReviewMode] = useState('all');
+  const [needsReviewDuration, setNeedsReviewDuration] = useState(24 * 3600 * 1000);
   const [isReading, setIsReading] = useState(false);
   const [speechRate, setSpeechRate] = useState(1);
   const [speechDelay, setSpeechDelay] = useState(3);
@@ -2368,7 +2338,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
     if (reviewMode === 'needsReview') {
       const now = Date.now();
       return deck.filter(card => !card.lastViewed || (now - card.lastViewed) > needsReviewDuration)
-          .sort((a, b) => (a.lastViewed || 0) - (b.lastViewed || 0)); // Show oldest first
+          .sort((a, b) => (a.lastViewed || 0) - (b.lastViewed || 0));
     }
     return deck;
   }, [deck, reviewMode, needsReviewDuration]);
@@ -2376,22 +2346,16 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
   const currentCard = studyDeck[currentIndex];
   const currentCardId = currentCard ? currentCard.id : null;
 
-  // *** BUG FIX ***
-  // This effect now correctly updates the 'lastViewed' timestamp only for the currently visible card
-  // and avoids the infinite loop that was causing all cards to be updated at once.
   useEffect(() => {
       if (isArrangeMode || !currentCardId) return;
 
-      // Use a functional update to get the latest state without causing a dependency loop
       setDeck(prevDeck => {
           const cardInDeck = prevDeck.find(c => c.id === currentCardId);
-          // Check if an update is needed to avoid unnecessary re-renders
           if (cardInDeck && (!cardInDeck.lastViewed || (Date.now() - cardInDeck.lastViewed > 5000))) {
               return prevDeck.map(card =>
                   card.id === currentCardId ? { ...card, lastViewed: Date.now() } : card
               );
           }
-          // If no update is needed, return the original state to prevent a re-render
           return prevDeck;
       });
 
@@ -2606,7 +2570,6 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
               <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
             </div>
           </div>
-          {/* NEW: Games Section */}
           <div className="games-section-container">
             <h3>Games</h3>
             <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
@@ -2639,16 +2602,14 @@ const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) =
 };
 const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
   const [value, setValue] = useState(defaultValue || '');
-  // Diagnostic useEffect to see when modal renders and its value
   useEffect(() => {
     console.log(`PromptModal rendered: title='${title}', defaultValue='${defaultValue}', currentValue='${value}'`);
   }, [title, defaultValue, value]);
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(`PromptModal handleSubmit triggered with value: ${value}`); // Diagnostic log
+    console.log(`PromptModal handleSubmit triggered with value: ${value}`);
     if (value) onConfirm(value);
-    // Call onClose immediately after onConfirm to ensure it closes
     onClose(); 
   };
   return (
@@ -2683,7 +2644,6 @@ const ConfirmModal = ({ message, onClose, onConfirm }) => {
   );
 };
 
-// NEW: Component for Flash Notes action choice
 const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) => {
   return (
     <div className="modal-overlay">
@@ -2711,7 +2671,6 @@ const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) =>
   );
 };
 
-// NEW: Component to display Flash Notes
 const FlashNotesViewer = ({ folderName, notes, onClose }) => {
   const contentRef = useRef(null);
 
@@ -2753,7 +2712,6 @@ const formatTime = (time) => {
   return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
 };
 
-// --- FINAL APP COMPONENT ---
 function App() {
   const [showApp, setShowApp] = useState(false);
 
