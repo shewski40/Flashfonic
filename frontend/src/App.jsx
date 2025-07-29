@@ -153,7 +153,7 @@ const EnterNameModal = ({ onClose, onConfirm }) => {
 
 
 // --- GAME COMPONENT ---
-const GameViewer = ({ folder, onClose, onBackToStudy }) => {
+const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy }) => {
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -217,7 +217,16 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
 
     const handleExit = () => {
         stopAllAudio();
-        setGameState('landing');
+        onExitGame();
+    };
+
+    const handleBackButton = () => {
+        stopAllAudio();
+        if (cameFromStudy) {
+            onBackToStudy(folder);
+        } else {
+            onExitGame();
+        }
     };
 
     const handlePause = () => {
@@ -459,11 +468,12 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             case 'landing':
                 return (
                     <div className="game-landing-page">
-                        <h1 className="game-landing-title">Verbatim Master AI</h1>
+                        <h1 className="game-landing-title">VERBATIM MASTER AI</h1>
                         <div className="game-landing-actions">
                             <button className="game-action-btn" onClick={() => setGameState('name_entry')}>Start Game</button>
                             <button className="game-action-btn" onClick={() => setShowHowToPlay(true)}>How to Play</button>
                             <button className="game-action-btn" onClick={() => setShowLeaderboard(true)}>Leaderboard</button>
+                            <button className="game-action-btn" onClick={handleBackButton}>Back</button>
                         </div>
                         <div className="game-play-mode-selector">
                             <button
@@ -680,6 +690,7 @@ const MainApp = () => {
   const [showFlashNotesViewer, setShowFlashNotesViewer] = useState(false);
 
   const [gameModeFolder, setGameModeFolder] = useState(null);
+  const [gameLaunchedFromStudy, setGameLaunchedFromStudy] = useState(false);
 
 
   const [isSafari, setIsSafari] = useState(false);
@@ -1761,7 +1772,12 @@ const MainApp = () => {
     }));
   };
 
-  const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
+  const handlePlayGame = (folder) => {
+    setGameModeFolder(folder);
+    setGameLaunchedFromStudy(false);
+  };
+
+  const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown, onPlayGame }) => {
     const isExpanded = expandedFolderIds.has(folder.id); 
     const paddingLeft = level * 20;
 
@@ -1832,7 +1848,7 @@ const MainApp = () => {
                     setStudyingFolder(null);
                     setIsFeedbackModalOpen(false);
                   }}
-                  onPlayGame={(folder) => setGameModeFolder(folder)}
+                  onPlayGame={onPlayGame}
                 />
               </div>
             </div>
@@ -1844,6 +1860,7 @@ const MainApp = () => {
                     folder={subfolder} 
                     level={level + 1} 
                     allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
+                    onPlayGame={onPlayGame}
                   />
                 ))}
               </div>
@@ -2010,8 +2027,31 @@ const MainApp = () => {
 
   return (
     <>
-      {studyingFolder && ( <FlashcardViewer key={studyingFolder.id} folder={studyingFolder} onClose={handleStudySessionEnd} onLaunchGame={(folder) => { setStudyingFolder(null); setGameModeFolder(folder); }} /> )}
-      {gameModeFolder && ( <GameViewer key={gameModeFolder.id} folder={gameModeFolder} onClose={handleGameEnd} onBackToStudy={(folder) => { setGameModeFolder(null); setStudyingFolder(folder); }} /> )}
+      {studyingFolder && (
+        <FlashcardViewer
+          key={studyingFolder.id}
+          folder={studyingFolder}
+          onClose={handleStudySessionEnd}
+          onLaunchGame={(folder) => {
+            setStudyingFolder(null);
+            setGameModeFolder(folder);
+            setGameLaunchedFromStudy(true);
+          }}
+        />
+      )}
+      {gameModeFolder && (
+        <GameViewer
+          key={gameModeFolder.id}
+          folder={gameModeFolder}
+          onClose={handleGameEnd}
+          onBackToStudy={(folder) => {
+            setGameModeFolder(null);
+            setStudyingFolder(folder);
+          }}
+          onExitGame={() => setGameModeFolder(null)}
+          cameFromStudy={gameLaunchedFromStudy}
+        />
+      )}
       {promptModalConfig && (
         <PromptModal
           title={promptModalConfig.title}
@@ -2243,7 +2283,8 @@ const MainApp = () => {
               key={folder.id} 
               folder={folder} 
               level={0} 
-              allFoldersForMoveDropdown={allFoldersForMoveDropdown} 
+              allFoldersForMoveDropdown={allFoldersForMoveDropdown}
+              onPlayGame={handlePlayGame}
             />
           )) : <p className="subtle-text">No folders created yet.</p>}
         </div>
