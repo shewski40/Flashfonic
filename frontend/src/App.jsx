@@ -692,7 +692,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                     {gameState !== 'ready' && (
                         <div className="game-card-area">
                             <div className="game-card">
-                                <p className="game-question"><strong>Q:</strong> {currentCard?.question}</p> {/* Changed <b> to <strong> */}
+                                <p className="game-question"><strong>Q:</strong> {currentCard?.question}</p> 
                             </div>
                         </div>
                     )}
@@ -826,45 +826,47 @@ const MainApp = () => {
   }, []);
 
   useEffect(() => {
-    const storedFolders = localStorage.getItem('flashfonic-folders');
-    if (storedFolders) {
-      const parsedFolders = JSON.parse(storedFolders);
-      const convertFolderStructure = (oldFolders) => {
-        const newFolders = {};
-        for (const key in oldFolders) {
-          const folder = oldFolders[key];
-          let newFolder;
-          if (Array.isArray(folder)) {
-            const folderId = generateUUID();
-            newFolder = {
-              id: folderId,
-              name: key,
-              createdAt: Date.now(),
-              lastViewed: Date.now(),
-              cards: folder,
-              subfolders: {}
-            };
-          } else {
-            newFolder = { ...folder };
-            if (!newFolder.id) newFolder.id = generateUUID();
-            if (!newFolder.createdAt) newFolder.createdAt = Date.now();
-            if (!newFolder.lastViewed) newFolder.lastViewed = Date.now();
-            if (!newFolder.cards) newFolder.cards = [];
-            if (!newFolder.subfolders) newFolder.subfolders = {};
-            if (newFolder.flashNotes === undefined) newFolder.flashNotes = null;
-            if (newFolder.leaderboard === undefined) newFolder.leaderboard = [];
-            newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
+    try {
+      const storedFolders = localStorage.getItem('flashfonic-folders');
+      if (storedFolders) {
+        const parsedFolders = JSON.parse(storedFolders);
+        const convertFolderStructure = (oldFolders) => {
+          const newFolders = {};
+          for (const key in oldFolders) {
+            const folder = oldFolders[key];
+            let newFolder;
+            if (Array.isArray(folder)) {
+              const folderId = generateUUID();
+              newFolder = {
+                id: folderId,
+                name: key,
+                createdAt: Date.now(),
+                lastViewed: Date.now(),
+                cards: folder,
+                subfolders: {}
+              };
+            } else {
+              newFolder = { ...folder };
+              if (!newFolder.id) newFolder.id = generateUUID();
+              if (!newFolder.createdAt) newFolder.createdAt = Date.now();
+              if (!newFolder.lastViewed) newFolder.lastViewed = Date.now();
+              if (!newFolder.cards) newFolder.cards = [];
+              if (!newFolder.subfolders) newFolder.subfolders = {};
+              if (newFolder.flashNotes === undefined) newFolder.flashNotes = null;
+              if (newFolder.leaderboard === undefined) newFolder.leaderboard = [];
+              newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
+            }
+            newFolders[newFolder.id] = newFolder;
           }
-          newFolder.cards = (newFolder.cards || []).map(card => ({
-            ...card,
-            lastViewed: card.lastViewed || null,
-            isFlagged: card.isFlagged || false,
-          }));
-          newFolders[newFolder.id] = newFolder;
-        }
-        return newFolders;
-      };
-      setFolders(convertFolderStructure(parsedFolders));
+          return newFolders;
+        };
+        setFolders(convertFolderStructure(parsedFolders));
+      }
+    } catch (error) {
+      console.error("Error loading folders from local storage:", error);
+      // Fallback to empty folders if loading fails
+      setFolders({});
+      setNotification("Error loading saved data. Starting fresh.");
     }
   }, []);
 
@@ -1025,7 +1027,7 @@ const MainApp = () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      recognitionRef.current = null; 
+      recognitionRef.current = null; // FIX: Corrected from recognition.current
     }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -2445,7 +2447,7 @@ const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenam
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickAll);
+    return () => document.removeEventListener("mousedown", handleClickOutside); // Corrected from handleClickAll
   }, []);
 
   return (
