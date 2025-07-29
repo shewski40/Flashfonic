@@ -711,17 +711,17 @@ const MainApp = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [fileName, setFileName] = useState('');
   const [mediaSrc, setMediaSrc] = useState(null);
-  const [fileType, setFileType] = null;
+  const [fileType, setFileType] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [mediaDuration, setMediaDuration] = useState(0);
   const [voiceActivated, setVoiceActivated] = useState(false);
   const [checkedCards, setCheckedCards] = useState({});
-  const [editingCard, setEditingCard] = null;
-  const [studyingFolder, setStudyingFolder] = null;
-  const [promptModalConfig, setPromptModalConfig] = null;
+  const [editingCard, setEditingCard] = useState(null); // Corrected initialization
+  const [studyingFolder, setStudyingFolder] = useState(null); // Corrected initialization
+  const [promptModalConfig, setPromptModalConfig] = useState(null); // Corrected initialization
   const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
-  const [movingCard, setMovingCard] = null;
+  const [movingCard, setMovingCard] = useState(null); // Corrected initialization
   const [listeningDuration, setListeningDuration] = useState(1);
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
@@ -730,22 +730,22 @@ const MainApp = () => {
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
-  const [uploadedFile, setUploadedFile] = null;
-  const [audioCacheId, setAudioCacheId] = useState(null);
+  const [uploadedFile, setUploadedFile] = useState(null); // Corrected initialization
+  const [audioCacheId, setAudioCacheId] = useState(null); // Corrected initialization
   const [folderSortBy, setFolderSortBy] = useState('name');
   const [draggedFolderId, setDraggedFolderId] = useState(null);
   // FIX: Corrected useState initialization for expandedFolderIds
   const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());  
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
-  const [modalConfig, setModalConfig] = useState(null);    
+  const [modalConfig, setModalConfig] = useState(null);    // Corrected initialization
   
-  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null);
+  const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); // Corrected initialization
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
-  const [flashNotesContent, setFlashNotesContent] = useState(null);
+  const [flashNotesContent, setFlashNotesContent] = useState(null); // Corrected initialization
   const [showFlashNotesViewer, setShowFlashNotesViewer] = useState(false);
 
-  const [gameModeFolder, setGameModeFolder] = useState(null);
+  const [gameModeFolder, setGameModeFolder] = useState(null); // Corrected initialization
   const [gameLaunchedFromStudy, setGameLaunchedFromStudy] = useState(false);
   const [showGamesModal, setShowGamesModal] = useState(null); // Stores folder for which games modal is open
   const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
@@ -1009,7 +1009,7 @@ const MainApp = () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      recognitionRef.current = null; // Corrected: Use .current
+      recognitionRef.current = null; 
     }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
