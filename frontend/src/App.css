@@ -2067,7 +2067,7 @@ input[type="range"]::-webkit-slider-thumb {
   max-width: 500px;
   background-color: #000;
   border: 4px solid var(--primary-purple);
-  box-shadow: 0 0 15px var(--primary-purple), inset 0 0 15px var(--primary-purple);
+  box-shadow: 0 0 10px var(--primary-purple), inset 0 0 10px var(--primary-purple);
   padding: 1.5rem;
   border-radius: 16px;
   color: #fff;
@@ -2087,7 +2087,7 @@ input[type="range"]::-webkit-slider-thumb {
 .leaderboard-container h3, .leaderboard-container h2 {
   font-size: 1.5rem;
   color: var(--secondary-pink);
-  text-shadow: 0 0 10px var(--secondary-pink);
+  text-shadow: 0 0 5px var(--secondary-pink);
   margin-top: 0;
   margin-bottom: 1.5rem;
   text-align: center;
@@ -2107,17 +2107,17 @@ input[type="range"]::-webkit-slider-thumb {
   font-size: 1rem;
   align-items: center;
   color: var(--text-light);
-  text-shadow: 0 0 5px var(--text-light);
+  text-shadow: 0 0 2px rgba(255,255,255,0.7);
 }
 
 .leaderboard-list li span:nth-child(1) {
   color: var(--primary-purple);
-  text-shadow: 0 0 8px var(--primary-purple);
+  text-shadow: 0 0 5px var(--primary-purple);
 }
 .leaderboard-list li span:nth-child(3) {
   text-align: right;
   color: var(--gold);
-  text-shadow: 0 0 8px var(--gold);
+  text-shadow: 0 0 5px var(--gold);
 }
 
 

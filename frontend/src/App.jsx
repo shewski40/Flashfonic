@@ -558,12 +558,13 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                             Total Score: {score} / {totalPossibleScore}
                         </p>
                         <div className="leaderboard-container">
-                            <h3>Leaderboard</h3>
+                            <h3>High Scores</h3>
                             <ol className="leaderboard-list">
                                {sortedLeaderboard.slice(0, 5).map((entry, index) => (
                                     <li key={index}>
-                                        <span>{entry.name || 'Anonymous'}</span>
-                                        <span>{entry.score} pts</span>
+                                        <span>#{index + 1}</span>
+                                        <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
+                                        <span>{entry.score}</span>
                                     </li>
                                ))}
                             </ol>
@@ -588,9 +589,9 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                     <ol className="leaderboard-list">
                        {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
                             <li key={index}>
-                                <span>{index + 1}. {entry.name || 'Anonymous'}</span>
-                                <span>{new Date(entry.date).toLocaleDateString()}</span>
-                                <span>{entry.score} pts</span>
+                                <span>#{index + 1}</span>
+                                <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
+                                <span>{entry.score}</span>
                             </li>
                        )) : <p>No scores yet. Be the first!</p>}
                     </ol>
@@ -2457,7 +2458,6 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
   const [isFlipped, setIsFlipped] = useState(false);
   const [isArrangeMode, setIsArrangeMode] = useState(false);
   const [reviewMode, setReviewMode] = useState('all');
-  const [needsReviewDuration, setNeedsReviewDuration] = useState(24 * 3600 * 1000);
   const [isReading, setIsReading] = useState(false);
   const [speechRate, setSpeechRate] = useState(1);
   const [speechDelay, setSpeechDelay] = useState(3);
@@ -2471,13 +2471,8 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
     if (reviewMode === 'flagged') {
       return deck.filter(card => card.isFlagged);
     }
-    if (reviewMode === 'needsReview') {
-      const now = Date.now();
-      return deck.filter(card => !card.lastViewed || (now - card.lastViewed) > needsReviewDuration)
-        .sort((a, b) => (a.lastViewed || 0) - (b.lastViewed || 0));
-    }
     return deck;
-  }, [deck, reviewMode, needsReviewDuration]);
+  }, [deck, reviewMode]);
 
   const currentCard = studyDeck[currentIndex];
   const currentCardId = currentCard ? currentCard.id : null;
@@ -2614,23 +2609,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
         <button onClick={() => setIsArrangeMode(!isArrangeMode)}>{isArrangeMode ? 'Study' : 'Arrange'}</button>
         <button onClick={() => handleReviewModeChange('all')} className={reviewMode === 'all' ? 'active' : ''}>Review All</button>
         <button onClick={() => handleReviewModeChange('flagged')} className={reviewMode === 'flagged' ? 'active' : ''}>{`Flagged (${flaggedCount})`}</button>
-        <button onClick={() => handleReviewModeChange('needsReview')} className={reviewMode === 'needsReview' ? 'active' : ''}>Needs Review</button>
       </div>
-      {reviewMode === 'needsReview' && (
-        <div className="needs-review-controls">
-          <label htmlFor="needs-review-select">Least viewed in:</label>
-          <select
-            id="needs-review-select"
-            value={needsReviewDuration}
-            onChange={(e) => setNeedsReviewDuration(Number(e.target.value))}
-          >
-            <option value={24 * 3600 * 1000}>Past 24 hours</option>
-            <option value={2 * 24 * 3600 * 1000}>Past 48 hours</option>
-            <option value={7 * 24 * 3600 * 1000}>Past week</option>
-            <option value={30 * 24 * 3600 * 1000}>Past month</option>
-          </select>
-        </div>
-      )}
       {isArrangeMode ? (
         <div className="arrange-container">
           <h3>Drag and drop to reorder</h3>
@@ -2648,20 +2627,10 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                   <div className="card-face card-front">
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                    {reviewMode === 'needsReview' && currentCard.lastViewed && (
-                      <div className="last-viewed-banner">
-                        Last viewed: {new Date(currentCard.lastViewed).toLocaleDateString()}
-                      </div>
-                    )}
                     <p>{currentCard?.question}</p>
                   </div>
                   <div className="card-face card-back">
                     <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                    {reviewMode === 'needsReview' && currentCard.lastViewed && (
-                      <div className="last-viewed-banner">
-                        Last viewed: {new Date(currentCard.lastViewed).toLocaleDateString()}
-                      </div>
-                    )}
                     <p>{currentCard?.answer}</p>
                   </div>
                 </div>
@@ -2676,7 +2645,6 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
             <div className="viewer-empty">
               <p>No cards to display in this mode.</p>
               {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
-              {reviewMode === 'needsReview' && <p>All cards have been viewed recently. Adjust the duration to see more cards.</p>}
             </div>
           )}
           <div className="tts-controls">
