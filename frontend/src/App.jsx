@@ -151,6 +151,57 @@ const EnterNameModal = ({ onClose, onConfirm }) => {
     );
 };
 
+// --- GAMES MODAL ---
+const GamesModal = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => {
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content games-modal-content" onClick={e => e.stopPropagation()}>
+                <h2>Games for "{folder.name}"</h2>
+                <p className="modal-message">Choose a game mode to test your knowledge!</p>
+                <div className="game-selection-grid">
+                    <button onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
+                    <button onClick={() => onLaunchAnamnesisNemesis(folder)}>Anamnesis Nemesis</button>
+                    {/* Add more game buttons here */}
+                </div>
+                <div className="modal-actions">
+                    <button onClick={onClose} className="modal-cancel-btn">Close</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+// --- ANAMNESIS NEMESIS LANDING PAGE COMPONENT ---
+const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
+    return (
+        <div className="anamnesis-landing-page">
+            <h1 className="anamnesis-title">ANAMNESIS NEMESIS</h1>
+            <p className="anamnesis-tagline">The AI that never forgets, and never forgives.</p>
+            <p className="anamnesis-description">
+                Go head to head with FlashFonic's dark alter ego. Say your answer out loud. The AI scores your recall - and roasts your soul if you miss.
+            </p>
+
+            <div className="anamnesis-features-grid">
+                <div className="anamnesis-feature-card">
+                    <h3>Verbatim Master Mode (Solo)</h3>
+                    <p>Refine your recall with precision. Practice speaking answers exactly as they are on your flashcards, with instant, brutal feedback from the AI.</p>
+                </div>
+                <div className="anamnesis-feature-card">
+                    <h3>Flash Duel (Vs. Friend)</h3>
+                    <p>Challenge a friend! Take turns answering questions from your shared deck. The AI judges both of you, leaving no room for debate on who truly knows their stuff.</p>
+                </div>
+                <div className="anamnesis-feature-card">
+                    <h3>Study Party (Multiplayer)</h3>
+                    <p>Host a study session where everyone gets roasted! Multiple players answer simultaneously, and the Nemesis AI provides collective (and individual) feedback. Perfect for group learning, or just group humiliation.</p>
+                </div>
+            </div>
+
+            <button onClick={onStartGame} className="anamnesis-cta-button">Unleash the Nemesis</button>
+            <button onClick={onClose} className="game-action-btn" style={{marginTop: '1rem'}}>Back to Games</button>
+        </div>
+    );
+};
+
 
 // --- GAME COMPONENT ---
 const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy }) => {
@@ -272,7 +323,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             setCurrentIndex(i => i + 1);
             setGameState('starting');
         } else {
-            onClose(folder.id, score, playerName);
+            // Game over, pass folder ID, final score, and player name to parent
+            onClose(folder.id, score, playerName); 
             setGameState('game_over');
         }
     }, [currentIndex, deck.length, onClose, folder.id, score, playerName]);
@@ -343,7 +395,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
     const startListening = useCallback(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            alert("Speech recognition not supported in this browser.");
+            // Removed alert, will rely on UI notification if one exists or just console error
+            console.error("Speech recognition not supported in this browser.");
             return;
         }
 
@@ -518,7 +571,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                     </div>
                 );
             case 'scoring':
-                 return <div className="game-status-fullscreen">Judging...</div>;
+                return <div className="game-status-fullscreen">Judging...</div>;
             case 'round_result':
                 const isCorrect = lastScore >= 30;
                 return (
@@ -546,7 +599,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             case 'game_over':
                 const totalPossibleScore = deck.length * 100;
                 const finalMedal = getMedal();
-                const sortedLeaderboard = [...(folder.leaderboard || []), {name: playerName, score, date: Date.now()}].sort((a,b) => b.score - a.score);
+                // Leaderboard is now updated in MainApp via onClose prop
+                const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
 
                 return (
                     <div className="game-over-container">
@@ -672,7 +726,7 @@ const MainApp = () => {
   const [isAutoFlashOn, setIsAutoFlashOn] = useState(false);
   const [autoFlashInterval, setAutoFlashInterval] = useState(20);
   const [isUploadAutoFlashOn, setIsUploadAutoFlashOn] = useState(false);
-  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20); 
+  const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);  
   const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
   const [isDevMode, setIsDevMode] = useState(false);
   const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
@@ -680,11 +734,11 @@ const MainApp = () => {
   const [audioCacheId, setAudioCacheId] = useState(null);
   const [folderSortBy, setFolderSortBy] = useState('name');
   const [draggedFolderId, setDraggedFolderId] = useState(null);
-  const [expandedFolderIds, setExpandedFolderIds] = useState(new Set()); 
+  const [expandedFolderIds, setExpandedFolderIds] = new Set();  
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
-  const [modalConfig, setModalConfig] = useState(null);   
- 
+  const [modalConfig, setModalConfig] = useState(null);    
+  
   const [flashNotesActionModal, setFlashNotesActionModal] = useState(null);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [flashNotesContent, setFlashNotesContent] = useState(null);
@@ -692,6 +746,8 @@ const MainApp = () => {
 
   const [gameModeFolder, setGameModeFolder] = useState(null);
   const [gameLaunchedFromStudy, setGameLaunchedFromStudy] = useState(false);
+  const [showGamesModal, setShowGamesModal] = useState(null); // Stores folder for which games modal is open
+  const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
 
 
   const [isSafari, setIsSafari] = useState(false);
@@ -716,7 +772,7 @@ const MainApp = () => {
   const uploadAutoFlashTimerRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
- 
+  
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
     isGeneratingRef.current = isGenerating;
@@ -884,7 +940,7 @@ const MainApp = () => {
             }
             
             setAudioCacheId(data.audioId);
-            setNotification("Audio is ready! You can now flash it.");
+            setNotification("Audio is ready! You can now flash it!");
         } catch (error) {
             console.error("Error processing audio:", error);
             setNotification(`Error: ${error.message}`);
@@ -934,7 +990,7 @@ const MainApp = () => {
     }
     return () => clearInterval(autoFlashTimerRef.current);
   }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
- 
+  
   useEffect(() => {
     if (uploadAutoFlashTimerRef.current) clearInterval(uploadAutoFlashTimerRef.current);
     uploadAutoFlashTimerRef.current = null;
@@ -951,8 +1007,8 @@ const MainApp = () => {
     if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
     streamRef.current?.getTracks().forEach(track => track.stop());
     if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
+      recognitionRef.current.stop();
+      recognition.current = null;
     }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -1101,7 +1157,7 @@ const MainApp = () => {
     const seekTime = (e.nativeEvent.offsetX / e.target.clientWidth) * mediaDuration;
     activePlayer.currentTime = seekTime;
   };
- 
+  
   const handleCardCheck = (cardId) => {
     setCheckedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
   };
@@ -1119,7 +1175,7 @@ const MainApp = () => {
 
   const findFolderById = (foldersObj, folderId) => {
     for (const id in foldersObj) {
-      if (foldersObj[id].id === folderId) return foldersObj[id]; 
+      if (foldersObj[id].id === folderId) return foldersObj[id];  
       const foundInSub = findFolderById(foldersObj[id].subfolders, folderId);
       if (foundInSub) return foundInSub;
     }
@@ -1242,7 +1298,7 @@ const MainApp = () => {
 
   const handleDeleteFolder = (folderId) => {
     setFolders(prev => {
-      const deletedFolder = findFolderById(prev, folderId); 
+      const deletedFolder = findFolderById(prev, folderId);  
       const updatedFolders = deleteFolderById(prev, folderId);
 
       setExpandedFolderIds(currentExpandedIds => {
@@ -1332,11 +1388,11 @@ const MainApp = () => {
   const exportFolderToPDF = (folderId) => {
     const folder = findFolderById(folders, folderId);
     if (!folder || folder.cards.length === 0) {
-      setNotification("Folder not found or contains no cards for export."); 
+      setNotification("Folder not found or contains no cards for export.");  
       return;
     }
 
-    setStudyingFolder(null); 
+    setStudyingFolder(null);  
     setIsFeedbackModalOpen(false);
 
     setTimeout(() => {
@@ -1347,12 +1403,12 @@ const MainApp = () => {
         onConfirm: (value) => {
           const cardsPerPage = parseInt(value, 10);
           if (![6, 8, 10].includes(cardsPerPage)) {
-            setNotification("Invalid number. Please choose 6, 8, or 10."); 
+            setNotification("Invalid number. Please choose 6, 8, or 10.");  
             return;
           }
           
           const doc = new jsPDF();
-          const cards = folder.cards; 
+          const cards = folder.cards;  
           const pageW = doc.internal.pageSize.getWidth();
           const pageH = doc.internal.pageSize.getHeight();
           const layoutConfig = {
@@ -1428,15 +1484,15 @@ const MainApp = () => {
       });
     }, 0);
   };
- 
+  
   const exportFolderToCSV = (folderId) => {
     const folder = findFolderById(folders, folderId);
     if (!folder || folder.cards.length === 0) {
-      setNotification("Folder not found or contains no cards for export."); 
+      setNotification("Folder not found or contains no cards for export.");  
       return;
     }
 
-    setStudyingFolder(null); 
+    setStudyingFolder(null);  
     setIsFeedbackModalOpen(false);
 
     setTimeout(() => {
@@ -1447,7 +1503,7 @@ const MainApp = () => {
         onConfirm: (value) => {
           const numCards = parseInt(value, 10);
           if (isNaN(numCards) || numCards <= 0 || numCards > folder.cards.length) {
-              setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`); 
+              setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`);  
               return;
           }
           const cardsToExport = folder.cards.slice(0, numCards);
@@ -1768,8 +1824,9 @@ const MainApp = () => {
   const handleGameEnd = (folderId, finalScore, playerName) => {
     setFolders(prev => updateFolderById(prev, folderId, folder => {
       const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now() }];
+      // Sort by score descending, then by date descending for ties
       newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
-      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
+      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) }; // Keep top 10 scores
     }));
   };
 
@@ -1778,8 +1835,26 @@ const MainApp = () => {
     setGameLaunchedFromStudy(false);
   };
 
+  const handleLaunchAnamnesisNemesis = (folder) => {
+    setShowAnamnesisNemesisLanding(true);
+    setShowGamesModal(null); // Close the games modal
+    setGameModeFolder(folder); // Keep track of the folder for the new game
+  };
+
+  const handleStartAnamnesisNemesisGame = () => {
+    // This function would launch the actual Anamnesis Nemesis game
+    // For now, it will just close the landing page and could potentially
+    // launch the existing GameViewer with a different mode or a new component.
+    // For this iteration, let's just close the landing page.
+    setShowAnamnesisNemesisLanding(false);
+    setNotification("Anamnesis Nemesis game started! (Placeholder)");
+    // In a real scenario, you'd navigate to the game component,
+    // potentially passing the game mode (e.g., 'solo', 'duel', 'party')
+    // and the folder.
+  };
+
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown, onPlayGame }) => {
-    const isExpanded = expandedFolderIds.has(folder.id); 
+    const isExpanded = expandedFolderIds.has(folder.id);  
     const paddingLeft = level * 20;
 
     return (
@@ -1796,7 +1871,7 @@ const MainApp = () => {
         <div className="folder-summary-custom" onClick={(e) => {
           e.stopPropagation();
           handleFolderToggle(folder.id, !isExpanded);
-        }}> 
+        }}>  
           <div className="folder-item-header">
             <span className="folder-name-display">
               <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span>
@@ -1828,6 +1903,8 @@ const MainApp = () => {
                   setIsFeedbackModalOpen(false);
                 }} className="study-btn-large">Study</button>
                 <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
+                {/* New Games Button */}
+                <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
               </div>
               <div className="folder-expanded-actions">
                 <ActionsDropdown 
@@ -1849,7 +1926,7 @@ const MainApp = () => {
                     setStudyingFolder(null);
                     setIsFeedbackModalOpen(false);
                   }}
-                  onPlayGame={onPlayGame}
+                  // onPlayGame removed from here
                 />
               </div>
             </div>
@@ -1989,7 +2066,7 @@ const MainApp = () => {
 
     tokens.forEach(token => {
       if (token.type === 'heading') {
-        checkPageBreak(15); 
+        checkPageBreak(15);  
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(12);
         doc.setTextColor(0, 0, 0);
@@ -1999,7 +2076,7 @@ const MainApp = () => {
       }
       if (token.type === 'list') {
         token.items.forEach(item => {
-          checkPageBreak(10); 
+          checkPageBreak(10);  
           doc.setFont('helvetica', 'normal');
           doc.setFontSize(10);
           doc.setTextColor(0, 0, 0);
@@ -2028,6 +2105,7 @@ const MainApp = () => {
 
   return (
     <>
+      {/* Conditional rendering for FlashcardViewer (Study Mode) */}
       {studyingFolder && (
         <FlashcardViewer
           key={studyingFolder.id}
@@ -2040,7 +2118,9 @@ const MainApp = () => {
           }}
         />
       )}
-      {gameModeFolder && (
+
+      {/* Conditional rendering for GameViewer (Verbatim Master AI) */}
+      {gameModeFolder && !showAnamnesisNemesisLanding && (
         <GameViewer
           key={gameModeFolder.id}
           folder={gameModeFolder}
@@ -2053,6 +2133,16 @@ const MainApp = () => {
           cameFromStudy={gameLaunchedFromStudy}
         />
       )}
+
+      {/* Conditional rendering for Anamnesis Nemesis Landing Page */}
+      {showAnamnesisNemesisLanding && gameModeFolder && (
+        <AnamnesisNemesisLandingPage
+          onClose={() => {setShowAnamnesisNemesisLanding(false); setShowGamesModal(gameModeFolder);}} // Back to games modal
+          onStartGame={handleStartAnamnesisNemesisGame}
+        />
+      )}
+
+      {/* Modals */}
       {promptModalConfig && (
         <PromptModal
           title={promptModalConfig.title}
@@ -2066,6 +2156,7 @@ const MainApp = () => {
       {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
       {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
       
+      {/* Flash Notes Modals/Viewers */}
       {flashNotesActionModal && (
         <FlashNotesActionModal
           folder={flashNotesActionModal}
@@ -2079,6 +2170,20 @@ const MainApp = () => {
           folderName={flashNotesContent.folderName}
           notes={flashNotesContent.notes}
           onClose={() => setShowFlashNotesViewer(false)}
+        />
+      )}
+
+      {/* Games Modal */}
+      {showGamesModal && (
+        <GamesModal
+          folder={showGamesModal}
+          onClose={() => setShowGamesModal(null)}
+          onLaunchGame={(folder) => {
+            setShowGamesModal(null); // Close games modal
+            setGameModeFolder(folder); // Set folder for Verbatim Master
+            setGameLaunchedFromStudy(true); // Indicate it came from study mode
+          }}
+          onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
         />
       )}
 
@@ -2166,33 +2271,33 @@ const MainApp = () => {
               <>
                 <div className="player-container">
                   {fileType === 'video' ? (
-                                  <>
-                                    <video 
-                                      ref={videoPlayerRef} 
-                                      src={mediaSrc} 
-                                      playsInline 
-                                      className="video-player"
-                                      onClick={togglePlayPause}
-                                    >
-                                    </video>
+                                    <>
+                                      <video 
+                                        ref={videoPlayerRef} 
+                                        src={mediaSrc} 
+                                        playsInline 
+                                        className="video-player"
+                                        onClick={togglePlayPause}
+                                      >
+                                      </video>
+                                      <div className="audio-player">
+                                        <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                        <div className="progress-bar-container" onClick={handleSeek}>
+                                          <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
+                                        </div>
+                                        <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                      </div>
+                                    </>
+                                  ) : (
                                     <div className="audio-player">
+                                      <audio ref={audioPlayerRef} src={mediaSrc} />
                                       <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
                                       <div className="progress-bar-container" onClick={handleSeek}>
                                         <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
                                       </div>
                                       <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
                                     </div>
-                                  </>
-                                ) : (
-                                  <div className="audio-player">
-                                    <audio ref={audioPlayerRef} src={mediaSrc} />
-                                    <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                                    <div className="progress-bar-container" onClick={handleSeek}>
-                                      <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                                    </div>
-                                    <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
-                                  </div>
-                                )}
+                                  )}
                 </div>
                 <div className="listening-modes" style={{marginTop: '1rem'}}>
                     {fileType === 'video' && !audioCacheId && (
@@ -2304,7 +2409,7 @@ const MainApp = () => {
 // --- HELPER COMPONENTS AND FUNCTIONS ---
 
 // Component for the Actions dropdown
-const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder, onPlayGame }) => {
+const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder }) => { // Removed onPlayGame
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -2329,8 +2434,7 @@ const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenam
           <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
           <button onClick={(e) => { e.stopPropagation(); exportPdf(folder.id); setIsOpen(false); }}>Export PDF</button>
           <button onClick={(e) => { e.stopPropagation(); exportCsv(folder.id); setIsOpen(false); }}>Export CSV</button>
-          <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
-          <button onClick={(e) => { e.stopPropagation(); onPlayGame(folder); setIsOpen(false); }}>Verbatim Master AI</button>
+          {/* Removed Verbatim Master AI from here */}
         </div>
       )}
     </div>
@@ -2676,7 +2780,9 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
           </div>
           <div className="games-section-container">
             <h3>Games</h3>
-            <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
+            {/* The Verbatim Master AI launch button is now handled by the GamesModal */}
+            {/* <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button> */}
+            <p className="subtle-text">Select "Games" from the folder actions to launch a game.</p>
           </div>
         </>
       )}
@@ -2714,7 +2820,7 @@ const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
     e.preventDefault();
     console.log(`PromptModal handleSubmit triggered with value: ${value}`);
     if (value) onConfirm(value);
-    onClose(); 
+    onClose();  
   };
   return (
     <div className="modal-overlay">
@@ -2766,7 +2872,7 @@ const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) =>
           {folder.flashNotes && (
              <button onClick={() => onGenerate(folder, 'view', true)} className="modal-create-btn danger" disabled={isGenerating}>
                {isGenerating ? 'Generating...' : 'Regenerate Notes'}
-            </button>
+             </button>
           )}
           <button type="button" className="modal-cancel-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
         </div>
