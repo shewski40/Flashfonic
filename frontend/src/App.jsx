@@ -165,6 +165,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
     const [isPaused, setIsPaused] = useState(false);
     const [playerName, setPlayerName] = useState('');
     const [showLeaderboard, setShowLeaderboard] = useState(false);
+    const [playMode, setPlayMode] = useState('manual'); // 'manual' or 'continuous'
     
     // Voice selection state
     const [voices, setVoices] = useState([]);
@@ -245,7 +246,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         };
     }, [selectedVoice]);
 
-    const speak = (text, onEndCallback) => {
+    const speak = useCallback((text, onEndCallback) => {
         window.speechSynthesis.cancel();
         const utterance = new SpeechSynthesisUtterance(text);
         const voice = voices.find(v => v.name === selectedVoice);
@@ -253,7 +254,82 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         utterance.rate = 1;
         utterance.onend = onEndCallback;
         window.speechSynthesis.speak(utterance);
-    };
+    }, [voices, selectedVoice]);
+
+    const nextRound = useCallback(() => {
+        setUserAnswer('');
+        setLastScore(null);
+        if (currentIndex < deck.length - 1) {
+            setCurrentIndex(i => i + 1);
+            setGameState('starting');
+        } else {
+            onClose(folder.id, score, playerName);
+            setGameState('game_over');
+        }
+    }, [currentIndex, deck.length, onClose, folder.id, score, playerName]);
+
+    const submitAnswer = useCallback(async () => {
+        if (!userAnswer.trim()) {
+            setLastScore(0);
+            sounds.wrong();
+            const feedbackText = "Incorrect, 0 points. The correct answer was: " + currentCard.answer;
+            speak(feedbackText, () => {
+                if (playMode === 'continuous') {
+                    setTimeout(nextRound, 3000);
+                }
+            });
+            setGameState('round_result');
+            return;
+        }
+
+        try {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
+            });
+            if (!response.ok) throw new Error('Scoring failed');
+            const data = await response.json();
+            
+            const receivedScore = data.score;
+            setLastScore(receivedScore);
+
+            let feedbackText = '';
+            if (receivedScore >= 70) {
+                feedbackText = `Correct, for ${receivedScore} points.`;
+                if (receivedScore === 100) sounds.perfect();
+                else sounds.good();
+                setScore(s => s + receivedScore);
+            } else if (receivedScore >= 30) {
+                feedbackText = `Partially correct, for ${receivedScore} points. The correct answer was: ${currentCard.answer}`;
+                sounds.ok();
+                setScore(s => s + receivedScore);
+            } else {
+                feedbackText = `Incorrect. The correct answer was: ${currentCard.answer}`;
+                sounds.wrong();
+            }
+
+            speak(feedbackText, () => {
+                if (playMode === 'continuous') {
+                    setTimeout(nextRound, 3000);
+                }
+            });
+            
+            setGameState('round_result');
+
+        } catch (error) {
+            console.error("Error scoring answer:", error);
+            setLastScore(0);
+            sounds.wrong();
+            const feedbackText = "There was an error scoring. The correct answer was: " + currentCard.answer;
+            speak(feedbackText, () => {
+                if (playMode === 'continuous') {
+                    setTimeout(nextRound, 3000);
+                }
+            });
+            setGameState('round_result');
+        }
+    }, [userAnswer, currentCard, sounds, playMode, nextRound, speak]);
 
     const startListening = useCallback(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -313,7 +389,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         speak(`Question: ${currentCard.question}`, () => {
             startListening();
         });
-    }, [currentCard, speak, startListening, selectedVoice]);
+    }, [currentCard, speak, startListening]);
 
     useEffect(() => {
         if (gameState === 'starting') {
@@ -321,62 +397,11 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         }
     }, [gameState, askQuestion]);
 
-    const submitAnswer = useCallback(async () => {
-        if (!userAnswer.trim()) {
-            setLastScore(0);
-            sounds.wrong();
-            setGameState('round_result');
-            return;
-        }
-
-        try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
-            });
-            if (!response.ok) throw new Error('Scoring failed');
-            const data = await response.json();
-            
-            const receivedScore = data.score;
-            setLastScore(receivedScore);
-
-            if (receivedScore >= 30) {
-                 setScore(s => s + receivedScore);
-                 if (receivedScore === 100) sounds.perfect();
-                 else if (receivedScore >= 70) sounds.good();
-                 else sounds.ok();
-            } else {
-                sounds.wrong();
-            }
-            setGameState('round_result');
-
-        } catch (error) {
-            console.error("Error scoring answer:", error);
-            setLastScore(0);
-            sounds.wrong();
-            setGameState('round_result');
-        }
-    }, [userAnswer, currentCard, sounds]);
-
-
     useEffect(() => {
         if (gameState === 'scoring') {
             submitAnswer();
         }
     }, [gameState, submitAnswer]);
-
-    const nextRound = () => {
-        setUserAnswer('');
-        setLastScore(null);
-        if (currentIndex < deck.length - 1) {
-            setCurrentIndex(i => i + 1);
-            setGameState('starting');
-        } else {
-            onClose(folder.id, score, playerName);
-            setGameState('game_over');
-        }
-    };
     
     const playAgain = () => {
         setDeck([...folder.cards].sort(() => Math.random() - 0.5));
@@ -432,13 +457,27 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         }
         switch (gameState) {
             case 'landing':
-                 return (
+                return (
                     <div className="game-landing-page">
-                        <h1 className="game-landing-title">Verbatim Master</h1>
+                        <h1 className="game-landing-title">Verbatim Master AI</h1>
                         <div className="game-landing-actions">
                             <button className="game-action-btn" onClick={() => setGameState('name_entry')}>Start Game</button>
                             <button className="game-action-btn" onClick={() => setShowHowToPlay(true)}>How to Play</button>
                             <button className="game-action-btn" onClick={() => setShowLeaderboard(true)}>Leaderboard</button>
+                        </div>
+                        <div className="game-play-mode-selector">
+                            <button
+                                className={`game-mode-btn ${playMode === 'manual' ? 'active' : ''}`}
+                                onClick={() => setPlayMode('manual')}
+                            >
+                                Manual Play
+                            </button>
+                            <button
+                                className={`game-mode-btn ${playMode === 'continuous' ? 'active' : ''}`}
+                                onClick={() => setPlayMode('continuous')}
+                            >
+                                Continuous Play
+                            </button>
                         </div>
                         <div className="game-landing-voice-selector">
                             {renderVoiceSelector()}
@@ -475,10 +514,10 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                 return (
                     <div className={`game-result-fullscreen ${isCorrect ? 'correct' : 'incorrect'}`}>
                         {isCorrect ? (
-                             <>
-                                <div className="score-feedback-animation">+{lastScore}</div>
-                                <h2>Nice!</h2>
-                             </>
+                                <>
+                                    <div className="score-feedback-animation">+{lastScore}</div>
+                                    <h2>Nice!</h2>
+                                </>
                         ) : (
                             <>
                                 <div className="score-feedback-animation incorrect-x">✕</div>
@@ -486,7 +525,12 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                                 <p className="correct-answer-reveal">Correct Answer: {currentCard.answer}</p>
                             </>
                         )}
-                        <button className="game-next-btn" onClick={nextRound}>Next</button>
+                        {playMode === 'manual' && (
+                           <button className="game-next-btn" onClick={nextRound}>Next</button>
+                        )}
+                        {playMode === 'continuous' && (
+                           <p className="continuous-play-notice">Next card coming up...</p>
+                        )}
                     </div>
                 );
             case 'game_over':
@@ -507,10 +551,10 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                             <h3>Leaderboard</h3>
                             <ol className="leaderboard-list">
                                {sortedLeaderboard.slice(0, 5).map((entry, index) => (
-                                   <li key={index}>
-                                       <span>{entry.name || 'Anonymous'}</span>
-                                       <span>{entry.score} pts</span>
-                                   </li>
+                                    <li key={index}>
+                                        <span>{entry.name || 'Anonymous'}</span>
+                                        <span>{entry.score} pts</span>
+                                    </li>
                                ))}
                             </ol>
                         </div>
@@ -533,11 +577,11 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                     <h2>Leaderboard: {folder.name}</h2>
                     <ol className="leaderboard-list">
                        {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
-                           <li key={index}>
-                               <span>{index + 1}. {entry.name || 'Anonymous'}</span>
-                               <span>{new Date(entry.date).toLocaleDateString()}</span>
-                               <span>{entry.score} pts</span>
-                           </li>
+                            <li key={index}>
+                                <span>{index + 1}. {entry.name || 'Anonymous'}</span>
+                                <span>{new Date(entry.date).toLocaleDateString()}</span>
+                                <span>{entry.score} pts</span>
+                            </li>
                        )) : <p>No scores yet. Be the first!</p>}
                     </ol>
                     <div className="game-end-actions">
@@ -556,7 +600,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             {gameState !== 'landing' && gameState !== 'game_over' && (
                 <>
                     <div className="game-header">
-                        <h3>Verbatim Master</h3>
+                        <h3>VERBATIM MASTER AI</h3>
                         <div className="game-info">
                             <span>Card: {currentIndex + 1} / {deck.length}</span>
                             <span>Score: {score}</span>
@@ -629,7 +673,7 @@ const MainApp = () => {
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
   const [modalConfig, setModalConfig] = useState(null);   
-  
+ 
   const [flashNotesActionModal, setFlashNotesActionModal] = useState(null);
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
   const [flashNotesContent, setFlashNotesContent] = useState(null);
@@ -660,7 +704,7 @@ const MainApp = () => {
   const uploadAutoFlashTimerRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
-  
+ 
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
     isGeneratingRef.current = isGenerating;
@@ -878,7 +922,7 @@ const MainApp = () => {
     }
     return () => clearInterval(autoFlashTimerRef.current);
   }, [isListening, isAutoFlashOn, autoFlashInterval, handleLiveFlashIt]);
-  
+ 
   useEffect(() => {
     if (uploadAutoFlashTimerRef.current) clearInterval(uploadAutoFlashTimerRef.current);
     uploadAutoFlashTimerRef.current = null;
@@ -1045,7 +1089,7 @@ const MainApp = () => {
     const seekTime = (e.nativeEvent.offsetX / e.target.clientWidth) * mediaDuration;
     activePlayer.currentTime = seekTime;
   };
-  
+ 
   const handleCardCheck = (cardId) => {
     setCheckedCards(prev => ({ ...prev, [cardId]: !prev[cardId] }));
   };
@@ -1372,7 +1416,7 @@ const MainApp = () => {
       });
     }, 0);
   };
-  
+ 
   const exportFolderToCSV = (folderId) => {
     const folder = findFolderById(folders, folderId);
     if (!folder || folder.cards.length === 0) {
@@ -2081,33 +2125,33 @@ const MainApp = () => {
               <>
                 <div className="player-container">
                   {fileType === 'video' ? (
-                                <>
-                                  <video 
-                                    ref={videoPlayerRef} 
-                                    src={mediaSrc} 
-                                    playsInline 
-                                    className="video-player"
-                                    onClick={togglePlayPause}
-                                  >
-                                  </video>
+                                  <>
+                                    <video 
+                                      ref={videoPlayerRef} 
+                                      src={mediaSrc} 
+                                      playsInline 
+                                      className="video-player"
+                                      onClick={togglePlayPause}
+                                    >
+                                    </video>
+                                    <div className="audio-player">
+                                      <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                      <div className="progress-bar-container" onClick={handleSeek}>
+                                        <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
+                                      </div>
+                                      <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                    </div>
+                                  </>
+                                ) : (
                                   <div className="audio-player">
+                                    <audio ref={audioPlayerRef} src={mediaSrc} />
                                     <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
                                     <div className="progress-bar-container" onClick={handleSeek}>
                                       <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
                                     </div>
                                     <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
                                   </div>
-                                </>
-                              ) : (
-                                <div className="audio-player">
-                                  <audio ref={audioPlayerRef} src={mediaSrc} />
-                                  <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                                  <div className="progress-bar-container" onClick={handleSeek}>
-                                    <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                                  </div>
-                                  <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
-                                </div>
-                              )}
+                                )}
                 </div>
                 <div className="listening-modes" style={{marginTop: '1rem'}}>
                     {fileType === 'video' && !audioCacheId && (
@@ -2389,7 +2433,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame }) => {
     if (reviewMode === 'needsReview') {
       const now = Date.now();
       return deck.filter(card => !card.lastViewed || (now - card.lastViewed) > needsReviewDuration)
-          .sort((a, b) => (a.lastViewed || 0) - (b.lastViewed || 0));
+        .sort((a, b) => (a.lastViewed || 0) - (b.lastViewed || 0));
     }
     return deck;
   }, [deck, reviewMode, needsReviewDuration]);

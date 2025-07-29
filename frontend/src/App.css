@@ -2208,6 +2208,38 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 1.5rem;
 }
 
+.game-play-mode-selector {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1rem;
+    width: 100%;
+    max-width: 400px;
+}
+
+.game-mode-btn {
+    flex: 1;
+    padding: 0.8em 1em;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    cursor: pointer;
+    font-weight: bold;
+    background-color: var(--content-bg);
+    color: var(--text-soft);
+    transition: all 0.2s ease;
+}
+
+.game-mode-btn.active {
+    background-color: var(--secondary-pink);
+    color: white;
+    border-color: var(--secondary-pink);
+}
+
+.continuous-play-notice {
+    margin-top: 1rem;
+    font-style: italic;
+    color: var(--text-dark);
+}
+
 .game-landing-voice-selector {
     margin-top: 1rem;
     width: 100%;
