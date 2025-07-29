@@ -119,18 +119,52 @@ const HowToPlayModal = ({ onClose }) => {
     );
 };
 
+// --- ENTER NAME MODAL ---
+const EnterNameModal = ({ onClose, onConfirm }) => {
+    const [name, setName] = useState('');
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (name.trim()) {
+            onConfirm(name.trim());
+        }
+    };
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Enter Your Name</h2>
+                <form onSubmit={handleSubmit}>
+                    <input 
+                        type="text" 
+                        className="modal-input" 
+                        placeholder="Player Name..." 
+                        value={name} 
+                        onChange={(e) => setName(e.target.value)} 
+                        autoFocus 
+                    />
+                    <div className="modal-actions">
+                        <button type="button" className="modal-cancel-btn" onClick={() => onClose()}>Cancel</button>
+                        <button type="submit" className="modal-create-btn">Let's Go!</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
 
 // --- GAME COMPONENT ---
 const GameViewer = ({ folder, onClose, onBackToStudy }) => {
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
-    const [gameState, setGameState] = useState('landing'); // landing, starting, asking, listening, scoring, round_result, game_over
+    const [gameState, setGameState] = useState('landing'); // landing, name_entry, ready, starting, asking, listening, scoring, round_result, game_over
     const [userAnswer, setUserAnswer] = useState('');
     const [lastScore, setLastScore] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
+    const [playerName, setPlayerName] = useState('');
+    const [showLeaderboard, setShowLeaderboard] = useState(false);
     
     // Voice selection state
     const [voices, setVoices] = useState([]);
@@ -182,7 +216,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
 
     const handleExit = () => {
         stopAllAudio();
-        onBackToStudy(folder);
+        setGameState('landing');
     };
 
     const handlePause = () => {
@@ -279,11 +313,11 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         speak(`Question: ${currentCard.question}`, () => {
             startListening();
         });
-    }, [currentCard, speak, startListening, voices, selectedVoice]);
+    }, [currentCard, speak, startListening, selectedVoice]);
 
     useEffect(() => {
         if (gameState === 'starting') {
-            setTimeout(() => askQuestion(), 1500);
+            setTimeout(() => askQuestion(), 3000); // 3-second countdown
         }
     }, [gameState, askQuestion]);
 
@@ -307,13 +341,11 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             const receivedScore = data.score;
             setLastScore(receivedScore);
 
-            if (receivedScore >= 70) {
-                setScore(s => s + receivedScore);
-                if (receivedScore === 100) sounds.perfect();
-                else sounds.good();
-            } else if (receivedScore >= 30) {
+            if (receivedScore >= 30) {
                  setScore(s => s + receivedScore);
-                 sounds.ok();
+                 if (receivedScore === 100) sounds.perfect();
+                 else if (receivedScore >= 70) sounds.good();
+                 else sounds.ok();
             } else {
                 sounds.wrong();
             }
@@ -341,7 +373,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             setCurrentIndex(i => i + 1);
             setGameState('starting');
         } else {
-            onClose(folder.id, score);
+            onClose(folder.id, score, playerName);
             setGameState('game_over');
         }
     };
@@ -352,12 +384,12 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
         setScore(0);
         setUserAnswer('');
         setLastScore(null);
-        setGameState('starting');
+        setGameState('name_entry');
     };
 
     const getMedal = () => {
         const totalPossible = deck.length * 100;
-        if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation' };
+        if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
         const percentage = (score / totalPossible) * 100;
 
         if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
@@ -404,12 +436,21 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                     <div className="game-landing-page">
                         <h1 className="game-landing-title">Verbatim Master</h1>
                         <div className="game-landing-actions">
-                            <button className="game-action-btn" onClick={() => setGameState('starting')}>Start Game</button>
+                            <button className="game-action-btn" onClick={() => setGameState('name_entry')}>Start Game</button>
                             <button className="game-action-btn" onClick={() => setShowHowToPlay(true)}>How to Play</button>
+                            <button className="game-action-btn" onClick={() => setShowLeaderboard(true)}>Leaderboard</button>
                         </div>
                         <div className="game-landing-voice-selector">
                             {renderVoiceSelector()}
                         </div>
+                    </div>
+                );
+            case 'name_entry':
+                return <EnterNameModal onClose={() => setGameState('landing')} onConfirm={(name) => { setPlayerName(name); setGameState('ready'); }} />;
+            case 'ready':
+                return (
+                    <div className="game-status-fullscreen">
+                        <button className="game-start-button" onClick={() => setGameState('starting')}>START</button>
                     </div>
                 );
             case 'starting':
@@ -451,7 +492,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
             case 'game_over':
                 const totalPossibleScore = deck.length * 100;
                 const finalMedal = getMedal();
-                const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
+                const sortedLeaderboard = [...(folder.leaderboard || []), {name: playerName, score, date: Date.now()}].sort((a,b) => b.score - a.score);
 
                 return (
                     <div className="game-over-container">
@@ -465,12 +506,12 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                         <div className="leaderboard-container">
                             <h3>Leaderboard</h3>
                             <ol className="leaderboard-list">
-                               {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
+                               {sortedLeaderboard.slice(0, 5).map((entry, index) => (
                                    <li key={index}>
-                                       <span>{new Date(entry.date).toLocaleDateString()}</span>
+                                       <span>{entry.name || 'Anonymous'}</span>
                                        <span>{entry.score} pts</span>
                                    </li>
-                               )) : <p>No scores yet. Be the first!</p>}
+                               ))}
                             </ol>
                         </div>
                         <div className="game-end-actions">
@@ -483,6 +524,30 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                 return null;
         }
     };
+    
+    if (showLeaderboard) {
+        const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
+        return (
+            <div className="viewer-overlay game-mode">
+                <div className="leaderboard-container full-page">
+                    <h2>Leaderboard: {folder.name}</h2>
+                    <ol className="leaderboard-list">
+                       {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
+                           <li key={index}>
+                               <span>{index + 1}. {entry.name || 'Anonymous'}</span>
+                               <span>{new Date(entry.date).toLocaleDateString()}</span>
+                               <span>{entry.score} pts</span>
+                           </li>
+                       )) : <p>No scores yet. Be the first!</p>}
+                    </ol>
+                    <div className="game-end-actions">
+                        <button className="game-action-btn" onClick={() => setShowLeaderboard(false)}>Back to Game</button>
+                    </div>
+                </div>
+            </div>
+        )
+    }
+
 
     return (
         <div className="viewer-overlay game-mode">
@@ -498,15 +563,17 @@ const GameViewer = ({ folder, onClose, onBackToStudy }) => {
                         </div>
                         <button onClick={handleExit} className="viewer-close-btn">&times;</button>
                     </div>
-                    <div className="game-card-area">
-                        <div className="game-card">
-                            <p className="game-question">{currentCard?.question}</p>
+                    {gameState !== 'ready' && (
+                        <div className="game-card-area">
+                            <div className="game-card">
+                                <p className="game-question">{currentCard?.question}</p>
+                            </div>
                         </div>
-                    </div>
+                    )}
                     <div className="in-game-voice-selector">
                         {renderVoiceSelector()}
                     </div>
-                    {!isPaused && (
+                    {!isPaused && gameState !== 'ready' && (
                         <div className="in-game-controls">
                             <button onClick={handlePause}>Pause</button>
                             <button onClick={handleExit}>Exit</button>
@@ -1642,13 +1709,12 @@ const MainApp = () => {
     setStudyingFolder(null);
   };
 
-  const handleGameEnd = (folderId, finalScore) => {
+  const handleGameEnd = (folderId, finalScore, playerName) => {
     setFolders(prev => updateFolderById(prev, folderId, folder => {
-      const newLeaderboard = [...(folder.leaderboard || []), { score: finalScore, date: Date.now() }];
+      const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now() }];
       newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
       return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
     }));
-    // Do not set gameModeFolder to null here, let the game_over screen handle it
   };
 
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown }) => {
