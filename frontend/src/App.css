@@ -514,6 +514,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-main-actions {
   display: flex;
+  flex-wrap: wrap; /* Added this line to allow buttons to wrap on smaller screens */
   gap: 0.5rem;
   align-items: center;
 }

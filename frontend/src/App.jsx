@@ -722,7 +722,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [isPaused, setIsPaused] = useState(false);
     const [playerName, setPlayerName] = useState('');
     const [showLeaderboard, setShowLeaderboard] = useState(false);
-    const [playMode, setPlayMode] = useState('manual'); // 'manual' or 'continuous'
+    const [playMode, setPlayMode] = useState('continuous'); // 'manual' or 'continuous'
     
     // Voice selection state
     const [voices, setVoices] = useState([]);
@@ -2634,14 +2634,11 @@ const MainApp = () => {
           onClose={handleStudySessionEnd}
           onLaunchGame={(folder) => {
             setStudyingFolder(null);
-            setGameModeFolder({ ...folder }); // Pass a new object reference
-            setGameLaunchedFromStudy(true);
+            handlePlayGame(folder);
           }}
-          onLaunchAnamnesisNemesis={(folder) => { // Pass this prop down
+          onLaunchAnamnesisNemesis={(folder) => {
             setStudyingFolder(null);
-            setGameModeFolder({ ...folder }); // Pass a new object reference
-            setGameLaunchedFromStudy(true); // Indicate it came from study mode
-            setShowAnamnesisNemesisLanding(true);
+            handleLaunchAnamnesisNemesis(folder);
           }}
         />
       )}
@@ -2935,8 +2932,16 @@ const MainApp = () => {
 
 // --- Top-Level App Component ---
 const App = () => {
-    // Initialize state directly from localStorage to avoid the "flash"
-    const [showApp, setShowApp] = useState(() => !!localStorage.getItem('flashfonic-entered'));
+    // FIX: Use a state that is not initialized from localStorage to ensure landing page shows on first visit.
+    const [showApp, setShowApp] = useState(false);
+
+    // This effect runs once when the component mounts to check if the user has been here before.
+    useEffect(() => {
+        const hasEntered = localStorage.getItem('flashfonic-entered');
+        if (hasEntered) {
+            setShowApp(true);
+        }
+    }, []); // Empty dependency array ensures this runs only once.
 
     const handleEnter = () => {
         // Once the user enters, save this to local storage and show the app
