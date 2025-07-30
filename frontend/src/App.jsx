@@ -2922,18 +2922,11 @@ const MainApp = () => {
 
 // --- Top-Level App Component ---
 const App = () => {
-    const [showApp, setShowApp] = useState(false);
-
-    // This effect checks if the user has seen the landing page before.
-    useEffect(() => {
-        const hasEntered = localStorage.getItem('flashfonic-entered');
-        if (hasEntered) {
-            setShowApp(true);
-        }
-    }, []);
+    // Initialize state directly from localStorage to avoid the "flash"
+    const [showApp, setShowApp] = useState(() => !!localStorage.getItem('flashfonic-entered'));
 
     const handleEnter = () => {
-        // Once the user enters, we save this to local storage.
+        // Once the user enters, save this to local storage and show the app
         localStorage.setItem('flashfonic-entered', 'true');
         setShowApp(true);
     };
