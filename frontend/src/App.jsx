@@ -710,7 +710,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
     );
 };
 
-const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy }) => {
+const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy, mostRecentScore }) => {
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -1116,22 +1116,22 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                         </p>
                         <div className="leaderboard-container">
                             <h3>High Scores</h3>
-                            <div className="leaderboard-list" style={{fontWeight: 'bold', borderBottom: '2px solid var(--border-color)'}}>
-                                <span>Rank</span>
-                                <span>Name</span>
-                                <span>Level</span>
-                                <span style={{textAlign: 'right'}}>Score</span>
-                            </div>
-                            <ol className="leaderboard-list">
-                               {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
-                                    <li key={index}>
+                            <div className="leaderboard-list">
+                                <div>
+                                    <span>Rank</span>
+                                    <span>Name</span>
+                                    <span>Level</span>
+                                    <span style={{textAlign: 'right'}}>Score</span>
+                                </div>
+                                {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
+                                    <li key={entry.id || index} className={entry.id === mostRecentScore?.id ? 'recent-score' : ''}>
                                         <span>#{index + 1}</span>
                                         <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
                                         <span>{entry.level}</span>
                                         <span>{entry.score}</span>
                                     </li>
-                               )) : <p>No scores yet. Be the first!</p>}
-                            </ol>
+                               )) : <li><p>No scores yet. Be the first!</p></li>}
+                            </div>
                         </div>
                         <div className="game-end-actions">
                             <button className="game-action-btn" onClick={playAgain}>Play Again</button>
@@ -1150,22 +1150,22 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             <div className="viewer-overlay game-mode">
                 <div className="leaderboard-container full-page">
                     <h2>Leaderboard: {folder.name}</h2>
-                    <div className="leaderboard-list" style={{fontWeight: 'bold', borderBottom: '2px solid var(--border-color)'}}>
-                        <span>Rank</span>
-                        <span>Name</span>
-                        <span>Level</span>
-                        <span style={{textAlign: 'right'}}>Score</span>
-                    </div>
-                    <ol className="leaderboard-list">
+                    <div className="leaderboard-list">
+                        <div>
+                            <span>Rank</span>
+                            <span>Name</span>
+                            <span>Level</span>
+                            <span style={{textAlign: 'right'}}>Score</span>
+                        </div>
                        {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
-                            <li key={index}>
+                            <li key={entry.id || index}>
                                 <span>#{index + 1}</span>
                                 <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
                                 <span>{entry.level}</span>
                                 <span>{entry.score}</span>
                             </li>
-                       )) : <p>No scores yet. Be the first!</p>}
-                    </ol>
+                       )) : <li><p>No scores yet. Be the first!</p></li>}
+                    </div>
                     <div className="game-end-actions">
                         <button className="game-action-btn" onClick={() => setShowLeaderboard(false)}>Back to Game</button>
                     </div>
@@ -1264,6 +1264,7 @@ const MainApp = () => {
   const [gameLaunchedFromStudy, setGameLaunchedFromStudy] = useState(false);
   const [showGamesModal, setShowGamesModal] = useState(null); // Stores folder for which games modal is open
   const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
+  const [mostRecentScore, setMostRecentScore] = useState(null);
 
 
   const [isSafari, setIsSafari] = useState(false);
@@ -2340,19 +2341,31 @@ const MainApp = () => {
   };
 
   const handleGameEnd = (folderId, finalScore, playerName, levelName) => {
+    const newScoreEntry = { 
+        id: Date.now(), // Unique ID for highlighting
+        name: playerName, 
+        score: finalScore, 
+        date: Date.now(), 
+        level: levelName 
+    };
+
     setFolders(prev => updateFolderById(prev, folderId, folder => {
-      const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now(), level: levelName }];
-      newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
-      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
+        const newLeaderboard = [...(folder.leaderboard || []), newScoreEntry];
+        newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
+        return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
     }));
+    
+    setMostRecentScore(newScoreEntry);
   };
 
   const handlePlayGame = (folder) => {
+    setMostRecentScore(null); // Clear previous highlight when starting a new game
     setGameModeFolder({ ...folder }); 
     setGameLaunchedFromStudy(false);
   };
 
   const handleLaunchAnamnesisNemesis = (folder) => {
+    setMostRecentScore(null); // Clear previous highlight
     setShowAnamnesisNemesisLanding(true);
     setShowGamesModal(null);
     setGameModeFolder({ ...folder }); 
@@ -2645,6 +2658,7 @@ const MainApp = () => {
           }}
           onExitGame={() => setGameModeFolder(null)}
           cameFromStudy={gameLaunchedFromStudy}
+          mostRecentScore={mostRecentScore}
         />
       )}
 
@@ -2694,8 +2708,7 @@ const MainApp = () => {
           onClose={() => setShowGamesModal(null)}
           onLaunchGame={(folder) => {
             setShowGamesModal(null); // Close games modal
-            setGameModeFolder({ ...folder }); // Set folder for Verbatim Master (new object reference)
-            setGameLaunchedFromStudy(false); // FIX: Set to false when launched from main folder list
+            handlePlayGame(folder); // Use the handler to also clear recent score
           }}
           onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
         />

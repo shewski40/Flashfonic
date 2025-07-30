@@ -2179,6 +2179,17 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--gold);
   font-weight: bold;
 }
+
+/* New animation for recent score */
+@keyframes flash {
+  0%, 100% { background-color: transparent; }
+  50% { background-color: rgba(236, 72, 153, 0.2); }
+}
+
+.leaderboard-list li.recent-score {
+  animation: flash 1.5s 3; /* Flash 3 times */
+  border-radius: 8px;
+}
 /* --- END LEADERBOARD STYLES --- */
 
 
