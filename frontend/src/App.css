@@ -887,11 +887,10 @@ input[type="range"]::-webkit-slider-thumb {
 
 
 .viewer-main {
-  /* MODIFIED: Using viewport units for responsive sizing */
   width: 90vw;
-  max-width: 900px; /* Increased max-width */
+  max-width: 900px;
   height: 50vh;
-  max-height: 500px; /* Added max-height */
+  max-height: 500px;
   perspective: 1000px;
   cursor: pointer;
   margin-bottom: 1rem;
@@ -917,11 +916,12 @@ input[type="range"]::-webkit-slider-thumb {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.2rem;
+  font-size: 1.1rem; /* MODIFIED: Slightly smaller base font size */
   text-align: center;
-  padding: 1rem;
+  padding: 0.8rem; /* MODIFIED: Reduced padding */
   box-sizing: border-box;
   border-radius: 16px;
+  overflow-y: auto; /* MODIFIED: Kept as a safety net for long content */
 }
 
 .card-front {
@@ -940,7 +940,6 @@ input[type="range"]::-webkit-slider-thumb {
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  /* MODIFIED: Increased max-width to match the study card */
   max-width: 900px;
   margin-top: 0;
 }
@@ -1101,7 +1100,6 @@ input[type="range"]::-webkit-slider-thumb {
   border-radius: 12px;
   margin-top: 1rem;
   width: 100%;
-  /* MODIFIED: Increased max-width to match the study card */
   max-width: 900px;
   box-sizing: border-box;
 }
@@ -1379,12 +1377,12 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .viewer-main {
-    /* MODIFIED: Removed fixed height to allow viewport units to control it */
+    /* Removed fixed height to allow viewport units to control it */
   }
 
   .card-face {
-    font-size: 1.8rem;
-    padding: 2rem;
+    font-size: 1.5rem; /* MODIFIED */
+    padding: 1.5rem; /* MODIFIED */
   }
   
   .viewer-empty {
