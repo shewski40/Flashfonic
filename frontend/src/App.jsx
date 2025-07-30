@@ -7,40 +7,65 @@ import * as Tone from 'tone';
 
 // --- Rendering Components ---
 
-// Updated component to handle separate reactant and product SMILES strings
-const SmilesRenderer = ({ text }) => {
-    // Regex to capture reactant and product from the new format
-    const reactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/;
-    const reactionMatch = text.match(reactionRegex);
-
-    if (reactionMatch) {
-        const reactantSmiles = encodeURIComponent(reactionMatch[1]);
-        const productSmiles = encodeURIComponent(reactionMatch[2]);
-        
-        const reactantImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${reactantSmiles}/image?format=png&width=400&height=400`;
-        const productImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${productSmiles}/image?format=png&width=400&height=400`;
-
+// Updated component to handle an array of SMILES strings for multi-step reactions
+const SmilesRenderer = ({ content }) => {
+    // 1. Check for the new array format for multi-step reactions
+    if (Array.isArray(content)) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                <img src={reactantImageUrl} alt="Reactant Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
-                <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>
-                <img src={productImageUrl} alt="Product Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                {content.map((item, index) => {
+                    const smilesRegex = /SMILES\[(.*?)\]/;
+                    const match = typeof item === 'string' && item.match(smilesRegex);
+                    if (match) {
+                        const smiles = encodeURIComponent(match[1]);
+                        const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=300&height=300`;
+                        return (
+                            <React.Fragment key={index}>
+                                <img src={imageUrl} alt={`Step ${index + 1}`} style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '30%', minWidth: '100px' }} />
+                                {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>}
+                            </React.Fragment>
+                        );
+                    }
+                    return null; // In case an item in the array is not a valid SMILES string
+                })}
             </div>
         );
     }
 
-    // Fallback for single molecules (or old format)
-    const singleMoleculeRegex = /SMILES\[(.*?)\]/;
-    const singleMatch = text.match(singleMoleculeRegex);
+    // 2. Fallback for string content (older formats, single molecules, and KaTeX)
+    if (typeof content === 'string') {
+        // This handles the old two-part format for backward compatibility
+        const reactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/;
+        const reactionMatch = content.match(reactionRegex);
+        if (reactionMatch) {
+            const reactantSmiles = encodeURIComponent(reactionMatch[1]);
+            const productSmiles = encodeURIComponent(reactionMatch[2]);
+            const reactantImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${reactantSmiles}/image?format=png&width=400&height=400`;
+            const productImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${productSmiles}/image?format=png&width=400&height=400`;
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <img src={reactantImageUrl} alt="Reactant Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>
+                    <img src={productImageUrl} alt="Product Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+                </div>
+            );
+        }
+        
+        // This handles a single SMILES string that isn't in an array
+        const singleMoleculeRegex = /SMILES\[(.*?)\]/;
+        const singleMatch = content.match(singleMoleculeRegex);
+        if (singleMatch) {
+            const smiles = encodeURIComponent(singleMatch[1]);
+            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=500&height=500`;
+            return <img src={imageUrl} alt="Chemical Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '100%' }} />;
+        }
 
-    if (singleMatch) {
-        const smiles = encodeURIComponent(singleMatch[1]);
-        const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=500&height=500`;
-        return <img src={imageUrl} alt="Chemical Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '100%' }} />;
+        // Fallback to KaTeX for math or plain text
+        return <KatexRenderer text={content} />;
     }
 
-    // If no SMILES string is found, fall back to the KaTeX renderer
-    return <KatexRenderer text={text} />;
+    // Default return if content is not a recognized format
+    return null;
 };
 
 
@@ -725,7 +750,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                     <h3>Drag and drop to reorder</h3>
                     {deck.map((card, index) => (
                         <div key={card.id} className="arrange-card" draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, index)}>
-                            {index + 1}. <SmilesRenderer text={card.question} />
+                            {index + 1}. <SmilesRenderer content={card.question} />
                         </div>
                     ))}
                 </div>
@@ -737,11 +762,11 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                                     <div className="card-face card-front">
                                         <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                                        <p><strong>Q:</strong> <SmilesRenderer text={currentCard?.question} /></p> 
+                                        <p><strong>Q:</strong> <SmilesRenderer content={currentCard?.question} /></p> 
                                     </div>
                                     <div className="card-face card-back">
                                         <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                                        <p><strong>A:</strong> <SmilesRenderer text={currentCard?.answer} /></p> 
+                                        <p><strong>A:</strong> <SmilesRenderer content={currentCard?.answer} /></p> 
                                     </div>
                                 </div>
                             </div>
@@ -1174,7 +1199,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                             <>
                                 <div className="score-feedback-animation incorrect-x">✕</div>
                                 <h2>Incorrect</h2>
-                                <p className="correct-answer-reveal">Correct Answer: <SmilesRenderer text={currentCard.answer} /></p>
+                                <p className="correct-answer-reveal">Correct Answer: <SmilesRenderer content={currentCard.answer} /></p>
                             </>
                         )}
                         {playMode === 'manual' && (
@@ -1276,7 +1301,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                     {gameState !== 'ready' && (
                         <div className="game-card-area">
                             <div className="game-card">
-                                <p className="game-question"><strong>Q:</strong> <SmilesRenderer text={currentCard?.question} /></p> 
+                                <p className="game-question"><strong>Q:</strong> <SmilesRenderer content={currentCard?.question} /></p> 
                             </div>
                         </div>
                     )}
@@ -2182,8 +2207,8 @@ const MainApp = () => {
         <div className="card-top-actions">
           <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
         </div>
-        <p><strong>Q:</strong> <SmilesRenderer text={card.question} /></p>
-        <p><strong>A:</strong> <SmilesRenderer text={card.answer} /></p>
+        <p><strong>Q:</strong> <SmilesRenderer content={card.question} /></p>
+        <p><strong>A:</strong> <SmilesRenderer content={card.answer} /></p>
       </>
     );
   };
