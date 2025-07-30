@@ -5,6 +5,8 @@ import './App.css';
 import { Analytics } from '@vercel/analytics/react';
 import * as Tone from 'tone';
 
+// --- HELPER FUNCTIONS ---
+
 // Helper function to generate a simple UUID for browser compatibility
 const generateUUID = () => {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
@@ -13,7 +15,71 @@ const generateUUID = () => {
   });
 };
 
-// --- LANDING PAGE COMPONENT ---
+// Helper function to format time in seconds to MM:SS format
+const formatTime = (seconds) => {
+  if (isNaN(seconds) || seconds < 0) return '00:00';
+  const floorSeconds = Math.floor(seconds);
+  const min = Math.floor(floorSeconds / 60);
+  const sec = floorSeconds % 60;
+  return `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+};
+
+// Helper function to encode audio buffer to WAV format
+function encodeWAV(audioBuffer) {
+    const numOfChan = audioBuffer.numberOfChannels;
+    const length = audioBuffer.length * numOfChan * 2 + 44;
+    const buffer = new ArrayBuffer(length);
+    const view = new DataView(buffer);
+    const channels = [];
+    let i, sample;
+    let offset = 0;
+    let pos = 0;
+
+    setUint32(0x46464952);  // "RIFF"
+    setUint32(length - 8);  // file length - 8
+    setUint32(0x45564157);  // "WAVE"
+
+    setUint32(0x20746d66);  // "fmt " chunk
+    setUint32(16);          // length of format data
+    setUint16(1);           // type of format (1=PCM)
+    setUint16(numOfChan);
+    setUint32(audioBuffer.sampleRate);
+    setUint32(audioBuffer.sampleRate * 2 * numOfChan); // byte rate
+    setUint16(numOfChan * 2); // block align
+    setUint16(16);          // bits per sample
+
+    setUint32(0x61746164);  // "data" chunk
+    setUint32(length - pos - 4);
+
+    for (i = 0; i < audioBuffer.numberOfChannels; i++)
+        channels.push(audioBuffer.getChannelData(i));
+
+    while (pos < length) {
+        for (i = 0; i < numOfChan; i++) {
+            sample = Math.max(-1, Math.min(1, channels[i][offset]));
+            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+            view.setInt16(pos, sample, true);
+            pos += 2;
+        }
+        offset++;
+    }
+
+    return new Blob([view], { type: 'audio/wav' });
+
+    function setUint16(data) {
+        view.setUint16(pos, data, true);
+        pos += 2;
+    }
+
+    function setUint32(data) {
+        view.setUint32(pos, data, true);
+        pos += 4;
+    }
+}
+
+
+// --- MODAL AND UI COMPONENTS ---
+
 const LandingPage = ({ onEnter }) => {
   return (
     <div className="landing-page">
@@ -82,7 +148,6 @@ const LandingPage = ({ onEnter }) => {
   );
 };
 
-// --- HOW TO PLAY MODAL ---
 const HowToPlayModal = ({ onClose }) => {
     return (
         <div className="modal-overlay how-to-play-overlay" onClick={onClose}>
@@ -119,7 +184,6 @@ const HowToPlayModal = ({ onClose }) => {
     );
 };
 
-// --- ENTER NAME MODAL ---
 const EnterNameModal = ({ onClose, onConfirm }) => {
     const [name, setName] = useState('');
     const handleSubmit = (e) => {
@@ -151,7 +215,6 @@ const EnterNameModal = ({ onClose, onConfirm }) => {
     );
 };
 
-// --- GAMES MODAL ---
 const GamesModal = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => {
     return (
         <div className="modal-overlay" onClick={onClose}>
@@ -171,10 +234,9 @@ const GamesModal = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis })
     );
 };
 
-// --- ANAMNESIS NEMESIS LANDING PAGE COMPONENT ---
 const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
     return (
-        <div className="viewer-overlay anamnesis-landing-page"> {/* Added viewer-overlay class */}
+        <div className="viewer-overlay anamnesis-landing-page">
             <h1 className="anamnesis-title">ANAMNESIS NEMESIS</h1>
             <p className="anamnesis-tagline">The AI that never forgets, and never forgives.</p>
             <p className="anamnesis-description">
@@ -191,19 +253,463 @@ const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
                     <p>Challenge a friend! Take turns answering questions from your shared deck. The AI judges both of you, leaving no room for debate on who truly knows their stuff.</p>
                 </div>
                 <div className="anamnesis-feature-card">
-                    <h3>Study Party (Multiplayer)</h3>
-                    <p>Host a study session where everyone gets roasted! Multiple players answer simultaneously, and the Nemesis AI provides collective (and individual) feedback. All games use the same scoring system as Verbatim Master.</p>
+                    <h3>Flash Party (Multiplayer)</h3>
+                    <p>Host a study session where everyone gets roasted! Players take turns answering different cards from the deck, and the Nemesis AI provides individual feedback.</p>
                 </div>
             </div>
 
-            <button onClick={onStartGame} className="anamnesis-cta-button">Unleash the Nemesis</button>
+            <div className="coming-soon-banner">
+                Game Modes Coming Soon!
+            </div>
             <button onClick={onClose} className="game-action-btn" style={{marginTop: '1rem'}}>Back to Games</button>
         </div>
     );
 };
 
+const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) => {
+    const [folderName, setFolderName] = useState('');
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        if (folderName.trim()) onCreate(folderName.trim());
+    };
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>{title}</h2>
+                <form onSubmit={handleSubmit}>
+                    <input type="text" className="modal-input" placeholder="Enter name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
+                    <div className="modal-actions">
+                        <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="modal-create-btn">Create</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
 
-// --- GAME COMPONENT ---
+const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
+    const [value, setValue] = useState(defaultValue || '');
+    useEffect(() => {
+        console.log(`PromptModal rendered: title='${title}', defaultValue='${defaultValue}', currentValue='${value}'`);
+    }, [title, defaultValue, value]);
+
+    const handleSubmit = (e) => {
+        e.preventDefault();
+        console.log(`PromptModal handleSubmit triggered with value: ${value}`);
+        if (value) onConfirm(value);
+        onClose();  
+    };
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>{title}</h2>
+                <p className="modal-message">{message}</p>
+                <form onSubmit={handleSubmit}>
+                    <input type="text" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
+                    <div className="modal-actions">
+                        <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="modal-create-btn">Confirm</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const ConfirmModal = ({ message, onClose, onConfirm }) => {
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Confirm Action</h2>
+                <p className="modal-message">{message}</p>
+                <div className="modal-actions">
+                    <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="button" className="modal-create-btn danger" onClick={() => { onConfirm(); onClose(); }}>Confirm</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FeedbackModal = ({ onClose, formspreeUrl }) => {
+    const [status, setStatus] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        const form = e.target;
+        const data = new FormData(form);
+        
+        try {
+            const response = await fetch(form.action, {
+                method: form.method,
+                body: data,
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                setStatus('Thanks for your feedback!');
+                form.reset();
+                setTimeout(onClose, 2000);
+            } else {
+                setStatus('Oops! There was a problem submitting your form.');
+            }
+        } catch (error) {
+            setStatus('Oops! There was a problem submitting your form.');
+        }
+    };
+
+    return (
+        <div className="feedback-modal-overlay" onClick={onClose}>
+            <div className="feedback-modal-content" onClick={e => e.stopPropagation()}>
+                <h2>Send Beta Feedback</h2>
+                <form className="feedback-form" onSubmit={handleSubmit} action={formspreeUrl} method="POST">
+                    <div className="form-group">
+                        <label htmlFor="email">Your Email (Optional)</label>
+                        <input id="email" type="email" name="email" className="form-input" />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="type">Feedback Type</label>
+                        <select id="type" name="type" className="form-select" defaultValue="General Comment">
+                            <option>General Comment</option>
+                            <option>Bug Report</option>
+                            <option>Feature Request</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="message">Message</label>
+                        <textarea id="message" name="message" className="form-textarea" required />
+                    </div>
+                    <div className="feedback-modal-actions">
+                        <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                        <button type="submit" className="modal-create-btn">Submit</button>
+                    </div>
+                    {status && <p style={{marginTop: '1rem', textAlign: 'center'}}>{status}</p>}
+                </form>
+            </div>
+        </div>
+    );
+};
+
+const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) => {
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Flash Notes for "{folder.name}"</h2>
+                <p className="modal-message">
+                    {folder.flashNotes ? 'Your notes are ready. View them or generate a new version.' : 'Generate themed summary notes from your flashcards.'}
+                </p>
+                <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
+                    <button onClick={() => onGenerate(folder, 'view')} className="modal-create-btn" disabled={isGenerating}>
+                        {isGenerating ? 'Please wait...' : (folder.flashNotes ? 'View Notes' : 'Generate & View')}
+                    </button>
+                    <button onClick={() => onGenerate(folder, 'export')} className="modal-create-btn" disabled={isGenerating}>
+                        {isGenerating ? 'Please wait...' : (folder.flashNotes ? 'Export Notes' : 'Generate & Export')}
+                    </button>
+                    {folder.flashNotes && (
+                         <button onClick={() => onGenerate(folder, 'view', true)} className="modal-create-btn danger" disabled={isGenerating}>
+                            {isGenerating ? 'Generating...' : 'Regenerate Notes'}
+                         </button>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FlashNotesViewer = ({ folderName, notes, onClose }) => {
+    return (
+        <div className="viewer-overlay" onClick={onClose}>
+            <div className="flash-notes-container" onClick={e => e.stopPropagation()}>
+                <div className="viewer-header">
+                    <h2>Flash Notes: {folderName}</h2>
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
+                <div className="flash-notes-content" dangerouslySetInnerHTML={{ __html: marked(notes) }} />
+            </div>
+        </div>
+    );
+};
+
+const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder }) => {
+    const [isOpen, setIsOpen] = useState(false);
+    const menuRef = useRef(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && !menuRef.current.contains(event.target)) {
+                setIsOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    return (
+        <div className="actions-dropdown-container" ref={menuRef}>
+            <button className="actions-tab" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>Actions</button>
+            {isOpen && (
+                <div className="actions-dropdown-menu">
+                    <button onClick={(e) => { e.stopPropagation(); onAddSubfolder(folder.id); setIsOpen(false); }}>Add Subfolder</button>
+                    <button onClick={(e) => { e.stopPropagation(); onRenameFolder(folder.id, folder.name); setIsOpen(false); }}>Rename Folder</button>
+                    <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); setIsOpen(false); }}>Delete Folder</button>
+                    <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
+                    <button onClick={(e) => { e.stopPropagation(); exportPdf(folder.id); setIsOpen(false); }}>Export PDF</button>
+                    <button onClick={(e) => { e.stopPropagation(); exportCsv(folder.id); setIsOpen(false); }}>Export CSV</button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => {
+    const [deck, setDeck] = useState([...folder.cards]);
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [isFlipped, setIsFlipped] = useState(false);
+    const [isArrangeMode, setIsArrangeMode] = useState(false);
+    const [reviewMode, setReviewMode] = useState('all');
+    const [isReading, setIsReading] = useState(false);
+    const [speechRate, setSpeechRate] = useState(1);
+    const [speechDelay, setSpeechDelay] = useState(3);
+    const [voices, setVoices] = useState([]);
+    const [selectedVoice, setSelectedVoice] = useState('');
+    const speechTimeoutRef = useRef(null);
+    const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
+    const voiceDropdownRef = useRef(null);
+
+    const studyDeck = useMemo(() => {
+        if (reviewMode === 'flagged') {
+            return deck.filter(card => card.isFlagged);
+        }
+        return deck;
+    }, [deck, reviewMode]);
+
+    const currentCard = studyDeck[currentIndex];
+    const currentCardId = currentCard ? currentCard.id : null;
+
+    useEffect(() => {
+        if (isArrangeMode || !currentCardId) return;
+
+        setDeck(prevDeck => {
+            const cardInDeck = prevDeck.find(c => c.id === currentCardId);
+            if (cardInDeck && (!cardInDeck.lastViewed || (Date.now() - cardInDeck.lastViewed > 5000))) {
+                return prevDeck.map(card =>
+                    card.id === currentCardId ? { ...card, lastViewed: Date.now() } : card
+                );
+            }
+            return prevDeck;
+        });
+
+    }, [currentCardId, isArrangeMode]);
+
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (voiceDropdownRef.current && !voiceDropdownRef.current.contains(event.target)) {
+                setIsVoiceDropdownOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    useEffect(() => {
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+            setVoices(englishVoices);
+            if (englishVoices.length > 0 && !selectedVoice) {
+                setSelectedVoice(englishVoices[0].name);
+            }
+        };
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, [selectedVoice]);
+
+    const speak = (text, onEnd) => {
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voice = voices.find(v => v.name === selectedVoice);
+        if (voice) utterance.voice = voice;
+        utterance.rate = speechRate;
+        utterance.onend = onEnd;
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.speak(utterance);
+    };
+
+    const stopReading = () => {
+        setIsReading(false);
+        window.speechSynthesis.cancel();
+        if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
+    };
+
+    useEffect(() => {
+        if (!isReading || !currentCard) return;
+        const readCardSequence = () => {
+            setIsFlipped(false);
+            const questionText = `Question: ${currentCard.question}`;
+            speak(questionText, () => {
+                speechTimeoutRef.current = setTimeout(() => {
+                    setIsFlipped(true);
+                    const answerText = `Answer: ${currentCard.answer}`;
+                    speak(answerText, () => {
+                        setCurrentIndex(prev => (prev + 1) % studyDeck.length);
+                    });
+                }, speechDelay * 1000);
+            });
+        };
+        readCardSequence();
+        return () => {
+            window.speechSynthesis.cancel();
+            clearTimeout(speechTimeoutRef.current);
+        };
+    }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice, currentCard]);
+
+    const handleCardClick = () => {
+        if (studyDeck.length === 0) return;
+        stopReading();
+        setIsFlipped(prev => !prev);
+    };
+
+    const goToNext = () => {
+        if (studyDeck.length === 0) return;
+        stopReading();
+        setIsFlipped(false);
+        setCurrentIndex((prevIndex) => (prevIndex + 1) % studyDeck.length);
+    };
+
+    const goToPrev = () => {
+        if (studyDeck.length === 0) return;
+        stopReading();
+        setIsFlipped(false);
+        setCurrentIndex((prevIndex) => (prevIndex - 1 + studyDeck.length) % studyDeck.length);
+    };
+
+    const scrambleDeck = () => {
+        stopReading();
+        const newDeckOrder = [...deck].sort(() => Math.random() - 0.5);
+        setDeck(newDeckOrder);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+    };
+
+    const toggleFlag = (cardId) => {
+        setDeck(prevDeck => prevDeck.map(card =>
+            card.id === cardId ? { ...card, isFlagged: !card.isFlagged } : card
+        ));
+    };
+
+    const handleReviewModeChange = (mode) => {
+        stopReading();
+        setReviewMode(mode);
+        setCurrentIndex(0);
+        setIsFlipped(false);
+    };
+
+    const handleDragStart = (e, index) => e.dataTransfer.setData("cardIndex", index);
+
+    const handleDrop = (e, dropIndex) => {
+        const dragIndex = e.dataTransfer.getData("cardIndex");
+        const newDeck = [...deck];
+        const [draggedItem] = newDeck.splice(dragIndex, 1);
+        newDeck.splice(dropIndex, 0, draggedItem);
+        setDeck(newDeck);
+    };
+
+    useEffect(() => { return () => stopReading(); }, []);
+
+    const flaggedCount = useMemo(() => deck.filter(c => c.isFlagged).length, [deck]);
+
+    return (
+        <div className="viewer-overlay">
+            <div className="viewer-header">
+                <h2>Studying: {folder.name}</h2>
+                <button onClick={() => onClose(deck)} className="viewer-close-btn">&times;</button>
+            </div>
+            <div className="viewer-controls">
+                <button onClick={scrambleDeck}>Scramble</button>
+                <button onClick={() => setIsArrangeMode(!isArrangeMode)}>{isArrangeMode ? 'Study' : 'Arrange'}</button>
+                <button onClick={() => handleReviewModeChange('all')} className={reviewMode === 'all' ? 'active' : ''}>Review All</button>
+                <button onClick={() => handleReviewModeChange('flagged')} className={reviewMode === 'flagged' ? 'active' : ''}>{`Flagged (${flaggedCount})`}</button>
+            </div>
+            {isArrangeMode ? (
+                <div className="arrange-container">
+                    <h3>Drag and drop to reorder</h3>
+                    {deck.map((card, index) => (
+                        <div key={card.id} className="arrange-card" draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, index)}>
+                            {index + 1}. {card.question}
+                        </div>
+                    ))}
+                </div>
+            ) : (
+                <>
+                    {studyDeck.length > 0 ? (
+                        <>
+                            <div className="viewer-main" onClick={handleCardClick}>
+                                <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
+                                    <div className="card-face card-front">
+                                        <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
+                                        <p><strong>Q:</strong> {currentCard?.question}</p> 
+                                    </div>
+                                    <div className="card-face card-back">
+                                        <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
+                                        <p><strong>A:</strong> {currentCard?.answer}</p> 
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="viewer-nav">
+                                <button onClick={goToPrev}>&larr; Prev</button>
+                                <span>{currentIndex + 1} / {studyDeck.length}</span>
+                                <button onClick={goToNext} >Next &rarr;</button>
+                            </div>
+                        </>
+                    ) : (
+                        <div className="viewer-empty">
+                            <p>No cards to display in this mode.</p>
+                            {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
+                        </div>
+                    )}
+                    <div className="tts-controls">
+                        <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
+                        <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+                            <label>Voice</label>
+                            <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+                                {selectedVoice || 'Select a voice...'}
+                                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+                            </div>
+                            {isVoiceDropdownOpen && (
+                                <div className="custom-select-options">
+                                    {voices.map(voice => (
+                                        <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                                            {voice.name} ({voice.lang})
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
+                        </div>
+                        <div className="tts-slider-group">
+                            <label>Front to back delay: {speechDelay}s</label>
+                            <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
+                        </div>
+                        <div className="tts-slider-group">
+                            <label>Speed: {speechRate}x</label>
+                            <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
+                        </div>
+                    </div>
+                    <div className="games-section-container">
+                        <h3>Games</h3>
+                        <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
+                        <button className="game-launch-btn" onClick={() => onLaunchAnamnesisNemesis(folder)}>Anamnesis Nemesis</button>
+                    </div>
+                </>
+            )}
+        </div>
+    );
+};
+
 const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy }) => {
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -257,54 +763,29 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
         };
     }, []);
 
-    const stopAllAudio = () => {
-        window.speechSynthesis.cancel();
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-        clearTimeout(silenceTimerRef.current);
-        clearTimeout(speechEndTimerRef.current);
-    };
+    const getMedal = useCallback(() => {
+        const totalPossible = deck.length * 100;
+        if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
+        const percentage = (score / totalPossible) * 100;
 
-    const handleExit = () => {
-        stopAllAudio();
-        onExitGame();
-    };
+        if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
+        if (percentage >= 90) return { name: 'Synapse Slayer', animation: 'gold-medal-animation', icon: '🧠' };
+        if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
+        if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
+        return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
+    }, [deck.length, score]);
 
-    const handleBackButton = () => {
-        stopAllAudio();
-        if (cameFromStudy) {
-            onBackToStudy(folder);
+    const nextRound = useCallback(() => {
+        setUserAnswer('');
+        setLastScore(null);
+        if (currentIndex < deck.length - 1) {
+            setCurrentIndex(i => i + 1);
+            setGameState('starting');
         } else {
-            onExitGame();
+            onClose(folder.id, score, playerName, getMedal().name); 
+            setGameState('game_over');
         }
-    };
-
-    const handlePause = () => {
-        stopAllAudio();
-        setIsPaused(true);
-    };
-
-    const handleResume = () => {
-        setIsPaused(false);
-        askQuestion();
-    };
-
-    useEffect(() => {
-        const loadVoices = () => {
-          const availableVoices = window.speechSynthesis.getVoices();
-          const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
-          setVoices(englishVoices);
-          if (englishVoices.length > 0 && !selectedVoice) {
-            setSelectedVoice(englishVoices[0].name);
-          }
-        };
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-        loadVoices();
-        return () => {
-          window.speechSynthesis.onvoiceschanged = null;
-        };
-    }, [selectedVoice]);
+    }, [currentIndex, deck.length, onClose, folder.id, score, playerName, getMedal]);
 
     const speak = useCallback((text, onEndCallback) => {
         window.speechSynthesis.cancel();
@@ -315,19 +796,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
         utterance.onend = onEndCallback;
         window.speechSynthesis.speak(utterance);
     }, [voices, selectedVoice]);
-
-    const nextRound = useCallback(() => {
-        setUserAnswer('');
-        setLastScore(null);
-        if (currentIndex < deck.length - 1) {
-            setCurrentIndex(i => i + 1);
-            setGameState('starting');
-        } else {
-            // Game over, pass folder ID, final score, and player name to parent
-            onClose(folder.id, score, playerName, getMedal().name); // Pass level name here
-            setGameState('game_over');
-        }
-    }, [currentIndex, deck.length, onClose, folder.id, score, playerName, getMedal]); // Added getMedal to dependencies
 
     const submitAnswer = useCallback(async () => {
         if (!userAnswer.trim()) {
@@ -395,7 +863,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
     const startListening = useCallback(() => {
         const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
-            // Removed alert, will rely on UI notification if one exists or just console error
             console.error("Speech recognition not supported in this browser.");
             return;
         }
@@ -453,6 +920,55 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
         });
     }, [currentCard, speak, startListening]);
 
+    const stopAllAudio = () => {
+        window.speechSynthesis.cancel();
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+        clearTimeout(silenceTimerRef.current);
+        clearTimeout(speechEndTimerRef.current);
+    };
+
+    const handleExit = () => {
+        stopAllAudio();
+        onExitGame();
+    };
+
+    const handleBackButton = () => {
+        stopAllAudio();
+        if (cameFromStudy) {
+            onBackToStudy(folder);
+        } else {
+            onExitGame();
+        }
+    };
+
+    const handlePause = () => {
+        stopAllAudio();
+        setIsPaused(true);
+    };
+
+    const handleResume = () => {
+        setIsPaused(false);
+        askQuestion();
+    };
+
+    useEffect(() => {
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+            setVoices(englishVoices);
+            if (englishVoices.length > 0 && !selectedVoice) {
+                setSelectedVoice(englishVoices[0].name);
+            }
+        };
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, [selectedVoice]);
+
     useEffect(() => {
         if (gameState === 'starting') {
             setTimeout(() => askQuestion(), 3000); // 3-second countdown
@@ -471,21 +987,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
         setScore(0);
         setUserAnswer('');
         setLastScore(null);
-        // FIX: Go directly to 'ready' if player name is already set
         setGameState(playerName ? 'ready' : 'name_entry'); 
     };
-
-    const getMedal = useCallback(() => { // Wrapped in useCallback
-        const totalPossible = deck.length * 100;
-        if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
-        const percentage = (score / totalPossible) * 100;
-
-        if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
-        if (percentage >= 90) return { name: 'Synapse Slayer', animation: 'gold-medal-animation', icon: '🧠' };
-        if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
-        if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
-        return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
-    }, [deck.length, score]); // Added dependencies
 
     const renderVoiceSelector = () => (
         <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
@@ -600,7 +1103,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             case 'game_over':
                 const totalPossibleScore = deck.length * 100;
                 const finalMedal = getMedal();
-                // Leaderboard is now updated in MainApp via onClose prop
                 const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
 
                 return (
@@ -614,7 +1116,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                         </p>
                         <div className="leaderboard-container">
                             <h3>High Scores</h3>
-                            {/* Leaderboard Headers */}
                             <div className="leaderboard-list" style={{fontWeight: 'bold', borderBottom: '2px solid var(--border-color)'}}>
                                 <span>Rank</span>
                                 <span>Name</span>
@@ -626,7 +1127,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                                     <li key={index}>
                                         <span>#{index + 1}</span>
                                         <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
-                                        <span>{entry.level}</span> {/* Display the level here */}
+                                        <span>{entry.level}</span>
                                         <span>{entry.score}</span>
                                     </li>
                                )) : <p>No scores yet. Be the first!</p>}
@@ -649,7 +1150,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             <div className="viewer-overlay game-mode">
                 <div className="leaderboard-container full-page">
                     <h2>Leaderboard: {folder.name}</h2>
-                    {/* Leaderboard Headers for full page */}
                     <div className="leaderboard-list" style={{fontWeight: 'bold', borderBottom: '2px solid var(--border-color)'}}>
                         <span>Rank</span>
                         <span>Name</span>
@@ -661,7 +1161,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
                             <li key={index}>
                                 <span>#{index + 1}</span>
                                 <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
-                                <span>{entry.level}</span> {/* Display the level here */}
+                                <span>{entry.level}</span>
                                 <span>{entry.score}</span>
                             </li>
                        )) : <p>No scores yet. Be the first!</p>}
@@ -673,7 +1173,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy 
             </div>
         )
     }
-
 
     return (
         <div className="viewer-overlay game-mode">
@@ -754,7 +1253,7 @@ const MainApp = () => {
   const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());  
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
-  const [modalConfig, setModalConfig] = useState(null);    
+  const [modalConfig, setModalConfig] = useState(null);   
   
   const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); 
   const [isGeneratingNotes, setIsGeneratingNotes] = useState(false);
@@ -1027,7 +1526,7 @@ const MainApp = () => {
     streamRef.current?.getTracks().forEach(track => track.stop());
     if (recognitionRef.current) {
       recognitionRef.current.stop();
-      recognitionRef.current = null; // FIX: Corrected from recognition.current
+      recognitionRef.current = null;
     }
     if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
@@ -1840,38 +2339,28 @@ const MainApp = () => {
     setStudyingFolder(null);
   };
 
-  const handleGameEnd = (folderId, finalScore, playerName, levelName) => { // Added levelName
+  const handleGameEnd = (folderId, finalScore, playerName, levelName) => {
     setFolders(prev => updateFolderById(prev, folderId, folder => {
-      const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now(), level: levelName }]; // Store levelName
-      // Sort by score descending, then by date descending for ties
+      const newLeaderboard = [...(folder.leaderboard || []), { name: playerName, score: finalScore, date: Date.now(), level: levelName }];
       newLeaderboard.sort((a, b) => b.score - a.score || b.date - a.date);
-      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) }; // Keep top 10 scores
+      return { ...folder, leaderboard: newLeaderboard.slice(0, 10) };
     }));
   };
 
   const handlePlayGame = (folder) => {
-    // Ensure a new object reference is passed to force GameViewer remount
     setGameModeFolder({ ...folder }); 
     setGameLaunchedFromStudy(false);
   };
 
   const handleLaunchAnamnesisNemesis = (folder) => {
     setShowAnamnesisNemesisLanding(true);
-    setShowGamesModal(null); // Close the games modal
-    // Ensure a new object reference is passed to force AnamnesisNemesisLandingPage remount
+    setShowGamesModal(null);
     setGameModeFolder({ ...folder }); 
   };
 
   const handleStartAnamnesisNemesisGame = () => {
-    // This function would launch the actual Anamnesis Nemesis game
-    // For now, it will just close the landing page and could potentially
-    // launch the existing GameViewer with a different mode or a new component.
-    // For this iteration, let's just close the landing page.
     setShowAnamnesisNemesisLanding(false);
     setNotification("Anamnesis Nemesis game started! (Placeholder)");
-    // In a real scenario, you'd navigate to the game component,
-    // potentially passing the game mode (e.g., 'solo', 'duel', 'party')
-    // and the folder.
   };
 
   const FolderItem = ({ folder, level = 0, allFoldersForMoveDropdown, onPlayGame }) => {
@@ -1924,7 +2413,6 @@ const MainApp = () => {
                   setIsFeedbackModalOpen(false);
                 }} className="study-btn-large">Study</button>
                 <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
-                {/* New Games Button */}
                 <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
               </div>
               <div className="folder-expanded-actions">
@@ -1947,7 +2435,6 @@ const MainApp = () => {
                     setStudyingFolder(null);
                     setIsFeedbackModalOpen(false);
                   }}
-                  // onPlayGame removed from here
                 />
               </div>
             </div>
@@ -2208,7 +2695,7 @@ const MainApp = () => {
           onLaunchGame={(folder) => {
             setShowGamesModal(null); // Close games modal
             setGameModeFolder({ ...folder }); // Set folder for Verbatim Master (new object reference)
-            setGameLaunchedFromStudy(true); // Indicate it came from study mode
+            setGameLaunchedFromStudy(false); // FIX: Set to false when launched from main folder list
           }}
           onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
         />
@@ -2298,33 +2785,33 @@ const MainApp = () => {
               <>
                 <div className="player-container">
                   {fileType === 'video' ? (
-                                    <>
-                                      <video 
-                                        ref={videoPlayerRef} 
-                                        src={mediaSrc} 
-                                        playsInline 
-                                        className="video-player"
-                                        onClick={togglePlayPause}
-                                      >
-                                      </video>
-                                      <div className="audio-player">
-                                        <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                                        <div className="progress-bar-container" onClick={handleSeek}>
-                                          <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                                        </div>
-                                        <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
-                                      </div>
-                                    </>
-                                  ) : (
+                                  <>
+                                    <video 
+                                      ref={videoPlayerRef} 
+                                      src={mediaSrc} 
+                                      playsInline 
+                                      className="video-player"
+                                      onClick={togglePlayPause}
+                                    >
+                                    </video>
                                     <div className="audio-player">
-                                      <audio ref={audioPlayerRef} src={mediaSrc} />
                                       <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
                                       <div className="progress-bar-container" onClick={handleSeek}>
                                         <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
                                       </div>
                                       <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
                                     </div>
-                                  )}
+                                  </>
+                                ) : (
+                                  <div className="audio-player">
+                                    <audio ref={audioPlayerRef} src={mediaSrc} />
+                                    <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                    <div className="progress-bar-container" onClick={handleSeek}>
+                                      <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
+                                    </div>
+                                    <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                  </div>
+                                )}
                 </div>
                 <div className="listening-modes" style={{marginTop: '1rem'}}>
                     {fileType === 'video' && !audioCacheId && (
@@ -2433,540 +2920,34 @@ const MainApp = () => {
   );
 };
 
-// --- HELPER COMPONENTS AND FUNCTIONS ---
+// --- Top-Level App Component ---
+const App = () => {
+    const [showApp, setShowApp] = useState(false);
 
-// Component for the Actions dropdown
-const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder }) => { // Removed onPlayGame
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
-        setIsOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside); // Corrected from handleClickAll
-  }, []);
-
-  return (
-    <div className="actions-dropdown-container" ref={menuRef}>
-      <button className="actions-tab" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>Actions</button>
-      {isOpen && (
-        <div className="actions-dropdown-menu">
-          <button onClick={(e) => { e.stopPropagation(); onAddSubfolder(folder.id); setIsOpen(false); }}>Add Subfolder</button>
-          <button onClick={(e) => { e.stopPropagation(); onRenameFolder(folder.id, folder.name); setIsOpen(false); }}>Rename Folder</button>
-          <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); setIsOpen(false); }}>Delete Folder</button>
-          <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
-          <button onClick={(e) => { e.stopPropagation(); exportPdf(folder.id); setIsOpen(false); }}>Export PDF</button>
-          <button onClick={(e) => { e.stopPropagation(); exportCsv(folder.id); setIsOpen(false); }}>Export CSV</button>
-          {/* Removed Verbatim Master AI from here */}
-        </div>
-      )}
-    </div>
-  );
-};
-
-
-function encodeWAV(audioBuffer) {
-    const numOfChan = audioBuffer.numberOfChannels;
-    const length = audioBuffer.length * numOfChan * 2 + 44;
-    const buffer = new ArrayBuffer(length);
-    const view = new DataView(buffer);
-    const channels = [];
-    let i, sample;
-    let offset = 0;
-    let pos = 0;
-
-    setUint32(0x46464952);  
-    setUint32(length - 8);  
-    setUint32(0x45564157);  
-
-    setUint32(0x20746d66);  
-    setUint32(16);  
-    setUint16(1);  
-    setUint16(numOfChan);
-    setUint32(audioBuffer.sampleRate);
-    setUint32(audioBuffer.sampleRate * 2 * numOfChan);  
-    setUint16(numOfChan * 2);  
-    setUint16(16);  
-
-    setUint32(0x61746164);  
-    setUint32(length - pos - 4);
-
-    for (i = 0; i < audioBuffer.numberOfChannels; i++)
-        channels.push(audioBuffer.getChannelData(i));
-
-    while (pos < length) {
-        for (i = 0; i < numOfChan; i++) {
-            sample = Math.max(-1, Math.min(1, channels[i][offset]));
-            sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-            view.setInt16(pos, sample, true);
-            pos += 2;
+    // This effect checks if the user has seen the landing page before.
+    useEffect(() => {
+        const hasEntered = localStorage.getItem('flashfonic-entered');
+        if (hasEntered) {
+            setShowApp(true);
         }
-        offset++;
+    }, []);
+
+    const handleEnter = () => {
+        // Once the user enters, we save this to local storage.
+        localStorage.setItem('flashfonic-entered', 'true');
+        setShowApp(true);
+    };
+
+    if (!showApp) {
+        return <LandingPage onEnter={handleEnter} />;
     }
 
-    return new Blob([view], { type: 'audio/wav' });
-
-    function setUint16(data) {
-        view.setUint16(pos, data, true);
-        pos += 2;
-    }
-
-    function setUint32(data) {
-        view.setUint32(pos, data, true);
-        pos += 4;
-    }
-}
-
-
-const FeedbackModal = ({ onClose, formspreeUrl }) => {
-  const [status, setStatus] = useState('');
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const data = new FormData(form);
-    
-    try {
-      const response = await fetch(form.action, {
-        method: form.method,
-        body: data,
-        headers: {
-            'Accept': 'application/json'
-        }
-      });
-
-      if (response.ok) {
-        setStatus('Thanks for your feedback!');
-        form.reset();
-        setTimeout(onClose, 2000);
-      } else {
-        setStatus('Oops! There was a problem submitting your form.');
-      }
-    } catch (error) {
-      setStatus('Oops! There was a problem submitting your form.');
-    }
-  };
-
-  return (
-    <div className="feedback-modal-overlay" onClick={onClose}>
-      <div className="feedback-modal-content" onClick={e => e.stopPropagation()}>
-        <h2>Send Beta Feedback</h2>
-        <form className="feedback-form" onSubmit={handleSubmit} action={formspreeUrl} method="POST">
-          <div className="form-group">
-            <label htmlFor="email">Your Email (Optional)</label>
-            <input id="email" type="email" name="email" className="form-input" />
-          </div>
-          <div className="form-group">
-            <label htmlFor="type">Feedback Type</label>
-            <select id="type" name="type" className="form-select" defaultValue="General Comment">
-              <option>General Comment</option>
-              <option>Bug Report</option>
-              <option>Feature Request</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label htmlFor="message">Message</label>
-            <textarea id="message" name="message" className="form-textarea" required />
-          </div>
-          <div className="feedback-modal-actions">
-            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="modal-create-btn">Submit</button>
-          </div>
-          {status && <p style={{marginTop: '1rem', textAlign: 'center'}}>{status}</p>}
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => { // Added onLaunchAnamnesisNemesis
-  const [deck, setDeck] = useState([...folder.cards]);
-  const [currentIndex, setCurrentIndex] = useState(0);
-  const [isFlipped, setIsFlipped] = useState(false);
-  const [isArrangeMode, setIsArrangeMode] = useState(false);
-  const [reviewMode, setReviewMode] = useState('all');
-  const [isReading, setIsReading] = useState(false);
-  const [speechRate, setSpeechRate] = useState(1);
-  const [speechDelay, setSpeechDelay] = useState(3);
-  const [voices, setVoices] = useState([]);
-  const [selectedVoice, setSelectedVoice] = useState('');
-  const speechTimeoutRef = useRef(null);
-  const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
-  const voiceDropdownRef = useRef(null);
-
-  const studyDeck = useMemo(() => {
-    if (reviewMode === 'flagged') {
-      return deck.filter(card => card.isFlagged);
-    }
-    return deck;
-  }, [deck, reviewMode]);
-
-  const currentCard = studyDeck[currentIndex];
-  const currentCardId = currentCard ? currentCard.id : null;
-
-  useEffect(() => {
-      if (isArrangeMode || !currentCardId) return;
-
-      setDeck(prevDeck => {
-          const cardInDeck = prevDeck.find(c => c.id === currentCardId);
-          if (cardInDeck && (!cardInDeck.lastViewed || (Date.now() - cardInDeck.lastViewed > 5000))) {
-              return prevDeck.map(card =>
-                  card.id === currentCardId ? { ...card, lastViewed: Date.now() } : card
-              );
-          }
-          return prevDeck;
-      });
-
-  }, [currentCardId, isArrangeMode]);
-
-  useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (voiceDropdownRef.current && !voiceDropdownRef.current.contains(event.target)) {
-        setIsVoiceDropdownOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-  useEffect(() => {
-    const loadVoices = () => {
-      const availableVoices = window.speechSynthesis.getVoices();
-      const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
-      setVoices(englishVoices);
-      if (englishVoices.length > 0 && !selectedVoice) {
-        setSelectedVoice(englishVoices[0].name);
-      }
-    };
-    window.speechSynthesis.onvoiceschanged = loadVoices;
-    loadVoices();
-    return () => {
-      window.speechSynthesis.onvoiceschanged = null;
-    };
-  }, [selectedVoice]);
-  const speak = (text, onEnd) => {
-    const utterance = new SpeechSynthesisUtterance(text);
-    const voice = voices.find(v => v.name === selectedVoice);
-    if (voice) utterance.voice = voice;
-    utterance.rate = speechRate;
-    utterance.onend = onEnd;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(utterance);
-  };
-  const stopReading = () => {
-    setIsReading(false);
-    window.speechSynthesis.cancel();
-    if (speechTimeoutRef.current) clearTimeout(speechTimeoutRef.current);
-  };
-  useEffect(() => {
-    if (!isReading || !currentCard) return;
-    const readCardSequence = () => {
-      setIsFlipped(false);
-      const questionText = `Question: ${currentCard.question}`;
-      speak(questionText, () => {
-        speechTimeoutRef.current = setTimeout(() => {
-          setIsFlipped(true);
-          const answerText = `Answer: ${currentCard.answer}`;
-          speak(answerText, () => {
-            setCurrentIndex(prev => (prev + 1) % studyDeck.length);
-          });
-        }, speechDelay * 1000);
-      });
-    };
-    readCardSequence();
-    return () => {
-      window.speechSynthesis.cancel();
-      clearTimeout(speechTimeoutRef.current);
-    };
-  }, [isReading, currentIndex, studyDeck, speechDelay, speechRate, selectedVoice, currentCard]);
-  const handleCardClick = () => {
-    if (studyDeck.length === 0) return;
-    stopReading();
-    setIsFlipped(prev => !prev);
-  };
-  const goToNext = () => {
-    if (studyDeck.length === 0) return;
-    stopReading();
-    setIsFlipped(false);
-    setCurrentIndex((prevIndex) => (prevIndex + 1) % studyDeck.length);
-  };
-  const goToPrev = () => {
-    if (studyDeck.length === 0) return;
-    stopReading();
-    setIsFlipped(false);
-    setCurrentIndex((prevIndex) => (prevIndex - 1 + studyDeck.length) % studyDeck.length);
-  };
-  const scrambleDeck = () => {
-    stopReading();
-    const newDeckOrder = [...deck].sort(() => Math.random() - 0.5);
-    setDeck(newDeckOrder);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-  };
-  const toggleFlag = (cardId) => {
-    setDeck(prevDeck => prevDeck.map(card =>
-      card.id === cardId ? { ...card, isFlagged: !card.isFlagged } : card
-    ));
-  };
-  const handleReviewModeChange = (mode) => {
-    stopReading();
-    setReviewMode(mode);
-    setCurrentIndex(0);
-    setIsFlipped(false);
-  };
-  const handleDragStart = (e, index) => e.dataTransfer.setData("cardIndex", index);
-  const handleDrop = (e, dropIndex) => {
-    const dragIndex = e.dataTransfer.getData("cardIndex");
-    const newDeck = [...deck];
-    const [draggedItem] = newDeck.splice(dragIndex, 1);
-    newDeck.splice(dropIndex, 0, draggedItem);
-    setDeck(newDeck);
-  };
-  useEffect(() => { return () => stopReading(); }, []);
-
-  const flaggedCount = useMemo(() => deck.filter(c => c.isFlagged).length, [deck]);
-
-  return (
-    <div className="viewer-overlay">
-      <div className="viewer-header">
-        <h2>Studying: {folder.name}</h2>
-        <button onClick={() => onClose(deck)} className="viewer-close-btn">&times;</button>
-      </div>
-      <div className="viewer-controls">
-        <button onClick={scrambleDeck}>Scramble</button>
-        <button onClick={() => setIsArrangeMode(!isArrangeMode)}>{isArrangeMode ? 'Study' : 'Arrange'}</button>
-        <button onClick={() => handleReviewModeChange('all')} className={reviewMode === 'all' ? 'active' : ''}>Review All</button>
-        <button onClick={() => handleReviewModeChange('flagged')} className={reviewMode === 'flagged' ? 'active' : ''}>{`Flagged (${flaggedCount})`}</button>
-      </div>
-      {isArrangeMode ? (
-        <div className="arrange-container">
-          <h3>Drag and drop to reorder</h3>
-          {deck.map((card, index) => (
-            <div key={card.id} className="arrange-card" draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, index)}>
-              {index + 1}. {card.question}
-            </div>
-          ))}
-        </div>
-      ) : (
-        <>
-          {studyDeck.length > 0 ? (
-            <>
-              <div className="viewer-main" onClick={handleCardClick}>
-                <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
-                  <div className="card-face card-front">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                    <p><strong>Q:</strong> {currentCard?.question}</p> 
-                  </div>
-                  <div className="card-face card-back">
-                    <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                    <p><strong>A:</strong> {currentCard?.answer}</p> 
-                  </div>
-                </div>
-              </div>
-              <div className="viewer-nav">
-                <button onClick={goToPrev}>&larr; Prev</button>
-                <span>{currentIndex + 1} / {studyDeck.length}</span>
-                <button onClick={goToNext} >Next &rarr;</button>
-              </div>
-            </>
-          ) : (
-            <div className="viewer-empty">
-              <p>No cards to display in this mode.</p>
-              {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
-            </div>
-          )}
-          <div className="tts-controls">
-            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
-            <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
-              <label>Voice</label>
-              <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
-                {selectedVoice || 'Select a voice...'}
-                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
-              </div>
-              {isVoiceDropdownOpen && (
-                <div className="custom-select-options">
-                  {voices.map(voice => (
-                    <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
-                      {voice.name} ({voice.lang})
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="tts-slider-group">
-              <label>Front to back delay: {speechDelay}s</label>
-              <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
-            </div>
-            <div className="tts-slider-group">
-              <label>Speed: {speechRate}x</label>
-              <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
-            </div>
-          </div>
-          <div className="games-section-container">
-            <h3>Games</h3>
-            {/* Added both game buttons here */}
-            <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
-            <button className="game-launch-btn" onClick={() => onLaunchAnamnesisNemesis(folder)}>Anamnesis Nemesis</button>
-          </div>
-        </>
-      )}
-    </div>
-  );
-};
-const CreateFolderModal = ({ onClose, onCreate, title = "Create New Folder" }) => {
-  const [folderName, setFolderName] = useState('');
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    if (folderName.trim()) onCreate(folderName.trim());
-  };
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{title}</h2>
-        <form onSubmit={handleSubmit}>
-          <input type="text" className="modal-input" placeholder="Enter name..." value={folderName} onChange={(e) => setFolderName(e.target.value)} autoFocus />
-          <div className="modal-actions">
-            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="modal-create-btn">Create</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-const PromptModal = ({ title, message, defaultValue, onClose, onConfirm }) => {
-  const [value, setValue] = useState(defaultValue || '');
-  useEffect(() => {
-    console.log(`PromptModal rendered: title='${title}', defaultValue='${defaultValue}', currentValue='${value}'`);
-  }, [title, defaultValue, value]);
-
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log(`PromptModal handleSubmit triggered with value: ${value}`);
-    if (value) onConfirm(value);
-    onClose();  
-  };
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>{title}</h2>
-        <p className="modal-message">{message}</p>
-        <form onSubmit={handleSubmit}>
-          <input type="text" className="modal-input" value={value} onChange={(e) => setValue(e.target.value)} autoFocus />
-          <div className="modal-actions">
-            <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
-            <button type="submit" className="modal-create-btn">Confirm</button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-};
-
-const ConfirmModal = ({ message, onClose, onConfirm }) => {
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Confirm Action</h2>
-        <p className="modal-message">{message}</p>
-        <div className="modal-actions">
-          <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
-          <button type="button" className="modal-create-btn danger" onClick={() => { onConfirm(); onClose(); }}>Confirm</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) => {
-  return (
-    <div className="modal-overlay">
-      <div className="modal-content">
-        <h2>Flash Notes for "{folder.name}"</h2>
-        <p className="modal-message">
-          {folder.flashNotes ? 'Your notes are ready. View them or generate a new version.' : 'Generate themed summary notes from your flashcards.'}
-        </p>
-        <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-          <button onClick={() => onGenerate(folder, 'view')} className="modal-create-btn" disabled={isGenerating}>
-            {isGenerating ? 'Please wait...' : (folder.flashNotes ? 'View Notes' : 'Generate & View')}
-          </button>
-          <button onClick={() => onGenerate(folder, 'export')} className="modal-create-btn" disabled={isGenerating}>
-            {isGenerating ? 'Please wait...' : (folder.flashNotes ? 'Export Notes' : 'Generate & Export')}
-          </button>
-          {folder.flashNotes && (
-             <button onClick={() => onGenerate(folder, 'view', true)} className="modal-create-btn danger" disabled={isGenerating}>
-               {isGenerating ? 'Generating...' : 'Regenerate Notes'}
-             </button>
-          )}
-          <button type="button" className="modal-cancel-btn" onClick={onClose} disabled={isGenerating}>Cancel</button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const FlashNotesViewer = ({ folderName, notes, onClose }) => {
-  const contentRef = useRef(null);
-
-  useEffect(() => {
-    const disableRightClick = (e) => e.preventDefault();
-    const contentElement = contentRef.current;
-    if (contentElement) {
-      contentElement.addEventListener('contextmenu', disableRightClick);
-    }
-    return () => {
-      if (contentElement) {
-        contentElement.removeEventListener('contextmenu', disableRightClick);
-      }
-    };
-  }, []);
-
-  return (
-    <div className="viewer-overlay">
-      <div className="viewer-header">
-        <h2>Flash Notes: {folderName}</h2>
-        <button onClick={onClose} className="viewer-close-btn">&times;</button>
-      </div>
-      <div className="flash-notes-container">
-        <div 
-          ref={contentRef}
-          className="flash-notes-content" 
-          dangerouslySetInnerHTML={{ __html: marked(notes) }} 
-        />
-      </div>
-    </div>
-  );
-};
-
-
-const formatTime = (time) => {
-  if (isNaN(time) || time === 0) return '00:00';
-  const minutes = Math.floor(time / 60);
-  const seconds = Math.floor(time % 60);
-  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-};
-
-function App() {
-  const [showApp, setShowApp] = useState(false);
-
-  if (showApp) {
     return (
-      <div className="main-app-container">
-        <Analytics />
-        <MainApp />
-      </div>
+        <div className="main-app-container">
+            <MainApp />
+            <Analytics />
+        </div>
     );
-  } else {
-    return (
-      <>
-        <Analytics />
-        <LandingPage onEnter={() => setShowApp(true)} />
-      </>
-    );
-  }
-}
+};
 
 export default App;
