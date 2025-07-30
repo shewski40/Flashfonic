@@ -7,13 +7,34 @@ import * as Tone from 'tone';
 
 // --- Rendering Components ---
 
-// New component to handle SMILES strings and render them as images
+// Updated component to handle separate reactant and product SMILES strings
 const SmilesRenderer = ({ text }) => {
-    const smilesRegex = /SMILES\[(.*?)\]/;
-    const match = text.match(smilesRegex);
+    // Regex to capture reactant and product from the new format
+    const reactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/;
+    const reactionMatch = text.match(reactionRegex);
 
-    if (match) {
-        const smiles = encodeURIComponent(match[1]);
+    if (reactionMatch) {
+        const reactantSmiles = encodeURIComponent(reactionMatch[1]);
+        const productSmiles = encodeURIComponent(reactionMatch[2]);
+        
+        const reactantImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${reactantSmiles}/image?format=png&width=400&height=400`;
+        const productImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${productSmiles}/image?format=png&width=400&height=400`;
+
+        return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                <img src={reactantImageUrl} alt="Reactant Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+                <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>
+                <img src={productImageUrl} alt="Product Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+            </div>
+        );
+    }
+
+    // Fallback for single molecules (or old format)
+    const singleMoleculeRegex = /SMILES\[(.*?)\]/;
+    const singleMatch = text.match(singleMoleculeRegex);
+
+    if (singleMatch) {
+        const smiles = encodeURIComponent(singleMatch[1]);
         const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=500&height=500`;
         return <img src={imageUrl} alt="Chemical Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '100%' }} />;
     }
