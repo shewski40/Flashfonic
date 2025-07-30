@@ -5,6 +5,53 @@ import './App.css';
 import { Analytics } from '@vercel/analytics/react';
 import * as Tone from 'tone';
 
+// --- KaTeX Rendering Component ---
+// This component will find and render LaTeX expressions in a string.
+const KatexRenderer = ({ text }) => {
+    const containerRef = useRef(null);
+
+    useEffect(() => {
+        if (containerRef.current && window.katex) {
+            const renderMathInText = (text) => {
+                const blockRegex = /\$\$(.*?)\$\$/g;
+                const inlineRegex = /\$(.*?)\$/g;
+
+                let html = text.replace(blockRegex, (match, expression) => {
+                    try {
+                        return window.katex.renderToString(expression, {
+                            throwOnError: false,
+                            displayMode: true
+                        });
+                    } catch (e) {
+                        console.error("KaTeX rendering error:", e);
+                        return match; // Return original string on error
+                    }
+                });
+
+                html = html.replace(inlineRegex, (match, expression) => {
+                    // Avoid rendering block expressions again if they were missed
+                    if (match.startsWith('$$')) return match;
+                    try {
+                        return window.katex.renderToString(expression, {
+                            throwOnError: false,
+                            displayMode: false
+                        });
+                    } catch (e) {
+                        console.error("KaTeX rendering error:", e);
+                        return match; // Return original string on error
+                    }
+                });
+                return html;
+            };
+            
+            containerRef.current.innerHTML = renderMathInText(text);
+        }
+    }, [text]);
+
+    return <span ref={containerRef} />;
+};
+
+
 // --- HELPER FUNCTIONS ---
 
 // Helper function to generate a simple UUID for browser compatibility
@@ -410,7 +457,7 @@ const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) =>
                     </button>
                     {folder.flashNotes && (
                          <button onClick={() => onGenerate(folder, 'view', true)} className="modal-create-btn danger" disabled={isGenerating}>
-                            {isGenerating ? 'Generating...' : 'Regenerate Notes'}
+                             {isGenerating ? 'Generating...' : 'Regenerate Notes'}
                          </button>
                     )}
                 </div>
@@ -640,7 +687,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                     <h3>Drag and drop to reorder</h3>
                     {deck.map((card, index) => (
                         <div key={card.id} className="arrange-card" draggable onDragStart={(e) => handleDragStart(e, index)} onDragOver={(e) => e.preventDefault()} onDrop={(e) => handleDrop(e, index)}>
-                            {index + 1}. {card.question}
+                            {index + 1}. <KatexRenderer text={card.question} />
                         </div>
                     ))}
                 </div>
@@ -652,11 +699,11 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                                 <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
                                     <div className="card-face card-front">
                                         <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                                        <p><strong>Q:</strong> {currentCard?.question}</p> 
+                                        <p><strong>Q:</strong> <KatexRenderer text={currentCard?.question} /></p> 
                                     </div>
                                     <div className="card-face card-back">
                                         <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                                        <p><strong>A:</strong> {currentCard?.answer}</p> 
+                                        <p><strong>A:</strong> <KatexRenderer text={currentCard?.answer} /></p> 
                                     </div>
                                 </div>
                             </div>
@@ -1089,7 +1136,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                             <>
                                 <div className="score-feedback-animation incorrect-x">✕</div>
                                 <h2>Incorrect</h2>
-                                <p className="correct-answer-reveal">Correct Answer: {currentCard.answer}</p>
+                                <p className="correct-answer-reveal">Correct Answer: <KatexRenderer text={currentCard.answer} /></p>
                             </>
                         )}
                         {playMode === 'manual' && (
@@ -1130,7 +1177,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                                         <span>{entry.level}</span>
                                         <span>{entry.score}</span>
                                     </li>
-                               )) : <li><p>No scores yet. Be the first!</p></li>}
+                                )) : <li><p>No scores yet. Be the first!</p></li>}
                             </div>
                         </div>
                         <div className="game-end-actions">
@@ -1191,7 +1238,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                     {gameState !== 'ready' && (
                         <div className="game-card-area">
                             <div className="game-card">
-                                <p className="game-question"><strong>Q:</strong> {currentCard?.question}</p> 
+                                <p className="game-question"><strong>Q:</strong> <KatexRenderer text={currentCard?.question} /></p> 
                             </div>
                         </div>
                     )}
@@ -2097,8 +2144,8 @@ const MainApp = () => {
         <div className="card-top-actions">
           <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
         </div>
-        <p><strong>Q:</strong> {card.question}</p>
-        <p><strong>A:</strong> {card.answer}</p>
+        <p><strong>Q:</strong> <KatexRenderer text={card.question} /></p>
+        <p><strong>A:</strong> <KatexRenderer text={card.answer} /></p>
       </>
     );
   };
@@ -2795,24 +2842,24 @@ const MainApp = () => {
               <>
                 <div className="player-container">
                   {fileType === 'video' ? (
-                                  <>
-                                    <video 
-                                      ref={videoPlayerRef} 
-                                      src={mediaSrc} 
-                                      playsInline 
-                                      className="video-player"
-                                      onClick={togglePlayPause}
-                                    >
-                                    </video>
-                                    <div className="audio-player">
-                                      <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                                      <div className="progress-bar-container" onClick={handleSeek}>
-                                        <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                                      </div>
-                                      <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                <>
+                                  <video 
+                                    ref={videoPlayerRef} 
+                                    src={mediaSrc} 
+                                    playsInline 
+                                    className="video-player"
+                                    onClick={togglePlayPause}
+                                  >
+                                  </video>
+                                  <div className="audio-player">
+                                    <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                    <div className="progress-bar-container" onClick={handleSeek}>
+                                      <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
                                     </div>
-                                  </>
-                                ) : (
+                                    <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                  </div>
+                                </>
+                              ) : (
                                   <div className="audio-player">
                                     <audio ref={audioPlayerRef} src={mediaSrc} />
                                     <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
