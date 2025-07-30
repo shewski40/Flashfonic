@@ -889,7 +889,8 @@ input[type="range"]::-webkit-slider-thumb {
 .viewer-main {
   width: 100%;
   max-width: 600px;
-  height: 300px;
+  /* MODIFIED: Increased height from 300px to 400px for better image visibility */
+  height: 400px;
   perspective: 1000px;
   cursor: pointer;
   margin-bottom: 1rem;
@@ -1375,7 +1376,8 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .viewer-main {
-    height: 350px;
+    /* MODIFIED: Increased height for desktop view */
+    height: 450px;
   }
 
   .card-face {
@@ -1832,7 +1834,8 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .games-section-container {
-  margin-top: 2rem;
+  /* MODIFIED: Increased margin to push the section down */
+  margin-top: 4rem;
   padding-top: 1rem;
   border-top: 1px solid var(--border-color);
   text-align: center;

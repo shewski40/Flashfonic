@@ -34,6 +34,32 @@ const ContentRenderer = ({ content }) => {
 
     // 2. Fallback for string content (KaTeX for math or plain text)
     if (typeof content === 'string') {
+        // This handles older SMILES formats for backward compatibility
+        const reactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/;
+        const reactionMatch = content.match(reactionRegex);
+        if (reactionMatch) {
+            const reactantSmiles = encodeURIComponent(reactionMatch[1]);
+            const productSmiles = encodeURIComponent(reactionMatch[2]);
+            const reactantImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${reactantSmiles}/image?format=png&width=400&height=400`;
+            const productImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${productSmiles}/image?format=png&width=400&height=400`;
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <img src={reactantImageUrl} alt="Reactant Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>
+                    <img src={productImageUrl} alt="Product Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '45%' }} />
+                </div>
+            );
+        }
+        
+        const singleMoleculeRegex = /SMILES\[(.*?)\]/;
+        const singleMatch = content.match(singleMoleculeRegex);
+        if (singleMatch) {
+            const smiles = encodeURIComponent(singleMatch[1]);
+            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=500&height=500`;
+            return <img src={imageUrl} alt="Chemical Structure" style={{ backgroundColor: 'white', borderRadius: '8px', maxWidth: '100%' }} />;
+        }
+
+        // Fallback to KaTeX for math or plain text
         return <KatexRenderer text={content} />;
     }
 
@@ -729,63 +755,67 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                 </div>
             ) : (
                 <>
-                    {studyDeck.length > 0 ? (
-                        <>
-                            <div className="viewer-main" onClick={handleCardClick}>
-                                <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
-                                    <div className="card-face card-front">
-                                        <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                                        <p><strong>Q:</strong> <ContentRenderer content={currentCard?.question} /></p> 
-                                    </div>
-                                    <div className="card-face card-back">
-                                        <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                                        <p><strong>A:</strong> <ContentRenderer content={currentCard?.answer} /></p> 
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="viewer-nav">
-                                <button onClick={goToPrev}>&larr; Prev</button>
-                                <span>{currentIndex + 1} / {studyDeck.length}</span>
-                                <button onClick={goToNext} >Next &rarr;</button>
-                            </div>
-                        </>
-                    ) : (
-                        <div className="viewer-empty">
-                            <p>No cards to display in this mode.</p>
-                            {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
-                        </div>
-                    )}
-                    <div className="tts-controls">
-                        <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
-                        <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
-                            <label>Voice</label>
-                            <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
-                                {selectedVoice || 'Select a voice...'}
-                                <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
-                            </div>
-                            {isVoiceDropdownOpen && (
-                                <div className="custom-select-options">
-                                    {voices.map(voice => (
-                                        <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
-                                            {voice.name} ({voice.lang})
+                    <div className="study-area-main">
+                        {studyDeck.length > 0 ? (
+                            <>
+                                <div className="viewer-main" onClick={handleCardClick}>
+                                    <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`}>
+                                        <div className="card-face card-front">
+                                            <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
+                                            <p><strong>Q:</strong> <ContentRenderer content={currentCard?.question} /></p> 
                                         </div>
-                                    ))}
+                                        <div className="card-face card-back">
+                                            <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
+                                            <p><strong>A:</strong> <ContentRenderer content={currentCard?.answer} /></p> 
+                                        </div>
+                                    </div>
                                 </div>
-                            )}
-                        </div>
-                        <div className="tts-slider-group">
-                            <label>Front to back delay: {speechDelay}s</label>
-                            <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
-                        </div>
-                        <div className="tts-slider-group">
-                            <label>Speed: {speechRate}x</label>
-                            <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
-                        </div>
+                                <div className="viewer-nav">
+                                    <button onClick={goToPrev}>&larr; Prev</button>
+                                    <span>{currentIndex + 1} / {studyDeck.length}</span>
+                                    <button onClick={goToNext} >Next &rarr;</button>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="viewer-empty">
+                                <p>No cards to display in this mode.</p>
+                                {reviewMode === 'flagged' && <p>Flag some cards during your "Review All" session to study them here.</p>}
+                            </div>
+                        )}
                     </div>
-                    <div className="games-section-container">
-                        <h3>Games</h3>
-                        <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
-                        <button className="game-launch-btn" onClick={() => onLaunchAnamnesisNemesis(folder)}>Anamnesis Nemesis</button>
+                    <div className="study-area-footer">
+                        <div className="tts-controls">
+                            <button onClick={isReading ? stopReading : () => setIsReading(true)} className="tts-play-btn">{isReading ? '■ Stop Audio' : '▶ Play Audio'}</button>
+                            <div className="tts-slider-group custom-select-container" ref={voiceDropdownRef}>
+                                <label>Voice</label>
+                                <div className="custom-select-trigger" onClick={() => !isReading && setIsVoiceDropdownOpen(!isVoiceDropdownOpen)}>
+                                    {selectedVoice || 'Select a voice...'}
+                                    <span className={`arrow ${isVoiceDropdownOpen ? 'up' : 'down'}`}></span>
+                                </div>
+                                {isVoiceDropdownOpen && (
+                                    <div className="custom-select-options">
+                                        {voices.map(voice => (
+                                            <div key={voice.name} className="custom-select-option" onClick={() => { setSelectedVoice(voice.name); setIsVoiceDropdownOpen(false); }}>
+                                                {voice.name} ({voice.lang})
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                            <div className="tts-slider-group">
+                                <label>Front to back delay: {speechDelay}s</label>
+                                <input type="range" min="1" max="10" step="1" value={speechDelay} onChange={(e) => setSpeechDelay(Number(e.target.value))} disabled={isReading} />
+                            </div>
+                            <div className="tts-slider-group">
+                                <label>Speed: {speechRate}x</label>
+                                <input type="range" min="0.5" max="2" step="0.1" value={speechRate} onChange={(e) => setSpeechRate(Number(e.target.value))} disabled={isReading} />
+                            </div>
+                        </div>
+                        <div className="games-section-container">
+                            <h3>Games</h3>
+                            <button className="game-launch-btn" onClick={() => onLaunchGame(folder)}>Verbatim Master AI</button>
+                            <button className="game-launch-btn" onClick={() => onLaunchAnamnesisNemesis(folder)}>Anamnesis Nemesis</button>
+                        </div>
                     </div>
                 </>
             )}
