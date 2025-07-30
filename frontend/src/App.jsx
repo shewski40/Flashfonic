@@ -33,26 +33,33 @@ const ChemicalImage = ({ src, alt }) => {
 
 
 // Updated component to handle an array of chemical names for multi-step reactions
-const ContentRenderer = ({ content }) => {
+const ContentRenderer = ({ content, reactionSummary }) => {
     // 1. Check for the new array format for chemical reactions
     if (Array.isArray(content)) {
         return (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                {content.map((item, index) => {
-                    const chemRegex = /CHEM\[(.*?)\]/;
-                    const match = typeof item === 'string' && item.match(chemRegex);
-                    if (match) {
-                        const chemicalName = encodeURIComponent(match[1]);
-                        const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${chemicalName}/image?format=png&width=300&height=300`;
-                        return (
-                            <React.Fragment key={index}>
-                                <ChemicalImage src={imageUrl} alt={`Structure of ${match[1]}`} />
-                                {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>}
-                            </React.Fragment>
-                        );
-                    }
-                    return null; // In case an item in the array is not a valid format
-                })}
+            <div>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {content.map((item, index) => {
+                        const chemRegex = /CHEM\[(.*?)\]/;
+                        const match = typeof item === 'string' && item.match(chemRegex);
+                        if (match) {
+                            const chemicalName = encodeURIComponent(match[1]);
+                            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${chemicalName}/image?format=png&width=300&height=300`;
+                            return (
+                                <React.Fragment key={index}>
+                                    <ChemicalImage src={imageUrl} alt={`Structure of ${match[1]}`} />
+                                    {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>}
+                                </React.Fragment>
+                            );
+                        }
+                        return null; // In case an item in the array is not a valid format
+                    })}
+                </div>
+                {reactionSummary && (
+                    <div style={{ marginTop: '1rem', padding: '0.8rem', backgroundColor: 'var(--dark-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <p style={{ margin: 0, color: 'var(--text-soft)', fontStyle: 'italic', fontSize: '0.9em' }}>{reactionSummary}</p>
+                    </div>
+                )}
             </div>
         );
     }
@@ -791,7 +798,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
                     </div>
                     <div className="card-face card-back">
                       <button onClick={(e) => { e.stopPropagation(); toggleFlag(currentCard.id); }} className={`flag-btn ${currentCard?.isFlagged ? 'active' : ''}`}>&#9873;</button>
-                      <p><strong>A:</strong> <ContentRenderer content={currentCard?.answer} /></p> 
+                      <p><strong>A:</strong> <ContentRenderer content={currentCard?.answer} reactionSummary={currentCard?.reactionSummary} /></p> 
                     </div>
                   </div>
                 </div>
@@ -2236,7 +2243,7 @@ const MainApp = () => {
           <button onClick={() => startEditing(card, source, folderId)} className="edit-btn">Edit</button>
         </div>
         <p><strong>Q:</strong> <ContentRenderer content={card.question} /></p>
-        <p><strong>A:</strong> <ContentRenderer content={card.answer} /></p>
+        <p><strong>A:</strong> <ContentRenderer content={card.answer} reactionSummary={card.reactionSummary} /></p>
       </>
     );
   };
