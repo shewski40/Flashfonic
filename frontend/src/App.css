@@ -252,18 +252,17 @@ input[type="range"]::-webkit-slider-thumb {
   margin: 0;
 }
 
-/* Updated Games Section Heading */
 .games-section-container h3 {
-  font-size: 2rem; /* Larger font size */
-  font-weight: 900; /* More robust */
+  font-size: 2rem; 
+  font-weight: 900; 
   color: transparent;
   background-clip: text;
   -webkit-background-clip: text;
-  background-image: var(--brand-gradient); /* Keep the gradient */
+  background-image: var(--brand-gradient); 
   text-align: center;
   margin-bottom: 1.5rem;
-  letter-spacing: 1px; /* Add some spacing */
-  text-shadow: 0 0 10px rgba(236, 72, 153, 0.5); /* Subtle glow */
+  letter-spacing: 1px; 
+  text-shadow: 0 0 10px rgba(236, 72, 153, 0.5); 
 }
 
 
@@ -539,7 +538,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .game-button-in-folder {
-  background-color: var(--primary-purple) !important; /* New style for game button */
+  background-color: var(--primary-purple) !important;
 }
 
 
@@ -1130,60 +1129,73 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
+/* --- VOICE SELECTOR STYLES (UPDATED) --- */
+.custom-select-container {
+    position: relative;
+}
+
 .custom-select-trigger {
-  background-color: var(--dark-bg);
-  color: var(--text-light);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  padding: 0.8em;
-  font-family: 'Poppins', sans-serif;
-  cursor: pointer;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+    background-color: var(--dark-bg);
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 0.8em;
+    font-family: 'Poppins', sans-serif;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.custom-select-trigger:hover {
+    border-color: var(--primary-purple);
 }
 
 .custom-select-trigger .arrow {
-  border: solid var(--text-dark);
-  border-width: 0 2px 2px 0;
-  display: inline-block;
-  padding: 3px;
-  transition: transform 0.2s ease;
+    border: solid var(--text-dark);
+    border-width: 0 2px 2px 0;
+    display: inline-block;
+    padding: 3px;
+    transition: transform 0.2s ease;
 }
 
 .custom-select-trigger .arrow.down {
-  transform: rotate(45deg);
+    transform: rotate(45deg);
 }
 
 .custom-select-trigger .arrow.up {
-  transform: rotate(-135deg);
+    transform: rotate(-135deg);
 }
 
 .custom-select-options {
-  position: absolute;
-  bottom: 100%;
-  margin-bottom: 0.5rem;
-  left: 0;
-  right: 0;
-  background-color: var(--content-bg);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  z-index: 10;
-  max-height: 250px;
-  overflow-y: auto;
+    position: absolute;
+    bottom: 100%;
+    margin-bottom: 0.5rem;
+    left: 0;
+    right: 0;
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    z-index: 10;
+    max-height: 250px;
+    overflow-y: auto;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
 }
 
 .custom-select-option {
-  padding: 0.8em;
-  cursor: pointer;
-  font-family: 'Poppins', sans-serif;
-  color: var(--text-soft);
+    padding: 0.8em;
+    cursor: pointer;
+    font-family: 'Poppins', sans-serif;
+    color: var(--text-soft);
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 .custom-select-option:hover {
-  background-color: var(--primary-purple);
-  color: white;
+    background-color: var(--primary-purple);
+    color: white;
 }
+/* --- END VOICE SELECTOR STYLES --- */
 
 .stop-listening-bar {
   background-color: var(--danger-red);
@@ -2075,19 +2087,18 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
 }
 
-/* Updated Leaderboard Styling */
+/* --- LEADERBOARD STYLES (UPDATED) --- */
 .leaderboard-container {
-  font-family: 'Poppins', sans-serif; /* Use Poppins for a sleeker look */
+  font-family: 'Poppins', sans-serif;
   width: 100%;
   max-width: 500px;
-  background-color: var(--dark-bg); /* Darker background for sleekness */
-  border: 2px solid var(--primary-purple); /* Thinner, primary color border */
-  box-shadow: 0 0 8px rgba(139, 92, 246, 0.5); /* Softer, subtle glow */
+  background-color: var(--dark-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.3);
   padding: 1.5rem;
   border-radius: 16px;
-  color: var(--text-light); /* Light text for contrast */
+  color: var(--text-light);
   margin-top: 1rem;
-  text-transform: none; /* Remove uppercase for general text */
 }
 
 .leaderboard-container.full-page {
@@ -2100,58 +2111,75 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .leaderboard-container h3, .leaderboard-container h2 {
-  font-family: 'Press Start 2P', cursive; /* Keep retro font for headings */
+  font-family: 'Press Start 2P', cursive;
   font-size: 1.5rem;
   color: var(--secondary-pink);
   text-shadow: 0 0 5px var(--secondary-pink);
   margin-top: 0;
   margin-bottom: 1.5rem;
   text-align: center;
-  text-transform: uppercase; /* Keep uppercase for retro headings */
+  text-transform: uppercase;
 }
 
 .leaderboard-list {
   list-style-type: none;
   padding-left: 0;
-  text-align: left;
+  margin: 0;
+}
+
+/* This is the new grid layout for both the header and the list items */
+.leaderboard-list > div,
+.leaderboard-list li {
+  display: grid;
+  grid-template-columns: 0.5fr 2fr 1.5fr 1fr;
+  gap: 1rem;
+  padding: 0.75rem 0.5rem;
+  font-size: 1rem;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+}
+
+/* Remove border from the last item */
+.leaderboard-list li:last-child {
+  border-bottom: none;
+}
+
+/* Header specific styles */
+.leaderboard-list > div {
+  font-weight: bold;
+  color: var(--text-dark);
+  font-size: 0.9em;
+  text-transform: uppercase;
+  border-bottom: 2px solid var(--border-color);
 }
 
 .leaderboard-list li {
-  display: grid;
-  grid-template-columns: 0.5fr 2fr 1fr 1.5fr; /* Added column for Level */
-  gap: 1rem;
-  padding: 0.5rem 0;
-  font-size: 1rem;
-  align-items: center;
-  color: var(--text-soft); /* Softer text color for entries */
-  text-shadow: none; /* Remove text shadow for entries */
-  border-bottom: 1px dashed rgba(139, 92, 246, 0.2); /* Subtle separator */
+  color: var(--text-soft);
 }
 
-.leaderboard-list li:last-child {
-  border-bottom: none; /* No border on last item */
-}
-
-.leaderboard-list li span {
-  font-weight: normal; /* Reset default bold for all spans */
-}
-
-.leaderboard-list li span:nth-child(1) {
-  color: var(--primary-purple);
-  font-weight: bold; /* Make rank number bold */
-}
-.leaderboard-list li span:nth-child(2) { /* Name column */
+.leaderboard-list span {
   font-weight: normal;
 }
-.leaderboard-list li span:nth-child(3) { /* Level column */
-  color: var(--secondary-pink); /* Style for level */
+
+/* Column-specific alignment and styling */
+.leaderboard-list span:nth-child(1) { /* Rank */
+  color: var(--primary-purple);
   font-weight: bold;
 }
-.leaderboard-list li span:nth-child(4) { /* Score column */
-  text-align: right;
-  color: var(--gold); /* Keep gold for score */
-  font-weight: bold; /* Make score bold */
+.leaderboard-list span:nth-child(2) { /* Name */
+  font-weight: 500;
+  color: var(--text-light);
 }
+.leaderboard-list span:nth-child(3) { /* Level */
+  color: var(--secondary-pink);
+  font-weight: 500;
+}
+.leaderboard-list span:nth-child(4) { /* Score */
+  text-align: right;
+  color: var(--gold);
+  font-weight: bold;
+}
+/* --- END LEADERBOARD STYLES --- */
 
 
 .medal-container {
@@ -2363,7 +2391,6 @@ input[type="range"]::-webkit-slider-thumb {
   to { opacity: 1; }
 }
 
-/* New Anamnesis Nemesis Landing Page Styles */
 .anamnesis-landing-page {
     display: flex;
     flex-direction: column;
@@ -2372,11 +2399,10 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 2rem;
     width: 100%;
     height: 100%;
-    background-color: #0A0A0A; /* Darker background */
-    /* Updated background-image to use the provided image URL */
+    background-color: #0A0A0A;
     background-image:
-        linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), /* Dark overlay */
-        url('https://www.gstatic.com/images/branding/product/1x/gemini_2023_logo_48dp.png'); /* Placeholder image, replace with your actual public URL */
+        linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
+        url('https://www.gstatic.com/images/branding/product/1x/gemini_2023_logo_48dp.png');
     background-size: cover;
     background-position: center;
     color: var(--text-light);
@@ -2387,13 +2413,13 @@ input[type="range"]::-webkit-slider-thumb {
 
 .anamnesis-title {
     font-family: 'Uncial Antiqua', cursive;
-    font-size: 3rem; /* Adjusted font size to prevent overflow */
-    line-height: 1.2; /* Adjusted line height */
+    font-size: 3rem;
+    line-height: 1.2;
     font-weight: 700;
     color: transparent;
     background-clip: text;
     -webkit-background-clip: text;
-    background-image: linear-gradient(to right, #FF0000, #FFD700); /* Fiery gradient */
+    background-image: linear-gradient(to right, #FF0000, #FFD700);
     text-shadow: 0 0 20px rgba(255, 0, 0, 0.7);
     letter-spacing: 3px;
     margin-bottom: 0.5rem;
@@ -2424,8 +2450,8 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .anamnesis-feature-card {
-    background-color: rgba(31, 41, 55, 0.7); /* Semi-transparent content background */
-    border: 1px solid rgba(255, 0, 0, 0.5); /* Red border */
+    background-color: rgba(31, 41, 55, 0.7);
+    border: 1px solid rgba(255, 0, 0, 0.5);
     border-radius: 12px;
     padding: 1.5rem;
     box-shadow: 0 0 15px rgba(255, 0, 0, 0.3);
@@ -2434,7 +2460,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .anamnesis-feature-card h3 {
     font-size: 1.3rem;
-    color: #FFD700; /* Gold for feature titles */
+    color: #FFD700;
     margin-top: 0;
     margin-bottom: 0.75rem;
 }
@@ -2453,7 +2479,7 @@ input[type="range"]::-webkit-slider-thumb {
     border-radius: 30px;
     cursor: pointer;
     transition: all 0.3s ease;
-    background: linear-gradient(to right, #FF0000, #FFD700); /* Fiery gradient */
+    background: linear-gradient(to right, #FF0000, #FFD700);
     color: white;
     box-shadow: 0 10px 20px -10px rgba(255, 0, 0, 0.7);
 }
@@ -2478,9 +2504,8 @@ input[type="range"]::-webkit-slider-thumb {
     }
 }
 
-/* Games Modal Styles - Reusing existing modal styles */
 .games-modal-content {
-    min-height: 0; /* Added to remove warning */
+    min-height: 0;
 }
 
 .games-modal-content .game-selection-grid {
