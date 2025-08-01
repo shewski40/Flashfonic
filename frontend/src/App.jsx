@@ -20,8 +20,8 @@ const ChemicalImage = ({ src, alt }) => {
                 style={{ 
                     backgroundColor: 'white', 
                     borderRadius: '8px', 
-                    maxWidth: '40%', 
-                    minWidth: '100px',
+                    maxWidth: '38%', // MODIFIED: Made images slightly smaller
+                    minWidth: '90px',
                     display: isLoading ? 'none' : 'block' // Hide image until loaded
                 }}
                 onLoad={() => setIsLoading(false)}
@@ -37,7 +37,7 @@ const ContentRenderer = ({ content, reactionSummary }) => {
     // 1. Check for the new array format for chemical reactions
     if (Array.isArray(content)) {
         return (
-            <div>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {content.map((item, index) => {
                         const chemRegex = /CHEM\[(.*?)\]/;
@@ -48,7 +48,7 @@ const ContentRenderer = ({ content, reactionSummary }) => {
                             return (
                                 <React.Fragment key={index}>
                                     <ChemicalImage src={imageUrl} alt={`Structure of ${match[1]}`} />
-                                    {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>}
+                                    {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>→</span>}
                                 </React.Fragment>
                             );
                         }
@@ -56,9 +56,9 @@ const ContentRenderer = ({ content, reactionSummary }) => {
                     })}
                 </div>
                 {reactionSummary && (
-                    <div style={{ marginTop: '1rem', padding: '0.8rem', backgroundColor: 'var(--dark-bg)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                        <p style={{ margin: 0, color: 'var(--text-soft)', fontStyle: 'italic', fontSize: '0.9em' }}>{reactionSummary}</p>
-                    </div>
+                    <p style={{ margin: '0.75rem 0 0 0', fontStyle: 'italic', fontSize: '0.85em', maxWidth: '90%' }}>
+                        {reactionSummary}
+                    </p>
                 )}
             </div>
         );
@@ -77,7 +77,7 @@ const ContentRenderer = ({ content, reactionSummary }) => {
             return (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                     <ChemicalImage src={reactantImageUrl} alt="Reactant Structure" />
-                    <span style={{ fontSize: '2rem', fontWeight: 'bold', color: 'var(--text-soft)' }}>→</span>
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>→</span>
                     <ChemicalImage src={productImageUrl} alt="Product Structure" />
                 </div>
             );
