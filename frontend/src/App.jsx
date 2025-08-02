@@ -1398,6 +1398,12 @@ const MainApp = () => {
   const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());  
   const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
+  // --- NEW FlashFoto State ---
+  const [imageSrc, setImageSrc] = useState(null);
+  const [isCameraOn, setIsCameraOn] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null); // { recommendation, extractedText }
+  const [fotoCardCount, setFotoCardCount] = useState(5);
+
   const [modalConfig, setModalConfig] = useState(null);   
   
   const [flashNotesActionModal, setFlashNotesActionModal] = useState(null); 
@@ -1434,6 +1440,10 @@ const MainApp = () => {
   const uploadAutoFlashTimerRef = useRef(null);
   const silenceTimeoutRef = useRef(null);
   const animationFrameRef = useRef(null);
+  // --- NEW FlashFoto Refs ---
+  const fotoFileInputRef = useRef(null);
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
   
   const isGeneratingRef = useRef(isGenerating);
   useEffect(() => {
@@ -1751,6 +1761,7 @@ const MainApp = () => {
 
   const handleModeChange = (mode) => {
     if (isListening) stopListening();
+    if (isCameraOn) stopCamera();
     setAppMode(mode);
     setNotification('');
   };
