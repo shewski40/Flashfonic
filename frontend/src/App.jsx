@@ -20,7 +20,7 @@ const ChemicalImage = ({ src, alt }) => {
                 style={{ 
                     backgroundColor: 'white', 
                     borderRadius: '8px', 
-                    maxWidth: '38%', // MODIFIED: Made images slightly smaller
+                    maxWidth: '38%',
                     minWidth: '90px',
                     display: isLoading ? 'none' : 'block' // Hide image until loaded
                 }}
@@ -2130,7 +2130,7 @@ const MainApp = () => {
                 doc.setTextColor(0, 0, 0);
                 doc.rect(cardX, cardY, cardW, cardH);
                 doc.setFontSize(config.fontSize);
-                const text = doc.splitTextToSize(`A: ${card.answer}`, cardW - 10);
+                const text = doc.splitTextToSize(`A: ${JSON.stringify(card.answer)}`, cardW - 10);
                 const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
                 doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
               });
@@ -2176,7 +2176,7 @@ const MainApp = () => {
           csvContent += "Question,Answer\n";
           cardsToExport.forEach(card => {
               const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
-              const escapedAnswer = `"${card.answer.replace(/"/g, '""')}"`;
+              const escapedAnswer = `"${JSON.stringify(card.answer).replace(/"/g, '""')}"`;
               csvContent += `${escapedQuestion},${escapedAnswer}\n`;
           });
           
