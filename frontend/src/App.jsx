@@ -389,11 +389,11 @@ const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
                     <h3>Verbatim Master Mode (Solo)</h3>
                     <p>Refine your recall with precision. Practice speaking answers exactly as they are on your flashcards, with instant, brutal feedback from the AI.</p>
                 </div>
-                <div className="anamnesis-feature-card">
+                <div className="feature-card">
                     <h3>Flash Duel (Vs. Friend)</h3>
                     <p>Challenge a friend! Take turns answering questions from your shared deck. The AI judges both of you, leaving no room for debate on who truly knows their stuff.</p>
                 </div>
-                <div className="anamnesis-feature-card">
+                <div className="feature-card">
                     <h3>Flash Party (Multiplayer)</h3>
                     <p>Host a study session where everyone gets roasted! Players take turns answering different cards from the deck, and the Nemesis AI provides individual feedback.</p>
                 </div>
@@ -2875,6 +2875,7 @@ const MainApp = () => {
       <div className="mode-selector">
         <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
         <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
+        <button onClick={() => handleModeChange('foto')} className={appMode === 'foto' ? 'active' : ''}>📸 FlashFoto</button>
       </div>
       <div className="card main-controls" style={{position: 'relative'}}>
         {!isDevMode && (
@@ -2939,7 +2940,7 @@ const MainApp = () => {
               {isGenerating ? 'Generating...' : '⚡ Flash It!'}
             </button>
           </>
-        ) : (
+        ) : appMode === 'upload' ? (
           <>
             <div className="upload-button-container">
               <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
@@ -3016,6 +3017,33 @@ const MainApp = () => {
             >
               {isGenerating ? 'Generating...' : '⚡ Flash It!'}
             </button>
+          </>
+        ) : (
+          /* --- NEW FLASHFOTO UI --- */
+          <>
+            <div className="image-preview-container">
+                {isCameraOn && <video ref={videoRef} autoPlay playsInline style={{ transform: 'scaleX(-1)' }} />}
+                {imageSrc && !isCameraOn && <img src={imageSrc} alt="Preview" />}
+                {!imageSrc && !isCameraOn && <div className="image-preview-placeholder"><p>Upload or capture an image of your notes</p></div>}
+            </div>
+            <div className="flashfoto-controls">
+                <button onClick={() => fotoFileInputRef.current.click()} className="start-stop-btn">Upload Photo</button>
+                <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
+                <button onClick={isCameraOn ? takePicture : startCamera} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : '📷 Use Camera'}</button>
+            </div>
+             {aiAnalysis && (
+                <div className="ai-recommendation">
+                    <p>FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
+                    <div className="ai-recommendation-actions">
+                        <button onClick={() => handleGenerateFotoCards(aiAnalysis.recommendation)}>Capture as Recommended</button>
+                        <button onClick={() => handleGenerateFotoCards(fotoCardCount)}>Capture {fotoCardCount} Flashcards</button>
+                    </div>
+                </div>
+            )}
+            <div className="slider-container">
+                <label htmlFor="foto-card-slider" className="slider-label">Number of Flashcards: <span className="slider-value">{fotoCardCount}</span></label>
+                <input id="foto-card-slider" type="range" min="2" max="10" step="1" value={fotoCardCount} onChange={(e) => setFotoCardCount(Number(e.target.value))} disabled={isGenerating} />
+            </div>
           </>
         )}
       </div>
