@@ -1362,8 +1362,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
 // --- MAIN APP COMPONENT ---
 const MainApp = () => {
-    // Set default mode to null or an empty state
-    const [appMode, setAppMode] = useState(null);
+    const [appMode, setAppMode] = useState('live');
     const [isListening, setIsListening] = useState(false);
     const [notification, setNotification] = useState('');
     const [duration, setDuration] = useState(15);
@@ -1418,8 +1417,6 @@ const MainApp = () => {
     const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
     const [mostRecentScore, setMostRecentScore] = useState(null);
 
-    const [showFlashFonicModal, setShowFlashFonicModal] = useState(false); // New state for FlashFonic options modal
-    const [showFotoModal, setShowFotoModal] = useState(false); // New state for FlashFoto options modal
 
     const [isSafari, setIsSafari] = useState(false);
     useEffect(() => {
@@ -1447,7 +1444,6 @@ const MainApp = () => {
     const fotoFileInputRef = useRef(null);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
-    const cameraStreamRef = useRef(null); // New ref for the camera stream
     
     const isGeneratingRef = useRef(isGenerating);
     useEffect(() => {
@@ -1770,7 +1766,6 @@ const MainApp = () => {
         setNotification('');
         setImageSrc(null);
         setAiAnalysis(null);
-        setShowFlashFonicModal(false);
     };
 
     const handleFileChange = (event) => {
@@ -2075,7 +2070,7 @@ const MainApp = () => {
         }
 
         setStudyingFolder(null);
-        setIsFeedbackModal(false);
+        setIsFeedbackModalOpen(false);
 
         setTimeout(() => {
             setPromptModalConfig({
@@ -2175,7 +2170,7 @@ const MainApp = () => {
         }
 
         setStudyingFolder(null);
-        setIsFeedbackModal(false);
+        setIsFeedbackModalOpen(false);
 
         setTimeout(() => {
             setPromptModalConfig({
@@ -2575,7 +2570,7 @@ const MainApp = () => {
                                         e.stopPropagation();
                                         setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
                                         setModalConfig(null);
-                                        setIsFeedbackModal(false);
+                                        setIsFeedbackModalOpen(false);
                                     }}
                                     className="study-btn-small"
                                 >
@@ -2595,7 +2590,7 @@ const MainApp = () => {
                                         if (isListening) stopListening();
                                         setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
                                         setModalConfig(null);
-                                        setIsFeedbackModal(false);
+                                        setIsFeedbackModalOpen(false);
                                     }}
                                     className="study-btn-large"
                                 >
@@ -2612,17 +2607,17 @@ const MainApp = () => {
                                     onAddSubfolder={(id) => {
                                         setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
                                         setStudyingFolder(null);
-                                        setIsFeedbackModal(false);
+                                        setIsFeedbackModalOpen(false);
                                     }}
                                     onRenameFolder={(id, name) => {
                                         setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
                                         setStudyingFolder(null);
-                                        setIsFeedbackModal(false);
+                                        setIsFeedbackModalOpen(false);
                                     }}
                                     onDeleteFolder={(id) => {
                                         setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
                                         setStudyingFolder(null);
-                                        setIsFeedbackModal(false);
+                                        setIsFeedbackModalOpen(false);
                                     }}
                                 />
                             </div>
@@ -2663,7 +2658,7 @@ const MainApp = () => {
                         <div className="folder-card-actions">
                             <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                                 <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
                             </select>
                             <button
                                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
@@ -2811,39 +2806,22 @@ const MainApp = () => {
             };
             reader.readAsDataURL(file);
         }
-        setShowFotoModal(false); // Close the modal after selection
     };
     
     const startCamera = async () => {
-        setShowFotoModal(false); // Close the modal
         try {
-            console.log("Attempting to get media stream...");
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            cameraStreamRef.current = stream; // Store the stream in the ref
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream;
-            }
+            videoRef.current.srcObject = stream;
             setIsCameraOn(true);
             setNotification('Camera is on. Snap a picture of your notes!');
         } catch (err) {
             console.error("Error accessing camera:", err);
-            setNotification(`Camera access denied or error: ${err.message}. Please check your browser and system permissions.`);
-            setIsCameraOn(false);
-            // Ensure the stream is stopped if it partially starts
-            if (cameraStreamRef.current) {
-                cameraStreamRef.current.getTracks().forEach(track => track.stop());
-                cameraStreamRef.current = null;
-            }
+            setNotification("Camera access denied or error. Please check permissions.");
         }
     };
     
     const takePicture = () => {
-        console.log("Taking picture...");
-        if (!videoRef.current || !canvasRef.current) {
-            console.error("Video or canvas ref is not available.");
-            setNotification("Error capturing image: video feed not ready.");
-            return;
-        }
+        if (!videoRef.current || !canvasRef.current) return;
     
         const video = videoRef.current;
         const canvas = canvasRef.current;
@@ -2860,15 +2838,11 @@ const MainApp = () => {
         setImageSrc(imageDataUrl);
         const base64Image = imageDataUrl.split(',')[1];
         analyzeImage(base64Image);
-        console.log("Picture taken and sent for analysis.");
     };
     
     const stopCamera = () => {
-        console.log("Stopping camera stream...");
-        if (cameraStreamRef.current) {
-            cameraStreamRef.current.getTracks().forEach(track => track.stop());
-            cameraStreamRef.current = null;
-            console.log("Camera stream stopped.");
+        if (videoRef.current && videoRef.current.srcObject) {
+            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
         }
         setIsCameraOn(false);
     };
@@ -2994,7 +2968,7 @@ const MainApp = () => {
             )}
             {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
             {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
-            {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModal(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
+            {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
             
             {/* Flash Notes Modals/Viewers */}
             {flashNotesActionModal && (
@@ -3052,43 +3026,6 @@ const MainApp = () => {
                 </div>
             )}
 
-            {/* New Modal for FlashFonic options */}
-            {showFlashFonicModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h2>Choose Your Mode</h2>
-                        <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                            <button className="modal-create-btn" onClick={() => handleModeChange('live')}>
-                                🔴 Live Capture
-                            </button>
-                            <button className="modal-create-btn" onClick={() => handleModeChange('upload')}>
-                                ⬆️ Audio/Video File Upload
-                            </button>
-                        </div>
-                        <div className="modal-actions">
-                            <button className="modal-cancel-btn" onClick={() => setShowFlashFonicModal(false)}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
-            {showFotoModal && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
-                        <h2>Upload or Take a Photo</h2>
-                        <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                            <button className="modal-create-btn" onClick={() => {fotoFileInputRef.current.click();}}>
-                                Upload from Files
-                            </button>
-                            <button className="modal-create-btn" onClick={startCamera}>
-                                Take a Photo
-                            </button>
-                        </div>
-                        <div className="modal-actions">
-                            <button className="modal-cancel-btn" onClick={() => setShowFotoModal(false)}>Cancel</button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             {appMode === 'foto' ? (
                 <div className="flashfoto-header">
@@ -3102,30 +3039,10 @@ const MainApp = () => {
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}
-            <div className="mode-selector-container">
-                <button 
-                    onClick={() => {
-                        // Ensure any active mode is cleared before showing modal
-                        if (appMode !== null) {
-                            stopCamera();
-                            stopListening();
-                        }
-                        setShowFlashFonicModal(true);
-                    }} 
-                    className={`mode-button ${appMode === 'live' || appMode === 'upload' ? 'active' : ''}`}
-                >
-                    FlashFonic
-                </button>
-                <button 
-                    onClick={() => {
-                        stopCamera();
-                        stopListening();
-                        setAppMode('foto');
-                    }} 
-                    className={`mode-button ${appMode === 'foto' ? 'active' : ''}`}
-                >
-                    FlashFoto
-                </button>
+            <div className="mode-selector">
+                <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
+                <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
+                <button onClick={() => handleModeChange('foto')} className={appMode === 'foto' ? 'active' : ''}>📸 FlashFoto</button>
             </div>
             <div className="card main-controls" style={{position: 'relative'}}>
                 {!isDevMode && (
@@ -3134,7 +3051,7 @@ const MainApp = () => {
                     </div>
                 )}
 
-                {appMode === 'live' && (
+                {appMode === 'live' ? (
                     <>
                         <div className="listening-control">
                             <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
@@ -3190,8 +3107,7 @@ const MainApp = () => {
                             {isGenerating ? 'Generating...' : '⚡ Flash It!'}
                         </button>
                     </>
-                )}
-                {appMode === 'upload' && (
+                ) : appMode === 'upload' ? (
                     <>
                         <div className="upload-button-container">
                             <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
@@ -3269,8 +3185,7 @@ const MainApp = () => {
                             {isGenerating ? 'Generating...' : '⚡ Flash It!'}
                         </button>
                     </>
-                )}
-                {appMode === 'foto' && (
+                ) : (
                     /* --- NEW FLASHFOTO UI --- */
                     <>
                         <div className="image-preview-container">
@@ -3285,8 +3200,9 @@ const MainApp = () => {
                             )}
                         </div>
                         <div className="flashfoto-controls">
-                            <button onClick={isCameraOn ? takePicture : () => setShowFotoModal(true)} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : 'Upload/Snap Photo'}</button>
-                            <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*,camera/*" style={{ display: 'none' }} />
+                            <button onClick={() => fotoFileInputRef.current.click()} className="start-stop-btn">Upload Photo</button>
+                            <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
+                            <button onClick={isCameraOn ? takePicture : startCamera} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : '📷 Use Camera'}</button>
                         </div>
                         {aiAnalysis && (
                             <div className="ai-recommendation">
@@ -3303,11 +3219,6 @@ const MainApp = () => {
                         </div>
                         {isGenerating && !aiAnalysis && !notification.includes('Analyzing') && <p className="notification">Generating flashcards...</p>}
                     </>
-                )}
-                {appMode === null && (
-                    <div className="mode-selection-prompt">
-                        <p>Choose a mode to get started.</p>
-                    </div>
                 )}
             </div>
             {notification && <p className="notification">{notification}</p>}
@@ -3343,7 +3254,7 @@ const MainApp = () => {
                     <button onClick={() => {
                         setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder });
                         setStudyingFolder(null);
-                        setIsFeedbackModal(false);
+                        setIsFeedbackModalOpen(false);
                     }} className="create-folder-btn">Create New Folder</button>
                 </div>
                 <div className="folder-sort-controls">
@@ -3368,7 +3279,7 @@ const MainApp = () => {
             </div>
             <div className="app-footer">
                 <button className="feedback-btn" onClick={() => {
-                    setIsFeedbackModal(true);
+                    setIsFeedbackModalOpen(true);
                     setStudyingFolder(null);
                     setModalConfig(null);
                 }}>Send Feedback</button>
