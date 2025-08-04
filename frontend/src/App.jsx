@@ -1395,7 +1395,7 @@ const MainApp = () => {
     const [audioCacheId, setAudioCacheId] = useState(null);
     const [folderSortBy, setFolderSortBy] = useState('name');
     const [draggedFolderId, setDraggedFolderId] = useState(null);
-    const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());
+    const [expandedFolderIds, setExpandedFolderIds] = new Set();
     const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
     // --- NEW FlashFoto State ---
@@ -1418,7 +1418,7 @@ const MainApp = () => {
     const [mostRecentScore, setMostRecentScore] = useState(null);
 
     const [showFlashFonicModal, setShowFlashFonicModal] = useState(false); // New state for FlashFonic options modal
-    const [showFotoModal, setShowFotoModal] = useState = useState(false); // New state for FlashFoto options modal
+    const [showFotoModal, setShowFotoModal] = useState(false); // New state for FlashFoto options modal
 
     const [isSafari, setIsSafari] = useState(false);
     useEffect(() => {
