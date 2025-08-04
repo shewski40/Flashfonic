@@ -1761,9 +1761,11 @@ const MainApp = () => {
 
   const handleModeChange = (mode) => {
     if (isListening) stopListening();
-    if (isCameraOn) stopCamera();
+    if (isCameraOn) stopCamera(); // Stop camera when switching modes
     setAppMode(mode);
     setNotification('');
+    setImageSrc(null);
+    setAiAnalysis(null);
   };
 
   const handleFileChange = (event) => {
@@ -2868,10 +2870,18 @@ const MainApp = () => {
       )}
 
 
-      <div className="header">
-        <h1>FlashFonic</h1>
-        <h2 className="subheading">Listen. Flash it. Learn.</h2>
-      </div>
+      {appMode === 'foto' ? (
+        <div className="flashfoto-header">
+            <h1>FlashFoto</h1>
+            <div className="sub-brand">by FlashFonic</div>
+            <h2 className="subheading">Snap it. Flash it. Learn.</h2>
+        </div>
+      ) : (
+        <div className="header">
+            <h1>FlashFonic</h1>
+            <h2 className="subheading">Listen. Flash it. Learn.</h2>
+        </div>
+      )}
       <div className="mode-selector">
         <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
         <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
@@ -3022,7 +3032,8 @@ const MainApp = () => {
           /* --- NEW FLASHFOTO UI --- */
           <>
             <div className="image-preview-container">
-                {isCameraOn && <video ref={videoRef} autoPlay playsInline style={{ transform: 'scaleX(-1)' }} />}
+                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                {isCameraOn && <video ref={videoRef} autoPlay playsInline style={{ transform: 'scaleX(-1)', width: '100%', height: '100%', objectFit: 'cover' }} />}
                 {imageSrc && !isCameraOn && <img src={imageSrc} alt="Preview" />}
                 {!imageSrc && !isCameraOn && <div className="image-preview-placeholder"><p>Upload or capture an image of your notes</p></div>}
             </div>
@@ -3042,7 +3053,7 @@ const MainApp = () => {
             )}
             <div className="slider-container">
                 <label htmlFor="foto-card-slider" className="slider-label">Number of Flashcards: <span className="slider-value">{fotoCardCount}</span></label>
-                <input id="foto-card-slider" type="range" min="2" max="10" step="1" value={fotoCardCount} onChange={(e) => setFotoCardCount(Number(e.target.value))} disabled={isGenerating} />
+                <input id="foto-card-slider" type="range" min="2" max="10" step="1" value={fotoCardCount} onChange={(e) => setFotoCardCount(Number(e.target.value))} disabled={isGenerating || isProcessing} />
             </div>
           </>
         )}
