@@ -1418,7 +1418,7 @@ const MainApp = () => {
     const [mostRecentScore, setMostRecentScore] = useState(null);
 
     const [showFlashFonicModal, setShowFlashFonicModal] = useState(false); // New state for FlashFonic options modal
-    const [showFotoModal, setShowFotoModal] = useState(false); // New state for FlashFoto options modal
+    const [showFotoModal, setShowFotoModal] = useState = useState(false); // New state for FlashFoto options modal
 
     const [isSafari, setIsSafari] = useState(false);
     useEffect(() => {
@@ -1446,6 +1446,7 @@ const MainApp = () => {
     const fotoFileInputRef = useRef(null);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
+    const cameraStreamRef = useRef(null); // New ref for the camera stream
     
     const isGeneratingRef = useRef(isGenerating);
     useEffect(() => {
@@ -2815,18 +2816,33 @@ const MainApp = () => {
     const startCamera = async () => {
         setShowFotoModal(false); // Close the modal
         try {
+            console.log("Attempting to get media stream...");
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
-            videoRef.current.srcObject = stream;
+            cameraStreamRef.current = stream; // Store the stream in the ref
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+            }
             setIsCameraOn(true);
             setNotification('Camera is on. Snap a picture of your notes!');
         } catch (err) {
             console.error("Error accessing camera:", err);
-            setNotification("Camera access denied or error. Please check permissions.");
+            setNotification(`Camera access denied or error: ${err.message}. Please check your browser and system permissions.`);
+            setIsCameraOn(false);
+            // Ensure the stream is stopped if it partially starts
+            if (cameraStreamRef.current) {
+                cameraStreamRef.current.getTracks().forEach(track => track.stop());
+                cameraStreamRef.current = null;
+            }
         }
     };
     
     const takePicture = () => {
-        if (!videoRef.current || !canvasRef.current) return;
+        console.log("Taking picture...");
+        if (!videoRef.current || !canvasRef.current) {
+            console.error("Video or canvas ref is not available.");
+            setNotification("Error capturing image: video feed not ready.");
+            return;
+        }
     
         const video = videoRef.current;
         const canvas = canvasRef.current;
@@ -2843,11 +2859,15 @@ const MainApp = () => {
         setImageSrc(imageDataUrl);
         const base64Image = imageDataUrl.split(',')[1];
         analyzeImage(base64Image);
+        console.log("Picture taken and sent for analysis.");
     };
     
     const stopCamera = () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-            videoRef.current.srcObject.getTracks().forEach(track => track.stop());
+        console.log("Stopping camera stream...");
+        if (cameraStreamRef.current) {
+            cameraStreamRef.current.getTracks().forEach(track => track.stop());
+            cameraStreamRef.current = null;
+            console.log("Camera stream stopped.");
         }
         setIsCameraOn(false);
     };
@@ -3055,7 +3075,7 @@ const MainApp = () => {
                     <div className="modal-content">
                         <h2>Upload or Take a Photo</h2>
                         <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
-                            <button className="modal-create-btn" onClick={() => fotoFileInputRef.current.click()}>
+                            <button className="modal-create-btn" onClick={() => {fotoFileInputRef.current.click();}}>
                                 Upload from Files
                             </button>
                             <button className="modal-create-btn" onClick={startCamera}>
