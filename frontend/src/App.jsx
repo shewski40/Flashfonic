@@ -1417,6 +1417,7 @@ const MainApp = () => {
     const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
     const [mostRecentScore, setMostRecentScore] = useState(null);
 
+    const [showFlashFonicModal, setShowFlashFonicModal] = useState(false); // New state for FlashFonic modal
 
     const [isSafari, setIsSafari] = useState(false);
     useEffect(() => {
@@ -1766,6 +1767,7 @@ const MainApp = () => {
         setNotification('');
         setImageSrc(null);
         setAiAnalysis(null);
+        setShowFlashFonicModal(false);
     };
 
     const handleFileChange = (event) => {
@@ -3026,6 +3028,25 @@ const MainApp = () => {
                 </div>
             )}
 
+            {/* New Modal for FlashFonic options */}
+            {showFlashFonicModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h2>Choose Your Mode</h2>
+                        <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
+                            <button className="modal-create-btn" onClick={() => handleModeChange('live')}>
+                                🔴 Live Capture
+                            </button>
+                            <button className="modal-create-btn" onClick={() => handleModeChange('upload')}>
+                                ⬆️ Audio/Video File Upload
+                            </button>
+                        </div>
+                        <div className="modal-actions">
+                            <button className="modal-cancel-btn" onClick={() => setShowFlashFonicModal(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {appMode === 'foto' ? (
                 <div className="flashfoto-header">
@@ -3040,9 +3061,8 @@ const MainApp = () => {
                 </div>
             )}
             <div className="mode-selector">
-                <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
-                <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
-                <button onClick={() => handleModeChange('foto')} className={appMode === 'foto' ? 'active' : ''}>📸 FlashFoto</button>
+                <button onClick={() => setShowFlashFonicModal(true)} className={appMode !== 'foto' ? 'active' : ''}>FlashFonic</button>
+                <button onClick={() => handleModeChange('foto')} className={appMode === 'foto' ? 'active' : ''}>FlashFoto</button>
             </div>
             <div className="card main-controls" style={{position: 'relative'}}>
                 {!isDevMode && (
@@ -3200,9 +3220,8 @@ const MainApp = () => {
                             )}
                         </div>
                         <div className="flashfoto-controls">
-                            <button onClick={() => fotoFileInputRef.current.click()} className="start-stop-btn">Upload Photo</button>
-                            <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
-                            <button onClick={isCameraOn ? takePicture : startCamera} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : '📷 Use Camera'}</button>
+                            <button onClick={isCameraOn ? takePicture : () => { fotoFileInputRef.current.click(); }} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : 'Upload/Snap Photo'}</button>
+                            <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*,camera/*" style={{ display: 'none' }} />
                         </div>
                         {aiAnalysis && (
                             <div className="ai-recommendation">
