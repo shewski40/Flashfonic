@@ -1417,7 +1417,8 @@ const MainApp = () => {
     const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
     const [mostRecentScore, setMostRecentScore] = useState(null);
 
-    const [showFlashFonicModal, setShowFlashFonicModal] = useState(false); // New state for FlashFonic modal
+    const [showFlashFonicModal, setShowFlashFonicModal] = useState(false); // New state for FlashFonic options modal
+    const [showFotoModal, setShowFotoModal] = useState(false); // New state for FlashFoto options modal
 
     const [isSafari, setIsSafari] = useState(false);
     useEffect(() => {
@@ -2808,9 +2809,11 @@ const MainApp = () => {
             };
             reader.readAsDataURL(file);
         }
+        setShowFotoModal(false); // Close the modal after selection
     };
     
     const startCamera = async () => {
+        setShowFotoModal(false); // Close the modal
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             videoRef.current.srcObject = stream;
@@ -3047,6 +3050,24 @@ const MainApp = () => {
                     </div>
                 </div>
             )}
+            {showFotoModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <h2>Upload or Take a Photo</h2>
+                        <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
+                            <button className="modal-create-btn" onClick={() => fotoFileInputRef.current.click()}>
+                                Upload from Files
+                            </button>
+                            <button className="modal-create-btn" onClick={startCamera}>
+                                Take a Photo
+                            </button>
+                        </div>
+                        <div className="modal-actions">
+                            <button className="modal-cancel-btn" onClick={() => setShowFotoModal(false)}>Cancel</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {appMode === 'foto' ? (
                 <div className="flashfoto-header">
@@ -3220,7 +3241,7 @@ const MainApp = () => {
                             )}
                         </div>
                         <div className="flashfoto-controls">
-                            <button onClick={isCameraOn ? takePicture : () => { fotoFileInputRef.current.click(); }} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : 'Upload/Snap Photo'}</button>
+                            <button onClick={isCameraOn ? takePicture : () => setShowFotoModal(true)} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : 'Upload/Snap Photo'}</button>
                             <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*,camera/*" style={{ display: 'none' }} />
                         </div>
                         {aiAnalysis && (
