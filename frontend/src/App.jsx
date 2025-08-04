@@ -1362,7 +1362,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
 // --- MAIN APP COMPONENT ---
 const MainApp = () => {
-    const [appMode, setAppMode] = useState('live');
+    // Set default mode to null or an empty state
+    const [appMode, setAppMode] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [notification, setNotification] = useState('');
     const [duration, setDuration] = useState(15);
@@ -1390,12 +1391,12 @@ const MainApp = () => {
     const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
     const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
     const [isDevMode, setIsDevMode] = useState(false);
-    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
+    const [isFeedbackModalOpen, setIsFeedbackModal] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
     const [audioCacheId, setAudioCacheId] = useState(null);
     const [folderSortBy, setFolderSortBy] = useState('name');
     const [draggedFolderId, setDraggedFolderId] = useState(null);
-    const [expandedFolderIds, setExpandedFolderIds] = new Set();
+    const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());
     const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
 
     // --- NEW FlashFoto State ---
@@ -2074,7 +2075,7 @@ const MainApp = () => {
         }
 
         setStudyingFolder(null);
-        setIsFeedbackModalOpen(false);
+        setIsFeedbackModal(false);
 
         setTimeout(() => {
             setPromptModalConfig({
@@ -2174,7 +2175,7 @@ const MainApp = () => {
         }
 
         setStudyingFolder(null);
-        setIsFeedbackModalOpen(false);
+        setIsFeedbackModal(false);
 
         setTimeout(() => {
             setPromptModalConfig({
@@ -2574,7 +2575,7 @@ const MainApp = () => {
                                         e.stopPropagation();
                                         setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
                                         setModalConfig(null);
-                                        setIsFeedbackModalOpen(false);
+                                        setIsFeedbackModal(false);
                                     }}
                                     className="study-btn-small"
                                 >
@@ -2594,7 +2595,7 @@ const MainApp = () => {
                                         if (isListening) stopListening();
                                         setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
                                         setModalConfig(null);
-                                        setIsFeedbackModalOpen(false);
+                                        setIsFeedbackModal(false);
                                     }}
                                     className="study-btn-large"
                                 >
@@ -2611,17 +2612,17 @@ const MainApp = () => {
                                     onAddSubfolder={(id) => {
                                         setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
                                         setStudyingFolder(null);
-                                        setIsFeedbackModalOpen(false);
+                                        setIsFeedbackModal(false);
                                     }}
                                     onRenameFolder={(id, name) => {
                                         setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
                                         setStudyingFolder(null);
-                                        setIsFeedbackModalOpen(false);
+                                        setIsFeedbackModal(false);
                                     }}
                                     onDeleteFolder={(id) => {
                                         setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
                                         setStudyingFolder(null);
-                                        setIsFeedbackModalOpen(false);
+                                        setIsFeedbackModal(false);
                                     }}
                                 />
                             </div>
@@ -2662,7 +2663,7 @@ const MainApp = () => {
                         <div className="folder-card-actions">
                             <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                                 <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                {allFoldersForMoveDropdown.map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
                             </select>
                             <button
                                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
@@ -2993,7 +2994,7 @@ const MainApp = () => {
             )}
             {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
             {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
-            {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
+            {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModal(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
             
             {/* Flash Notes Modals/Viewers */}
             {flashNotesActionModal && (
@@ -3101,9 +3102,30 @@ const MainApp = () => {
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}
-            <div className="mode-selector">
-                <button onClick={() => setShowFlashFonicModal(true)} className={appMode !== 'foto' ? 'active' : ''}>FlashFonic</button>
-                <button onClick={() => handleModeChange('foto')} className={appMode === 'foto' ? 'active' : ''}>FlashFoto</button>
+            <div className="mode-selector-container">
+                <button 
+                    onClick={() => {
+                        // Ensure any active mode is cleared before showing modal
+                        if (appMode !== null) {
+                            stopCamera();
+                            stopListening();
+                        }
+                        setShowFlashFonicModal(true);
+                    }} 
+                    className={`mode-button ${appMode === 'live' || appMode === 'upload' ? 'active' : ''}`}
+                >
+                    FlashFonic
+                </button>
+                <button 
+                    onClick={() => {
+                        stopCamera();
+                        stopListening();
+                        setAppMode('foto');
+                    }} 
+                    className={`mode-button ${appMode === 'foto' ? 'active' : ''}`}
+                >
+                    FlashFoto
+                </button>
             </div>
             <div className="card main-controls" style={{position: 'relative'}}>
                 {!isDevMode && (
@@ -3112,7 +3134,7 @@ const MainApp = () => {
                     </div>
                 )}
 
-                {appMode === 'live' ? (
+                {appMode === 'live' && (
                     <>
                         <div className="listening-control">
                             <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
@@ -3168,7 +3190,8 @@ const MainApp = () => {
                             {isGenerating ? 'Generating...' : '⚡ Flash It!'}
                         </button>
                     </>
-                ) : appMode === 'upload' ? (
+                )}
+                {appMode === 'upload' && (
                     <>
                         <div className="upload-button-container">
                             <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
@@ -3246,7 +3269,8 @@ const MainApp = () => {
                             {isGenerating ? 'Generating...' : '⚡ Flash It!'}
                         </button>
                     </>
-                ) : (
+                )}
+                {appMode === 'foto' && (
                     /* --- NEW FLASHFOTO UI --- */
                     <>
                         <div className="image-preview-container">
@@ -3279,6 +3303,11 @@ const MainApp = () => {
                         </div>
                         {isGenerating && !aiAnalysis && !notification.includes('Analyzing') && <p className="notification">Generating flashcards...</p>}
                     </>
+                )}
+                {appMode === null && (
+                    <div className="mode-selection-prompt">
+                        <p>Choose a mode to get started.</p>
+                    </div>
                 )}
             </div>
             {notification && <p className="notification">{notification}</p>}
@@ -3314,7 +3343,7 @@ const MainApp = () => {
                     <button onClick={() => {
                         setModalConfig({ type: 'createFolder', onConfirm: handleCreateFolder });
                         setStudyingFolder(null);
-                        setIsFeedbackModalOpen(false);
+                        setIsFeedbackModal(false);
                     }} className="create-folder-btn">Create New Folder</button>
                 </div>
                 <div className="folder-sort-controls">
@@ -3339,7 +3368,7 @@ const MainApp = () => {
             </div>
             <div className="app-footer">
                 <button className="feedback-btn" onClick={() => {
-                    setIsFeedbackModalOpen(true);
+                    setIsFeedbackModal(true);
                     setStudyingFolder(null);
                     setModalConfig(null);
                 }}>Send Feedback</button>
