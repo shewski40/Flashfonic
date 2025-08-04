@@ -1391,7 +1391,7 @@ const MainApp = () => {
     const [uploadAutoFlashInterval, setUploadAutoFlashInterval] = useState(20);
     const [usage, setUsage] = useState({ count: 0, limit: 25, date: '' });
     const [isDevMode, setIsDevMode] = useState(false);
-    const [isFeedbackModalOpen, setIsFeedbackModal] = useState(false);
+    const [isFeedbackModalOpen, setIsFeedbackModalOpen] = useState(false);
     const [uploadedFile, setUploadedFile] = useState(null);
     const [audioCacheId, setAudioCacheId] = useState(null);
     const [folderSortBy, setFolderSortBy] = useState('name');
