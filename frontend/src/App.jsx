@@ -1389,7 +1389,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
 // --- MAIN APP COMPONENT ---
 const MainApp = () => {
-    // FIX: Initialize appMode to null to show no mode by default
     const [appMode, setAppMode] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [notification, setNotification] = useState('');
@@ -3097,12 +3096,14 @@ const MainApp = () => {
             {appMode === 'foto' ? (
                 <div className="flashfoto-header">
                     <h1>FlashFoto</h1>
-                    <div className="sub-brand">by FlashFonic</div>
+                    {/* FIX: Add TM and adjust class for styling */}
+                    <div className="sub-brand">by FlashFonic™</div>
                     <h2 className="subheading">Snap it. Flash it. Learn.</h2>
                 </div>
             ) : (
                 <div className="header">
-                    <h1>FlashFonic</h1>
+                    {/* FIX: Add TM */}
+                    <h1>FlashFonic™</h1>
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}

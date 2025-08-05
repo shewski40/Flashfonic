@@ -58,10 +58,13 @@ body {
   margin-bottom: 0.25rem;
 }
 
+/* --- FIX: Styling for "by FlashFonic" --- */
 .flashfoto-header .sub-brand {
-    font-size: 1rem;
+    font-size: 1.1rem;
     font-weight: 500;
-    color: var(--text-dark);
+    color: var(--primary-purple); /* Match heading color */
+    margin-top: -0.5rem; /* Move closer to heading */
+    margin-bottom: 1.5rem; /* Add space below */
 }
 
 .subheading {
