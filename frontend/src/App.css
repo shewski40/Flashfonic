@@ -97,6 +97,13 @@ body {
   flex: 1;
   max-width: 250px;
 }
+
+.main-mode-selector .create-folder-btn.active {
+    background: var(--brand-gradient);
+    box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+
 /* --- END NEW --- */
 
 .main-controls .listening-control {

@@ -1389,7 +1389,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
 // --- MAIN APP COMPONENT ---
 const MainApp = () => {
-    const [appMode, setAppMode] = useState('live');
+    // FIX: Initialize appMode to null to show no mode by default
+    const [appMode, setAppMode] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [notification, setNotification] = useState('');
     const [duration, setDuration] = useState(15);
@@ -2269,7 +2270,7 @@ const MainApp = () => {
                         <div className="move-controls">
                             <select className="folder-select" defaultValue="" onChange={(e) => handleConfirmMove(e.target.value)}>
                                 <option value="" disabled>Select a folder...</option>
-                                {otherFolders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                             </select>
                             <button onClick={() => setMovingCard(null)} className="move-cancel-btn">Cancel</button>
                         </div>
@@ -2685,7 +2686,7 @@ const MainApp = () => {
                         <div className="folder-card-actions">
                             <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                                 <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                                {allFoldersForMoveDropdown.filter(folder => folder.id !== folder.id).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                             </select>
                             <button
                                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
@@ -3106,191 +3107,205 @@ const MainApp = () => {
                 </div>
             )}
             <div className="main-mode-selector">
-                <button onClick={() => setModalConfig({ type: 'flashFonicMode' })} className="create-folder-btn">FlashFonic</button>
-                <button onClick={() => handleModeChange('foto')} className="create-folder-btn">FlashFoto</button>
+                <button 
+                    onClick={() => setModalConfig({ type: 'flashFonicMode' })} 
+                    className={`create-folder-btn ${(appMode === 'live' || appMode === 'upload') ? 'active' : ''}`}
+                >
+                    FlashFonic
+                </button>
+                <button 
+                    onClick={() => handleModeChange('foto')} 
+                    className={`create-folder-btn ${appMode === 'foto' ? 'active' : ''}`}
+                >
+                    FlashFoto
+                </button>
             </div>
-            <div className="card main-controls" style={{position: 'relative'}}>
-                {!isDevMode && (
-                    <div className="usage-counter">
-                        Beta Trial: {usage.limit - usage.count} cards left
-                    </div>
-                )}
+            
+            {/* FIX: Only render the main controls card if a mode has been selected */}
+            {appMode && (
+                <div className="card main-controls" style={{position: 'relative'}}>
+                    {!isDevMode && (
+                        <div className="usage-counter">
+                            Beta Trial: {usage.limit - usage.count} cards left
+                        </div>
+                    )}
 
-                {appMode === 'live' ? (
-                    <>
-                        <div className="listening-control">
-                            <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
-                        </div>
-                        <div className="listening-modes">
-                            <button
-                                onClick={() => setVoiceActivated(!voiceActivated)}
-                                className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
-                                disabled={isSafari}
-                                title={isSafari ? "Voice activation is not supported on Safari." : "Activate voice commands"}
-                            >
-                                Voice Activate
-                            </button>
-                            <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}>
-                                Auto-Flash <span className="beta-tag">Beta</span>
-                            </button>
-                        </div>
-                        
-                        {(() => {
-                            if (voiceActivated && isAutoFlashOn) {
-                                return (
-                                    <div className="voice-hint">
-                                        <p>🎤 Say "flash" to create a card.</p>
-                                        <p>⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>
-                                    </div>
-                                );
-                            } else if (voiceActivated) {
-                                return <p className="voice-hint">🎤 Say "flash" to create a card.</p>;
-                            } else if (isAutoFlashOn) {
-                                return <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>;
-                            }
-                            return null;
-                        })()}
-
-                        <div className="slider-container">
-                            <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
-                            <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening} />
-                        </div>
-                        {isAutoFlashOn && (
-                            <div className="slider-container">
-                            <label htmlFor="autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span></label>
-                            <input id="autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(autoFlashInterval)} onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isListening} />
+                    {appMode === 'live' ? (
+                        <>
+                            <div className="listening-control">
+                                <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
                             </div>
-                        )}
-                        <div className="slider-container">
-                            <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
-                            <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
-                        </div>
-                        <button
-                            onClick={handleLiveFlashIt}
-                            className={`flash-it-button ${isListening && !isGenerating && !isAutoFlashOn ? 'animated' : ''}`}
-                            disabled={!isListening || isGenerating || isAutoFlashOn || (!isDevMode && usage.count >= usage.limit)}>
-                            {isGenerating ? 'Generating...' : '⚡ Flash It!'}
-                        </button>
-                    </>
-                ) : appMode === 'upload' ? (
-                    <>
-                        <div className="upload-button-container">
-                            <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
-                        </div>
-                        <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*,video/*" style={{ display: 'none' }} />
-                        {fileName && <p className="file-name-display">Selected: {fileName}</p>}
-                        
-                        {mediaSrc && (
-                            <>
-                                <div className="player-container">
-                                    {fileType === 'video' ? (
-                                        <>
-                                            <video
-                                                ref={videoPlayerRef}
-                                                src={mediaSrc}
-                                                playsInline
-                                                className="video-player"
-                                                onClick={togglePlayPause}
-                                            >
-                                            </video>
+                            <div className="listening-modes">
+                                <button
+                                    onClick={() => setVoiceActivated(!voiceActivated)}
+                                    className={`voice-activate-btn ${voiceActivated ? 'active' : ''}`}
+                                    disabled={isSafari}
+                                    title={isSafari ? "Voice activation is not supported on Safari." : "Activate voice commands"}
+                                >
+                                    Voice Activate
+                                </button>
+                                <button onClick={() => setIsAutoFlashOn(!isAutoFlashOn)} className={`autoflash-btn ${isAutoFlashOn ? 'active' : ''}`}>
+                                    Auto-Flash <span className="beta-tag">Beta</span>
+                                </button>
+                            </div>
+                            
+                            {(() => {
+                                if (voiceActivated && isAutoFlashOn) {
+                                    return (
+                                        <div className="voice-hint">
+                                            <p>🎤 Say "flash" to create a card.</p>
+                                            <p>⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>
+                                        </div>
+                                    );
+                                } else if (voiceActivated) {
+                                    return <p className="voice-hint">🎤 Say "flash" to create a card.</p>;
+                                } else if (isAutoFlashOn) {
+                                    return <p className="voice-hint">⚡ Automatically creating a card every {formatAutoFlashInterval(autoFlashInterval)}.</p>;
+                                }
+                                return null;
+                            })()}
+
+                            <div className="slider-container">
+                                <label htmlFor="timer-slider" className="slider-label">Listening Duration: <span className="slider-value">{formatListeningDuration(listeningDuration)}</span></label>
+                                <input id="timer-slider" type="range" min="1" max="22" step="1" value={minutesToSliderValue(listeningDuration)} onChange={(e) => setListeningDuration(sliderValueToMinutes(Number(e.target.value)))} disabled={isListening} />
+                            </div>
+                            {isAutoFlashOn && (
+                                <div className="slider-container">
+                                <label htmlFor="autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(autoFlashInterval)}</span></label>
+                                <input id="autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(autoFlashInterval)} onChange={(e) => setAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isListening} />
+                                </div>
+                            )}
+                            <div className="slider-container">
+                                <label htmlFor="duration-slider" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
+                                <input id="duration-slider" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} disabled={isListening} />
+                            </div>
+                            <button
+                                onClick={handleLiveFlashIt}
+                                className={`flash-it-button ${isListening && !isGenerating && !isAutoFlashOn ? 'animated' : ''}`}
+                                disabled={!isListening || isGenerating || isAutoFlashOn || (!isDevMode && usage.count >= usage.limit)}>
+                                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+                            </button>
+                        </>
+                    ) : appMode === 'upload' ? (
+                        <>
+                            <div className="upload-button-container">
+                                <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
+                            </div>
+                            <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="audio/*,video/*" style={{ display: 'none' }} />
+                            {fileName && <p className="file-name-display">Selected: {fileName}</p>}
+                            
+                            {mediaSrc && (
+                                <>
+                                    <div className="player-container">
+                                        {fileType === 'video' ? (
+                                            <>
+                                                <video
+                                                    ref={videoPlayerRef}
+                                                    src={mediaSrc}
+                                                    playsInline
+                                                    className="video-player"
+                                                    onClick={togglePlayPause}
+                                                >
+                                                </video>
+                                                <div className="audio-player">
+                                                    <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
+                                                    <div className="progress-bar-container" onClick={handleSeek}>
+                                                        <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
+                                                    </div>
+                                                    <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
+                                                </div>
+                                            </>
+                                        ) : (
                                             <div className="audio-player">
+                                                <audio ref={audioPlayerRef} src={mediaSrc} />
                                                 <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
                                                 <div className="progress-bar-container" onClick={handleSeek}>
                                                     <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
                                                 </div>
                                                 <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
                                             </div>
-                                        </>
-                                    ) : (
-                                        <div className="audio-player">
-                                            <audio ref={audioPlayerRef} src={mediaSrc} />
-                                            <button onClick={togglePlayPause} className="play-pause-btn">{isPlaying ? '❚❚' : '▶'}</button>
-                                            <div className="progress-bar-container" onClick={handleSeek}>
-                                                <div className="progress-bar" style={{ width: `${(currentTime / mediaDuration) * 100}%` }}></div>
-                                            </div>
-                                            <span className="time-display">{formatTime(currentTime)} / {formatTime(mediaDuration)}</span>
-                                        </div>
-                                    )}
-                                </div>
-                                <div className="listening-modes" style={{marginTop: '1rem'}}>
-                                    {fileType === 'video' && !audioCacheId && (
-                                        <button
-                                            onClick={handleProcessAudio}
-                                            className="autoflash-btn"
-                                            disabled={isProcessing}
-                                        >
-                                            {isProcessing ? 'Processing...' : '🎧 Process Audio from Video'}
+                                        )}
+                                    </div>
+                                    <div className="listening-modes" style={{marginTop: '1rem'}}>
+                                        {fileType === 'video' && !audioCacheId && (
+                                            <button
+                                                onClick={handleProcessAudio}
+                                                className="autoflash-btn"
+                                                disabled={isProcessing}
+                                            >
+                                                {isProcessing ? 'Processing...' : '🎧 Process Audio from Video'}
+                                            </button>
+                                        )}
+                                        <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={fileType === 'video' && !audioCacheId}>
+                                            Auto-Flash <span className="beta-tag">Beta</span>
                                         </button>
+                                    </div>
+                                    
+                                    {isUploadAutoFlashOn && (fileType === 'audio' || audioCacheId) && (
+                                        <>
+                                            <div className="slider-container">
+                                                <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
+                                                <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
+                                            </div>
+                                            <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
+                                        </>
                                     )}
-                                    <button onClick={() => setIsUploadAutoFlashOn(!isUploadAutoFlashOn)} className={`autoflash-btn ${isUploadAutoFlashOn ? 'active' : ''}`} disabled={fileType === 'video' && !audioCacheId}>
-                                        Auto-Flash <span className="beta-tag">Beta</span>
-                                    </button>
-                                </div>
-                                
-                                {isUploadAutoFlashOn && (fileType === 'audio' || audioCacheId) && (
-                                    <>
-                                        <div className="slider-container">
-                                            <label htmlFor="upload-autoflash-slider" className="slider-label">Auto-Flash Interval: <span className="slider-value">{formatAutoFlashInterval(uploadAutoFlashInterval)}</span></label>
-                                            <input id="upload-autoflash-slider" type="range" min="0" max="8" step="1" value={intervalToSlider(uploadAutoFlashInterval)} onChange={(e) => setUploadAutoFlashInterval(sliderToInterval(Number(e.target.value)))} disabled={isPlaying && isUploadAutoFlashOn} />
-                                        </div>
-                                        <p className="voice-hint" style={{marginTop: '1rem'}}>⚡ Automatically creating a card every {formatAutoFlashInterval(uploadAutoFlashInterval)}.</p>
-                                    </>
-                                )}
-                            </>
-                        )}
-                        <div className="slider-container" style={{ marginTop: '1rem' }}>
-                            <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
-                            <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
-                        </div>
-                        <button
-                            onClick={handleUploadFlash}
-                            className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`}
-                            disabled={!mediaSrc || isGenerating || (fileType === 'video' && !audioCacheId) || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
-                        >
-                            {isGenerating ? 'Generating...' : '⚡ Flash It!'}
-                        </button>
-                    </>
-                ) : (
-                    /* --- NEW FLASHFOTO UI --- */
-                    <>
-                        <div className="image-preview-container">
-                            <canvas ref={canvasRef} style={{ display: 'none' }} />
-                            {/* FIX: Ensure video element is always in the DOM and remove mirror transform */}
-                            <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none' }} />
-                            {imageSrc && !isCameraOn && <img src={imageSrc} alt="Preview" />}
-                            {!imageSrc && !isCameraOn && !isGenerating && (
-                                <div className="image-preview-placeholder"><p>Upload or capture an image of your notes</p></div>
+                                </>
                             )}
-                            {isGenerating && (
-                                <div className="image-preview-placeholder"><p>AI is working...</p></div>
-                            )}
-                        </div>
-                        <div className="flashfoto-controls">
-                            {/* FIX: Conditionally render buttons */}
-                            {!isCameraOn ? (
-                                <button onClick={() => setModalConfig({ type: 'imageSource' })} className="start-stop-btn">Upload/Snap Photo</button>
-                            ) : (
-                                <button onClick={takePicture} className="start-stop-btn active">📸 Snap It!</button>
-                            )}
-                            <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
-                        </div>
-                        {aiAnalysis && (
-                            <div className="ai-recommendation">
-                                <p>FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
-                                <div className="ai-recommendation-actions">
-                                    <button onClick={() => handleGenerateFotoCards(aiAnalysis.recommendation)} disabled={isGenerating}>Capture as Recommended</button>
-                                    <button onClick={() => handleGenerateFotoCards(fotoCardCount)} disabled={isGenerating}>Capture {fotoCardCount} Flashcards</button>
-                                </div>
+                            <div className="slider-container" style={{ marginTop: '1rem' }}>
+                                <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
+                                <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
                             </div>
-                        )}
-                        <div className="slider-container">
-                            <label htmlFor="foto-card-slider" className="slider-label">Number of Flashcards: <span className="slider-value">{fotoCardCount}</span></label>
-                            <input id="foto-card-slider" type="range" min="2" max="10" step="1" value={fotoCardCount} onChange={(e) => setFotoCardCount(Number(e.target.value))} disabled={isGenerating || isProcessing} />
-                        </div>
-                        {isGenerating && !aiAnalysis && !notification.includes('Analyzing') && <p className="notification">Generating flashcards...</p>}
-                    </>
-                )}
-            </div>
+                            <button
+                                onClick={handleUploadFlash}
+                                className={`flash-it-button ${mediaSrc && !isGenerating && !(isUploadAutoFlashOn && isPlaying) ? 'animated' : ''}`}
+                                disabled={!mediaSrc || isGenerating || (fileType === 'video' && !audioCacheId) || (isUploadAutoFlashOn && isPlaying) || (!isDevMode && usage.count >= usage.limit)}
+                            >
+                                {isGenerating ? 'Generating...' : '⚡ Flash It!'}
+                            </button>
+                        </>
+                    ) : (
+                        /* --- NEW FLASHFOTO UI --- */
+                        <>
+                            <div className="image-preview-container">
+                                <canvas ref={canvasRef} style={{ display: 'none' }} />
+                                {/* FIX: Ensure video element is always in the DOM and remove mirror transform */}
+                                <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none' }} />
+                                {imageSrc && !isCameraOn && <img src={imageSrc} alt="Preview" />}
+                                {!imageSrc && !isCameraOn && !isGenerating && (
+                                    <div className="image-preview-placeholder"><p>Upload or capture an image of your notes</p></div>
+                                )}
+                                {isGenerating && (
+                                    <div className="image-preview-placeholder"><p>AI is working...</p></div>
+                                )}
+                            </div>
+                            <div className="flashfoto-controls">
+                                {/* FIX: Conditionally render buttons */}
+                                {!isCameraOn ? (
+                                    <button onClick={() => setModalConfig({ type: 'imageSource' })} className="start-stop-btn">Snap or Upload Photo</button>
+                                ) : (
+                                    <button onClick={takePicture} className="start-stop-btn active">📸 Snap It!</button>
+                                )}
+                                <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
+                            </div>
+                            {aiAnalysis && (
+                                <div className="ai-recommendation">
+                                    <p>FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
+                                    <div className="ai-recommendation-actions">
+                                        <button onClick={() => handleGenerateFotoCards(aiAnalysis.recommendation)} disabled={isGenerating}>Capture as Recommended</button>
+                                        <button onClick={() => handleGenerateFotoCards(fotoCardCount)} disabled={isGenerating}>Capture {fotoCardCount} Flashcards</button>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="slider-container">
+                                <label htmlFor="foto-card-slider" className="slider-label">Number of Flashcards: <span className="slider-value">{fotoCardCount}</span></label>
+                                <input id="foto-card-slider" type="range" min="2" max="10" step="1" value={fotoCardCount} onChange={(e) => setFotoCardCount(Number(e.target.value))} disabled={isGenerating || isProcessing} />
+                            </div>
+                            {isGenerating && !aiAnalysis && !notification.includes('Analyzing') && <p className="notification">Generating flashcards...</p>}
+                        </>
+                    )}
+                </div>
+            )}
             {notification && <p className="notification">{notification}</p>}
             {generatedFlashcards.length > 0 && (
                 <div className="card generated-cards-queue">
@@ -3312,6 +3327,7 @@ const MainApp = () => {
                     <div className="folder-actions">
                         <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                             <option value="" disabled>Select a folder...</option>
+                            {/* FIX: Corrected variable name from 'f' to 'folder' */}
                             {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                         </select>
                         <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
