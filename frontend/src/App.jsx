@@ -221,6 +221,33 @@ function encodeWAV(audioBuffer) {
 
 // --- MODAL AND UI COMPONENTS ---
 
+// NEW: Modal to choose between Live Capture and File Upload
+const FlashFonicModeModal = ({ onSelect, onClose }) => (
+    <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>Choose Capture Mode</h2>
+            <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+                <button onClick={() => onSelect('live')} className="modal-create-btn">🔴 Live Capture</button>
+                <button onClick={() => onSelect('upload')} className="modal-create-btn">⬆️ Audio/Video File Upload</button>
+            </div>
+        </div>
+    </div>
+);
+
+// NEW: Modal to choose between Camera and File Upload for images
+const ImageSourceModal = ({ onSelect, onClose }) => (
+    <div className="modal-overlay" onClick={onClose}>
+        <div className="modal-content" onClick={e => e.stopPropagation()}>
+            <h2>Select Image Source</h2>
+            <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+                <button onClick={() => onSelect('camera')} className="modal-create-btn">📷 Snap Photo Using Camera</button>
+                <button onClick={() => onSelect('upload')} className="modal-create-btn">🖼️ Upload from Device</button>
+            </div>
+        </div>
+    </div>
+);
+
+
 const LandingPage = ({ onEnter }) => {
     return (
         <div className="landing-page">
@@ -2969,6 +2996,29 @@ const MainApp = () => {
             {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
             {modalConfig && modalConfig.type === 'confirm' && ( <ConfirmModal onClose={() => setModalConfig(null)} onConfirm={modalConfig.onConfirm} message={modalConfig.message} /> )}
             {isFeedbackModalOpen && <FeedbackModal onClose={() => setIsFeedbackModalOpen(false)} formspreeUrl="https://formspree.io/f/mvgqzvvb" />}
+            {modalConfig && modalConfig.type === 'flashFonicMode' && (
+                <FlashFonicModeModal
+                    onClose={() => setModalConfig(null)}
+                    onSelect={(mode) => {
+                        handleModeChange(mode);
+                        setModalConfig(null);
+                    }}
+                />
+            )}
+            {modalConfig && modalConfig.type === 'imageSource' && (
+                <ImageSourceModal
+                    onClose={() => setModalConfig(null)}
+                    onSelect={(source) => {
+                        if (source === 'camera') {
+                            startCamera();
+                        } else {
+                            fotoFileInputRef.current.click();
+                        }
+                        setModalConfig(null);
+                    }}
+                />
+            )}
+
             
             {/* Flash Notes Modals/Viewers */}
             {flashNotesActionModal && (
@@ -3039,10 +3089,9 @@ const MainApp = () => {
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}
-            <div className="mode-selector">
-                <button onClick={() => handleModeChange('live')} className={appMode === 'live' ? 'active' : ''}>🔴 Live Capture</button>
-                <button onClick={() => handleModeChange('upload')} className={appMode === 'upload' ? 'active' : ''}>⬆️ Upload File</button>
-                <button onClick={() => handleModeChange('foto')} className={appMode === 'foto' ? 'active' : ''}>📸 FlashFoto</button>
+            <div className="main-mode-selector">
+                <button onClick={() => setModalConfig({ type: 'flashFonicMode' })} className="create-folder-btn">FlashFonic</button>
+                <button onClick={() => handleModeChange('foto')} className="create-folder-btn">FlashFoto</button>
             </div>
             <div className="card main-controls" style={{position: 'relative'}}>
                 {!isDevMode && (
@@ -3200,9 +3249,8 @@ const MainApp = () => {
                             )}
                         </div>
                         <div className="flashfoto-controls">
-                            <button onClick={() => fotoFileInputRef.current.click()} className="start-stop-btn">Upload Photo</button>
+                            <button onClick={() => setModalConfig({ type: 'imageSource' })} className="start-stop-btn">Upload/Snap Photo</button>
                             <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
-                            <button onClick={isCameraOn ? takePicture : startCamera} className={`start-stop-btn ${isCameraOn ? 'active' : ''}`}>{isCameraOn ? '📸 Snap It!' : '📷 Use Camera'}</button>
                         </div>
                         {aiAnalysis && (
                             <div className="ai-recommendation">
