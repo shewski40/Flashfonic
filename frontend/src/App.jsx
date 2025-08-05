@@ -3255,8 +3255,8 @@ const MainApp = () => {
                     <>
                         <div className="image-preview-container">
                             <canvas ref={canvasRef} style={{ display: 'none' }} />
-                            {/* FIX: Ensure video element is always in the DOM for the ref to attach */}
-                            <video ref={videoRef} autoPlay playsInline style={{ transform: 'scaleX(-1)', width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none' }} />
+                            {/* FIX: Ensure video element is always in the DOM and remove mirror transform */}
+                            <video ref={videoRef} autoPlay playsInline style={{ width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none' }} />
                             {imageSrc && !isCameraOn && <img src={imageSrc} alt="Preview" />}
                             {!imageSrc && !isCameraOn && !isGenerating && (
                                 <div className="image-preview-placeholder"><p>Upload or capture an image of your notes</p></div>
@@ -3266,7 +3266,12 @@ const MainApp = () => {
                             )}
                         </div>
                         <div className="flashfoto-controls">
-                            <button onClick={() => setModalConfig({ type: 'imageSource' })} className="start-stop-btn">Upload/Snap Photo</button>
+                            {/* FIX: Conditionally render buttons */}
+                            {!isCameraOn ? (
+                                <button onClick={() => setModalConfig({ type: 'imageSource' })} className="start-stop-btn">Upload/Snap Photo</button>
+                            ) : (
+                                <button onClick={takePicture} className="start-stop-btn active">📸 Snap It!</button>
+                            )}
                             <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
                         </div>
                         {aiAnalysis && (
@@ -3307,7 +3312,7 @@ const MainApp = () => {
                     <div className="folder-actions">
                         <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                             <option value="" disabled>Select a folder...</option>
-                            {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                            {allFoldersForMoveDropdown.map(folder => <option key={f.id} value={f.id}>{folder.name}</option>)}
                         </select>
                         <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
                     </div>
