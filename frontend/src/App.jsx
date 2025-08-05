@@ -2685,7 +2685,7 @@ const MainApp = () => {
                         <div className="folder-card-actions">
                             <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                                 <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={f.id} value={f.id}>{folder.name}</option>)}
+                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                             </select>
                             <button
                                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
@@ -3312,7 +3312,7 @@ const MainApp = () => {
                     <div className="folder-actions">
                         <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                             <option value="" disabled>Select a folder...</option>
-                            {allFoldersForMoveDropdown.map(folder => <option key={f.id} value={f.id}>{folder.name}</option>)}
+                            {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                         </select>
                         <button onClick={handleMoveToFolder} className="move-to-folder-btn">Move to Folder</button>
                     </div>
