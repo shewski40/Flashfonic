@@ -2685,7 +2685,7 @@ const MainApp = () => {
                         <div className="folder-card-actions">
                             <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                                 <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={f.id} value={f.id}>{f.name}</option>)}
+                                {allFoldersForMoveDropdown.filter(f => f.id !== folder.id).map(folder => <option key={f.id} value={f.id}>{folder.name}</option>)}
                             </select>
                             <button
                                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
@@ -2837,13 +2837,23 @@ const MainApp = () => {
     
     const startCamera = async () => {
         try {
+            // First, try for the environment camera (ideal for mobile)
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
             videoRef.current.srcObject = stream;
             setIsCameraOn(true);
             setNotification('Camera is on. Snap a picture of your notes!');
         } catch (err) {
-            console.error("Error accessing camera:", err);
-            setNotification("Camera access denied or error. Please check permissions.");
+            console.warn("Environment camera not found or failed, trying default camera.", err);
+            // If that fails, try for any available camera (for desktops/laptops)
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                videoRef.current.srcObject = stream;
+                setIsCameraOn(true);
+                setNotification('Camera is on. Snap a picture of your notes!');
+            } catch (finalErr) {
+                console.error("Error accessing any camera:", finalErr);
+                setNotification("Camera access denied or error. Please check permissions and ensure no other app is using it.");
+            }
         }
     };
     

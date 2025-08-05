@@ -85,6 +85,20 @@ body {
   position: relative;
 }
 
+/* --- NEW --- Fix for main mode buttons */
+.main-mode-selector {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.main-mode-selector .create-folder-btn {
+  flex: 1;
+  max-width: 250px;
+}
+/* --- END NEW --- */
+
 .main-controls .listening-control {
   display: flex;
   flex-direction: column;
