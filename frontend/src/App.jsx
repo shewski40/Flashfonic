@@ -2836,6 +2836,12 @@ const MainApp = () => {
     };
     
     const startCamera = async () => {
+        // FIX: Check if videoRef.current is available before using it
+        if (!videoRef.current) {
+            console.error("Video element ref is not available yet.");
+            setNotification("Camera could not be initialized. Please try again.");
+            return;
+        }
         try {
             // First, try for the environment camera (ideal for mobile)
             const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
@@ -3249,7 +3255,8 @@ const MainApp = () => {
                     <>
                         <div className="image-preview-container">
                             <canvas ref={canvasRef} style={{ display: 'none' }} />
-                            {isCameraOn && <video ref={videoRef} autoPlay playsInline style={{ transform: 'scaleX(-1)', width: '100%', height: '100%', objectFit: 'cover' }} />}
+                            {/* FIX: Ensure video element is always in the DOM for the ref to attach */}
+                            <video ref={videoRef} autoPlay playsInline style={{ transform: 'scaleX(-1)', width: '100%', height: '100%', objectFit: 'cover', display: isCameraOn ? 'block' : 'none' }} />
                             {imageSrc && !isCameraOn && <img src={imageSrc} alt="Preview" />}
                             {!imageSrc && !isCameraOn && !isGenerating && (
                                 <div className="image-preview-placeholder"><p>Upload or capture an image of your notes</p></div>
@@ -3348,19 +3355,29 @@ const MainApp = () => {
 
 // --- Top-Level App Component ---
 const App = () => {
-    // FIX: Use a state that is not initialized from localStorage to ensure landing page shows on first visit.
     const [showApp, setShowApp] = useState(false);
+    const audioInitialized = useRef(false); // Ref to track audio initialization
 
-    // This effect runs once when the component mounts to check if the user has been here before.
     useEffect(() => {
         const hasEntered = localStorage.getItem('flashfonic-entered');
         if (hasEntered) {
+            // FIX: Ensure audio context is started on subsequent visits too
+            if (!audioInitialized.current) {
+                Tone.start();
+                console.log("AudioContext started on return visit.");
+                audioInitialized.current = true;
+            }
             setShowApp(true);
         }
-    }, []); // Empty dependency array ensures this runs only once.
+    }, []);
 
-    const handleEnter = () => {
-        // Once the user enters, save this to local storage and show the app
+    const handleEnter = async () => {
+        // FIX: Start Tone.js AudioContext on the first user gesture
+        if (!audioInitialized.current) {
+            await Tone.start();
+            console.log("AudioContext started on first enter.");
+            audioInitialized.current = true;
+        }
         localStorage.setItem('flashfonic-entered', 'true');
         setShowApp(true);
     };
