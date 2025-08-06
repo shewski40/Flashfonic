@@ -3105,8 +3105,7 @@ const MainApp = () => {
                     <div className="modal-content">
                         <h2>AI Recommendation</h2>
                         <p className="modal-message">FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
-                        {/* FIX: Add flex-wrap for mobile responsiveness */}
-                        <div className="modal-actions" style={{justifyContent: 'center', flexWrap: 'wrap'}}>
+                        <div className="modal-actions" style={{justifyContent: 'center'}}>
                             <button
                                 onClick={() => handleGenerateFotoCards(aiAnalysis.recommendation)}
                                 className="modal-create-btn"
