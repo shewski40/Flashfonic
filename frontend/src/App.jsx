@@ -3279,13 +3279,13 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                 <div className="flashfoto-header">
                     <h1>FlashFoto</h1>
                     {/* FIX: Add TM and adjust class for styling */}
-                    <div className="sub-brand">by FlashFonic™</div>
+                    <div className="sub-brand">by FlashFonic<span style={{fontSize: '0.6em', verticalAlign: 'super'}}>™</span></div>
                     <h2 className="subheading">Snap it. Flash it. Learn.</h2>
                 </div>
             ) : (
                 <div className="header">
                     {/* FIX: Add TM */}
-                    <h1>FlashFonic™</h1>
+                    <h1>FlashFonic<span style={{fontSize: '0.6em', verticalAlign: 'super'}}>™</span></h1>
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}
@@ -3316,7 +3316,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     {appMode === 'live' ? (
                         <>
                             {/* FIX: Add user instructions */}
-                            <div className="user-instructions">
+                            <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
                                 <p>1. Click "Start Listening" to begin capturing audio.</p>
                                 <p>2. Hit "Flash It!" to create a card, or use the voice/auto features.</p>
                             </div>
@@ -3376,6 +3376,11 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                         </>
                     ) : appMode === 'upload' ? (
                         <>
+                            {/* New instructions for File Upload */}
+                            <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
+                                <p>1. Click "Select File" to upload an audio or video.</p>
+                                <p>2. Play the media, then hit "Flash It!" to create a card.</p>
+                            </div>
                             <div className="upload-button-container">
                                 <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
                             </div>
@@ -3460,6 +3465,11 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     ) : (
                         /* --- NEW FLASHFOTO UI --- */
                         <>
+                            {/* New instructions for FlashFoto */}
+                            <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
+                                <p>1. Snap a photo or upload an image of your notes.</p>
+                                <p>2. Our AI will analyze it and recommend flashcards.</p>
+                            </div>
                             <div className="image-preview-container">
                                 <canvas ref={canvasRef} style={{ display: 'none' }} />
                                 {/* FIX: Ensure video element is always in the DOM and remove mirror transform */}
@@ -3571,7 +3581,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     <button className="game-action-btn" onClick={() => setShowDocViewer('privacy')}>Privacy Policy</button>
                 </div>
                 {/* Copyright notice */}
-                <p className="footer-credit" style={{ marginTop: '1rem', color: 'var(--primary-purple)' }}>Copyright FlashFonic, Trifecta Pro LLC</p>
+                <p className="footer-credit" style={{ marginTop: '1rem', color: 'var(--primary-purple)' }}>© FlashFonic, Trifecta Pro LLC</p>
             </div>
             {/* Conditional rendering for DocViewer */}
             {showDocViewer && (
@@ -3592,7 +3602,17 @@ const App = () => {
     const audioInitialized = useRef(false); // Ref to track audio initialization
 
     useEffect(() => {
-        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
+        const queryParams = new URLSearchParams(window.location.search);
+        const isDevMode = queryParams.get('dev') === 'true';
+
+        let hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
+
+        // If in dev mode, force EULA to show every time
+        if (isDevMode) {
+            hasAcceptedEULA = 'false'; // Override to force display
+            console.log("Dev mode active: Forcing EULA display.");
+        }
+
         if (hasAcceptedEULA === 'true') {
             setEulaAccepted(true);
             const hasEntered = localStorage.getItem('flashfonic-entered');
