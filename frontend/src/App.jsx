@@ -30,7 +30,7 @@ Subject to the terms and conditions of this Agreement, FlashFonic grants You a l
 FlashFonic is designed to enhance your learning experience through the use of your device's microphone and camera, and advanced Artificial Intelligence (AI).
 
 * **Microphone Use (FlashFonic Mode):** When you activate features such as "Start Listening," "Voice Activate," or "Auto-Flash," the Application accesses your device's microphone to capture audio input. This audio is transmitted to our AI backend for real-time transcription and the generation of flashcards and summary notes. **Raw audio recordings are processed transiently and are not stored long-term on our servers.**
-* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed solely for text extraction and is not stored long-term on our servers.**
+* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed transiently and is not stored long-term on our servers.**
 * **Consent:** Your use of the microphone and camera features within the Application constitutes your express consent for FlashFonic to access and process your audio and image data solely for the purposes described herein. You may manage or revoke these permissions at any time through your device's operating system settings.
 * **AI Processing:** The AI models utilized by FlashFonic process your input (transcribed audio, extracted text from images) to generate new content (flashcards, notes). While we strive for accuracy, AI-generated content may contain **inaccuracies, errors, or unintended biases**. FlashFonic is a supplementary study tool, and **You are solely responsible for verifying the correctness and completeness of all AI-generated content.**
 * **Data Privacy:** We are committed to protecting your privacy. All data collected and processed by FlashFonic, including audio, image, and text inputs, is handled in accordance with our Privacy Policy. Data is used exclusively for the operation and improvement of the Application's core functionalities and is not shared with third parties for marketing or other unrelated purposes.
@@ -535,7 +535,8 @@ const LandingPage = ({ onEnter }) => {
                     {/* New Feature Card 1: FlashFoto */}
                     <div className="feature-card" style={{ border: '1px solid #EC4899', boxShadow: '0 0 15px rgba(236, 72, 153, 0.3)' }}>
                         <h3>📸 FlashFoto: Snap & Learn Instantly</h3>
-                        <p>Transform handwritten notes, textbook pages, or whiteboard diagrams into interactive flashcards. Just snap a photo, and our AI does the rest, extracting key information to create ready-to-study content.</p>
+                        <p>Transform your personal notes, diagrams, or whiteboard images\* into interactive flashcards. Just snap a photo, and our AI does the rest, extracting key information to create ready-to-study content.</p>
+                        <p style={{ marginTop: '1rem', fontStyle: 'italic', fontSize: '0.8rem', color: 'var(--text-dark)' }}>\*with permission</p>
                     </div>
                     {/* New Feature Card 2: FlashNotes */}
                     <div className="feature-card" style={{ border: '1px solid #8B5CF6', boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)' }}>
@@ -3467,8 +3468,8 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                         <>
                             {/* New instructions for FlashFoto */}
                             <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
-                                <p>1. Snap a photo or upload an image of your notes.</p>
-                                <p>2. Our AI will analyze it and recommend flashcards.</p>
+                                <p>1. Choose your default number of flashcards via the slider below.</p>
+                                <p>2. Snap a photo or upload an image of your notes.</p>
                             </div>
                             <div className="image-preview-container">
                                 <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -3630,25 +3631,41 @@ const App = () => {
 
     const handleEnter = async () => {
         // This function is now called from the LandingPage, which is shown AFTER EULA acceptance
+        const queryParams = new URLSearchParams(window.location.search);
+        const isDevMode = queryParams.get('dev') === 'true';
+        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
+
+        if (!eulaAccepted && hasAcceptedEULA !== 'true' && !isDevMode) {
+            // This is the first time the user is entering, show EULA
+            setEulaAccepted(false); // Force EULA screen first
+        } else {
+            // EULA has been accepted or is in dev mode, proceed to main app
+            if (!audioInitialized.current) {
+                await Tone.start();
+                console.log("AudioContext started on first enter from LandingPage.");
+                audioInitialized.current = true;
+            }
+            localStorage.setItem('flashfonic-entered', 'true');
+            setShowApp(true);
+        }
+    };
+
+    const handleEULAAccept = async () => {
+        localStorage.setItem('flashfonic-eula-accepted', 'true');
+        setEulaAccepted(true);
+        
         if (!audioInitialized.current) {
             await Tone.start();
-            console.log("AudioContext started on first enter from LandingPage.");
+            console.log("AudioContext started after EULA acceptance.");
             audioInitialized.current = true;
         }
         localStorage.setItem('flashfonic-entered', 'true');
         setShowApp(true);
     };
 
-    const handleEULAAccept = async () => {
-        localStorage.setItem('flashfonic-eula-accepted', 'true');
-        setEulaAccepted(true);
-        // Now proceed to the original landing page flow (which will call handleEnter)
-        // No need to call Tone.start() here again, as handleEnter will handle it.
-    };
-
     if (!eulaAccepted) {
         return (
-            <div className="viewer-overlay"> {/* Use existing modal overlay styles for full page */}
+            <div className="viewer-overlay">
                 <div className="modal-content" style={{ maxWidth: '800px', textAlign: 'left', padding: '2rem', overflowY: 'auto', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
                     <h2 className="how-to-play-title" style={{textAlign: 'center'}}>End-User License Agreement</h2>
                     <div className="how-to-play-content" dangerouslySetInnerHTML={{ __html: marked(eulaContent) }} />
