@@ -2974,6 +2974,19 @@ const MainApp = () => {
             setIsGenerating(false);
         }
     };
+    
+    // FIX: New function to cancel an upload
+    const handleCancelUpload = () => {
+        setMediaSrc(null);
+        setUploadedFile(null);
+        setFileName('');
+        setCurrentTime(0);
+        setMediaDuration(0);
+        setAudioCacheId(null);
+        setFileType(null);
+        setIsUploadAutoFlashOn(false);
+        setNotification('');
+    };
 
 
     return (
@@ -3091,8 +3104,8 @@ const MainApp = () => {
                 <div className="modal-overlay">
                     <div className="modal-content">
                         <h2>AI Recommendation</h2>
-                        <p className="modal-message">Flashfonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
-                        <div className="modal-actions">
+                        <p className="modal-message">FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
+                        <div className="modal-actions" style={{justifyContent: 'center'}}>
                             <button
                                 onClick={() => handleGenerateFotoCards(aiAnalysis.recommendation)}
                                 className="modal-create-btn"
@@ -3106,6 +3119,10 @@ const MainApp = () => {
                                 disabled={isGenerating}
                             >
                                 Capture {fotoCardCount} Flashcards
+                            </button>
+                             {/* FIX: Add Cancel button */}
+                            <button onClick={() => setAiAnalysis(null)} className="modal-create-btn success">
+                                Cancel
                             </button>
                         </div>
                     </div>
@@ -3153,6 +3170,11 @@ const MainApp = () => {
 
                     {appMode === 'live' ? (
                         <>
+                            {/* FIX: Add user instructions */}
+                            <div className="user-instructions">
+                                <p>1. Click "Start Listening" to begin capturing audio.</p>
+                                <p>2. Hit "Flash It!" to create a card, or use the voice/auto features.</p>
+                            </div>
                             <div className="listening-control">
                                 <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
                             </div>
@@ -3217,6 +3239,10 @@ const MainApp = () => {
                             
                             {mediaSrc && (
                                 <>
+                                    {/* FIX: Add Cancel Upload Button */}
+                                    <div className="upload-cancel-container">
+                                        <button onClick={handleCancelUpload} className="cancel-upload-btn">Cancel Upload</button>
+                                    </div>
                                     <div className="player-container">
                                         {fileType === 'video' ? (
                                             <>
@@ -3274,7 +3300,8 @@ const MainApp = () => {
                                 </>
                             )}
                             <div className="slider-container" style={{ marginTop: '1rem' }}>
-                                <label htmlFor="duration-slider-upload" className="slider-label">Capture Audio From: <span className="slider-value">{duration} seconds before current time</span></label>
+                                 {/* FIX: Update slider text */}
+                                <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
                                 <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
                             </div>
                             <button
@@ -3305,7 +3332,10 @@ const MainApp = () => {
                                 {!isCameraOn ? (
                                     <button onClick={() => setModalConfig({ type: 'imageSource' })} className="start-stop-btn">Snap or Upload Photo</button>
                                 ) : (
-                                    <button onClick={takePicture} className="start-stop-btn active">📸 Snap It!</button>
+                                    <>
+                                        <button onClick={takePicture} className="start-stop-btn active">📸 Snap It!</button>
+                                        <button onClick={stopCamera} className="start-stop-btn cancel-action">Cancel</button>
+                                    </>
                                 )}
                                 <input type="file" ref={fotoFileInputRef} onChange={handleFotoFileChange} accept="image/*" style={{ display: 'none' }} />
                             </div>
