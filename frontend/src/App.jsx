@@ -2047,16 +2047,31 @@ const MainApp = () => {
 
     const saveEdit = () => {
         if (!editingCard) return;
-        const { id, question, answer, source, folderId } = editingCard;
+        const { id, question, source, folderId } = editingCard;
+        let newAnswer = editingCard.answer; // This is a string from the textarea
+    
+        // Try to parse the answer back into JSON if it looks like an array or object
+        try {
+            // A simple check to see if it's likely JSON
+            if ((newAnswer.startsWith('[') && newAnswer.endsWith(']')) || (newAnswer.startsWith('{') && newAnswer.endsWith('}'))) {
+                newAnswer = JSON.parse(newAnswer);
+            }
+        } catch (e) {
+            // If parsing fails, just keep it as a string.
+            console.warn("Could not parse edited answer as JSON, saving as string.", e);
+        }
+    
+        const updatedCardData = { question, answer: newAnswer };
+    
         if (source === 'queue') {
             setGeneratedFlashcards(prev =>
-                prev.map(card => card.id === id ? { ...card, question, answer } : card)
+                prev.map(card => card.id === id ? { ...card, ...updatedCardData } : card)
             );
         } else if (source === 'folder' && folderId) {
             setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
                 ...folder,
                 cards: folder.cards.map(card =>
-                    card.id === id ? { ...card, question, answer } : card
+                    card.id === id ? { ...card, ...updatedCardData } : card
                 )
             })));
         }
@@ -2243,7 +2258,12 @@ const MainApp = () => {
             return (
                 <div className="edit-mode">
                     <textarea className="edit-textarea" value={editingCard.question} onChange={(e) => setEditingCard({ ...editingCard, question: e.target.value })} />
-                    <textarea className="edit-textarea" value={JSON.stringify(editingCard.answer)} onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })} />
+                    {/* FIX: Handle both string and array/object types for editing */}
+                    <textarea 
+                        className="edit-textarea" 
+                        value={typeof editingCard.answer === 'string' ? editingCard.answer : JSON.stringify(editingCard.answer, null, 2)} 
+                        onChange={(e) => setEditingCard({ ...editingCard, answer: e.target.value })} 
+                    />
                     <div className="edit-actions">
                         <button onClick={saveEdit} className="edit-save-btn">Save</button>
                         <button onClick={() => setEditingCard(null)} className="edit-cancel-btn">Cancel</button>
