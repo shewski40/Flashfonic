@@ -5,6 +5,226 @@ import './App.css';
 import { Analytics } from '@vercel/analytics/react';
 import * as Tone from 'tone';
 
+// --- EULA and Privacy Policy Content (Embedded as String Constants) ---
+const eulaContent = `
+# FlashFonic End-User License Agreement (EULA)
+
+**Last Updated:** August 6, 2025
+
+---
+
+This End-User License Agreement ("Agreement") is a binding legal agreement between you ("User" or "You") and FlashFonic ("Company," "We," "Us," or "Our") governing your use of the FlashFonic application and its associated services (collectively, the "Application").
+
+**BY ACCESSING, DOWNLOADING, INSTALLING, OR USING THE APPLICATION, YOU AGREE TO BE BOUND BY THE TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE TO THESE TERMS, DO NOT ACCESS, DOWNLOAD, INSTALL, OR USE THE APPLICATION.**
+
+---
+
+### 1. Grant of License
+
+Subject to the terms and conditions of this Agreement, FlashFonic grants You a limited, non-exclusive, non-transferable, revocable license to use the Application for your personal, non-commercial study and learning purposes.
+
+---
+
+### 2. User Data and Privacy (Camera, Microphone, and AI Use)
+
+FlashFonic is designed to enhance your learning experience through the use of your device's microphone and camera, and advanced Artificial Intelligence (AI).
+
+* **Microphone Use (FlashFonic Mode):** When you activate features such as "Start Listening," "Voice Activate," or "Auto-Flash," the Application accesses your device's microphone to capture audio input. This audio is transmitted to our AI backend for real-time transcription and the generation of flashcards and summary notes. **Raw audio recordings are processed transiently and are not stored long-term on our servers.**
+* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed transiently and is not stored long-term on our servers.**
+* **Consent:** Your use of the microphone and camera features within the Application constitutes your express consent for FlashFonic to access and process your audio and image data solely for the purposes described herein. You may manage or revoke these permissions at any time through your device's operating system settings.
+* **AI Processing:** The AI models utilized by FlashFonic process your input (transcribed audio, extracted text from images) to generate new content (flashcards, notes). While we strive for accuracy, AI-generated content may contain **inaccuracies, errors, or unintended biases**. FlashFonic is a supplementary study tool, and **You are solely responsible for verifying the correctness and completeness of all AI-generated content.**
+* **Data Privacy:** We are committed to protecting your privacy. All data collected and processed by FlashFonic, including audio, image, and text inputs, is handled in accordance with our Privacy Policy. Data is used exclusively for the operation and improvement of the Application's core functionalities and is not shared with third parties for marketing or other unrelated purposes.
+
+---
+
+### 3. Restrictions on Use
+
+You agree not to, and will not permit others to:
+* Use the Application for any purpose other than personal, non-commercial study and learning.
+* Copy, modify, adapt, translate, or otherwise create derivative works of the Application.
+* Decompile, reverse engineer, disassemble, or attempt to derive the source code of the Application.
+* Distribute, license, lease, sell, resell, transfer, or otherwise commercially exploit the Application.
+* Remove, alter, or obscure any copyright, trademark, or other proprietary notices on the Application.
+* Use the Application in any manner that could damage, disable, overburden, or impair our servers or networks.
+* Use the Application to generate, store, or transmit any content that is unlawful, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, libelous, invasive of another's privacy, hateful, or racially, ethnically, or otherwise objectionable.
+
+---
+
+### 4. Intellectual Property
+
+* **FlashFonic Ownership:** The Application, including all its content, features, and functionality (including but not limited to all information, software, text, displays, images, video, and audio, and the design, selection, and arrangement thereof), are owned by FlashFonic, its licensors, or other providers of such material and are protected by copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.
+* **User Content:** You retain all rights to the original content you input into the Application. However, by submitting content, you grant FlashFonic a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, adapt, publish, translate, create derivative works from, distribute, and display such content solely for the purpose of operating and improving the Application and its services.
+* **AI Originality:** While AI generates new content, it does so based on patterns learned from vast datasets. It is possible for AI-generated text to inadvertently resemble existing copyrighted material. **You are solely responsible for ensuring that any content you create or disseminate using the Application does not infringe upon third-party copyrights, trademarks, or other intellectual property rights.**
+
+---
+
+### 5. Reporting Unauthorized Use or Plagiarism
+
+FlashFonic is committed to respecting intellectual property rights and promoting academic integrity.
+
+* **Reporting Procedure:** If you believe that content generated by FlashFonic, or content used by another user within the Application, constitutes **unauthorized use of copyrighted material or accidental plagiarism**, please report it immediately.
+    * You can use the **"Send Feedback" button** within the Application.
+    * Alternatively, you may send an email directly to **feedbackflashfonic@gmail.com**.
+* **Required Information:** To facilitate a prompt investigation, please provide as much detail as possible, including:
+    * A clear description of the alleged infringement or plagiarism.
+    * Identification of the specific content within FlashFonic in question.
+    * Identification of the copyrighted work or original source material that you believe has been infringed or plagiarized.
+    * Any supporting evidence (e.g., links to original material, screenshots).
+    * Your contact information.
+* **Our Action:** Upon receiving a valid report, FlashFonic will investigate the claim promptly. Appropriate action may include, but is not limited to, removing the infringing content, issuing warnings, or, in severe or repeated cases, suspending or terminating the account of the offending user.
+
+---
+
+### 6. Disclaimer of Warranties
+
+THE APPLICATION IS PROVIDED TO YOU "AS IS" AND "AS AVAILABLE," WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, FLASHFONIC, ON ITS OWN BEHALF AND ON BEHALF OF ITS AFFILIATES AND THEIR RESPECTIVE LICENSORS AND SERVICE PROVIDERS, EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO THE APPLICATION, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT, AND WARRANTIES THAT MAY ARISE OUT OF COURSE OF DEALING, COURSE OF PERFORMANCE, USAGE, OR TRADE PRACTICE. WITHOUT LIMITATION TO THE FOREGOING, FLASHFONIC PROVIDES NO WARRANTY OR UNDERTAKING, AND MAKES NO REPRESENTATION OF ANY KIND THAT THE APPLICATION WILL MEET YOUR REQUIREMENTS, ACHIEVE ANY INTENDED RESULTS, BE COMPATIBLE OR WORK WITH ANY OTHER SOFTWARE, APPLICATIONS, SYSTEMS, OR SERVICES, OPERATE WITHOUT INTERRUPTION, MEET ANY PERFORMANCE OR RELIABILITY STANDARDS, BE ERROR-FREE, OR THAT ANY ERRORS OR DEFECTS CAN OR WILL BE CORRECTED.
+
+---
+
+### 7. Limitation of Liability
+
+TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL FLASHFONIC OR ITS AFFILIATES, LICENSORS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO, LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM (I) YOUR ACCESS TO OR USE OF OR INABILITY TO ACCESS OR USE THE APPLICATION; (II) ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE APPLICATION; (III) ANY CONTENT OBTAINED FROM THE APPLICATION; AND (IV) UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR CONTENT, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, WHETHER OR NOT WE HAVE BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE, AND EVEN IF A REMEDY SET FORTH HEREIN IS FOUND TO HAVE FAILED OF ITS ESSENTIAL PURPOSE.
+
+---
+
+### 8. Indemnification
+
+You agree to indemnify, defend, and hold harmless Trifecta Pro LLC, FlashFonic, its affiliates, licensors, and service providers, Application Programming Interface (API) providers, and its and their respective officers, directors, employees, contractors, agents, licensors, suppliers, successors, and assigns from and against any claims, liabilities, damages, judgments, awards, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising out of or relating to your violation of this Agreement or your use of the Application, including, but not limited to, your User Content, any use of the Application's content, services, and products other than as expressly authorized in this Agreement, or your use of any information obtained from the Application.
+
+---
+
+### 9. Governing Law
+
+This Agreement and your use of the Application shall be governed by and construed in accordance with the laws of the State of Vermont, United States, without regard to its conflict of law principles.
+
+---
+
+### 10. Changes to This Agreement
+
+We reserve the right, at our sole discretion, to modify or replace this Agreement at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion. By continuing to access or use our Application after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, you are no longer authorized to use the Application.
+
+---
+
+### 11. Contact Information
+
+For any questions regarding this Agreement, or to report any issues as described in Section 5, please contact us at:
+
+**Email:** feedbackflashfonic@gmail.com
+
+---
+
+Thank you for choosing FlashFonic. We hope you find it a valuable tool for your learning journey.
+`;
+
+const privacyPolicyContent = `
+# FlashFonic Privacy Policy
+
+**Last Updated:** August 6, 2025
+
+---
+
+This Privacy Policy describes how FlashFonic ("Company," "We," "Us," or "Our") collects, uses, and discloses information about you when you access and use the FlashFonic application and its associated services (collectively, the "Application").
+
+**BY USING THE APPLICATION, YOU AGREE TO THE COLLECTION AND USE OF INFORMATION IN ACCORDANCE WITH THIS PRIVACY POLICY.**
+
+---
+
+### 1. Information We Collect
+
+We collect various types of information to provide and improve our Application and services.
+
+* **1.1. Information You Directly Provide:**
+    * **Contact Information:** If you choose to provide feedback or contact us directly (e.g., via the "Send Feedback" button or email), you may provide your email address and any information you choose to include in your message.
+    * **User-Generated Content (Saved):** Any flashcards, folders, or notes that you explicitly save within the Application are stored locally on your device. This data is not automatically transmitted to our servers unless you explicitly use a feature that requires server-side processing (e.g., AI generation, as detailed below).
+
+* **1.2. Information Automatically Collected During Use:**
+    * **Audio Data (FlashFonic Mode):** When you enable microphone features ("Start Listening," "Voice Activate," "Auto-Flash"), audio input from your device's microphone is captured and **transiently transmitted** to our third-party AI service providers (e.g., AssemblyAI) for real-time transcription. **Raw audio recordings are processed solely for transcription and are not stored long-term on our servers or by our primary AI service providers.**
+    * **Image Data (FlashFoto Mode):** When you use the FlashFoto feature, images captured by your device's camera or uploaded from your device are **transiently transmitted** to our third-party AI service providers (e.g., Google Vision) for text extraction (Optical Character Recognition). **Raw image data is processed solely for text extraction and is not stored long-term on our servers or by our primary AI service providers.**
+    * **Text Data (AI Inputs/Outputs):** The transcribed text from your audio, the extracted text from your images, and the AI-generated flashcards and notes (questions, answers, summaries) are processed by our backend and third-party AI service providers (e.g., OpenAI) to fulfill your requests. This text data is used to generate the requested content and may be **temporarily retained by the AI service providers for model improvement and safety purposes, in accordance with their respective privacy policies.** FlashFonic itself does not store this transient text data on its servers beyond the immediate processing required for content generation.
+    * **Usage Data:** We collect non-personally identifiable information about your interaction with the Application, such as the features you use, the modes you select (FlashFonic, FlashFoto), the number of flashcards generated, and general performance metrics. This data helps us understand how the Application is used and improve its functionality. We utilize services like Vercel Analytics for this purpose.
+    * **Device Information:** We may collect basic device information (e.g., device type, operating system) to optimize Application performance and troubleshoot issues.
+    * **Local Storage Data:** Your preferences, usage limits, and saved folders/flashcards are stored locally on your device using browser local storage. This data is not transmitted to our servers unless explicitly initiated by you (e.g., through a future sync feature).
+
+---
+
+### 2. How We Use Your Information
+
+We use the information we collect for the following purposes:
+
+* **To Provide and Maintain the Application:** To operate, deliver, and ensure the proper functioning of FlashFonic's features, including audio processing, image analysis, and flashcard/note generation.
+* **To Improve and Personalize Your Experience:** To understand usage patterns, debug issues, develop new features, and tailor the Application to user needs. This includes using aggregated and anonymized data for research and development.
+* **To Communicate With You:** To respond to your feedback, inquiries, and provide support.
+* **For Analytics and Research:** To monitor and analyze trends, usage, and activities in connection with our Application. This data is typically aggregated or anonymized to prevent identification of individual users.
+* **For Security and Fraud Prevention:** To protect the integrity and security of our Application and prevent fraudulent or unauthorized use.
+* **To Enforce Our Terms:** To ensure compliance with our End-User License Agreement and other policies.
+
+---
+
+### 3. How We Share Your Information
+
+We may share your information in the following circumstances:
+
+* **3.1. With Service Providers:** We engage trusted third-party service providers to perform functions on our behalf, such as:
+    * **AI/API Providers:** AssemblyAI (for audio transcription), OpenAI (for flashcard/notes generation and scoring), Google Vision (for image text extraction). These providers process data according to their own privacy policies and are contractually obligated to protect your data. **We only share the minimum data necessary for them to perform their services.**
+    * **Analytics Providers:** Vercel Analytics (for anonymous usage data collection).
+    * **Hosting and Infrastructure Providers:** For backend services and data processing.
+* **3.2. For Legal Reasons:** We may disclose your information if required to do so by law or in response to valid requests by public authorities (e.g., a court order or government agency request).
+* **3.3. Business Transfers:** In the event of a merger, acquisition, or asset sale, your information may be transferred as part of the business assets. We will notify you before your information is transferred and becomes subject to a different Privacy Policy.
+* **3.4. Aggregated or Anonymized Data:** We may share aggregated or de-identified information that cannot reasonably be used to identify you. This data may be used for research, marketing, analytics, and other business purposes.
+
+---
+
+### 4. Data Retention
+
+* **Transient Data:** Raw audio and image data are processed in real-time and are **not stored long-term by FlashFonic on its servers.**
+* **AI-Processed Text Data:** Text inputs and outputs sent to AI service providers may be retained by them for a limited period for model improvement and safety, as per their respective policies.
+* **Locally Stored Data:** Your saved flashcards, folders, and preferences are retained locally on your device for as long as you use the Application or until you explicitly delete them.
+* **Usage Data:** Aggregated and anonymized usage data may be retained indefinitely for analytical purposes.
+* **Feedback/Contact Information:** Information provided through feedback channels is retained for as long as necessary to address your inquiry or for record-keeping purposes.
+
+---
+
+### 5. Your Privacy Rights
+
+You have certain rights regarding your information:
+
+* **Access and Correction:** You can access and modify the flashcards and folders stored locally within the Application.
+* **Device Permissions:** You can control the Application's access to your microphone and camera through your device's operating system settings.
+* **Opt-Out of Analytics:** While our analytics are designed to be anonymous, you may be able to opt-out of certain data collection through your device settings or browser configurations.
+* **Data Deletion:** To delete your locally stored data, you can clear your browser's local storage for FlashFonic or uninstall the Application. For any personal data that might be retained by our third-party service providers (as per their policies), you would need to contact them directly.
+* **Contact Us:** For any privacy-related concerns or to exercise your rights, please contact us using the information provided in Section 7.
+
+---
+
+### 6. Security of Your Information
+
+We implement reasonable security measures designed to protect your information from unauthorized access, alteration, disclosure, or destruction. However, no method of transmission over the Internet or method of electronic storage is 100% secure. Therefore, while we strive to use commercially acceptable means to protect your information, we cannot guarantee its absolute security.
+
+---
+
+### 7. Children's Privacy
+
+FlashFonic is not intended for use by individuals under the age of 13. We do not knowingly collect personally identifiable information from children under 13. If we become aware that we have collected personal data from a child under 13 without verifiable parental consent, we will take steps to remove that information from our servers.
+
+---
+
+### 8. Changes to This Privacy Policy
+
+We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date. You are advised to review this Privacy Policy periodically for any changes. Changes to this Privacy Policy are effective when they are posted on this page.
+
+---
+
+### 9. Contact Information
+
+If you have any questions about this Privacy Policy or our data practices, please contact us at:
+
+**Email:** feedbackflashfonic@gmail.com
+
+---
+
+Thank you for trusting FlashFonic with your learning journey.
+`;
+
 // --- Rendering Components ---
 
 // This component handles rendering the chemical structure images with a loading state.
@@ -221,6 +441,28 @@ function encodeWAV(audioBuffer) {
 
 // --- MODAL AND UI COMPONENTS ---
 
+// NEW: Component to display EULA or Privacy Policy
+const DocViewer = ({ docType, onClose }) => {
+    const content = docType === 'eula' ? eulaContent : privacyPolicyContent;
+    const title = docType === 'eula' ? 'End-User License Agreement' : 'Privacy Policy';
+
+    return (
+        <div className="viewer-overlay" onClick={onClose}>
+            <div className="modal-content" style={{ maxWidth: '800px', textAlign: 'left', padding: '2rem', overflowY: 'auto', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+                <div className="viewer-header" style={{ marginBottom: '1rem' }}>
+                    <h2 className="how-to-play-title" style={{ textAlign: 'center', flexGrow: 1 }}>{title}</h2>
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
+                <div className="how-to-play-content" dangerouslySetInnerHTML={{ __html: marked(content) }} />
+                <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+                    <button onClick={onClose} className="modal-create-btn">Close</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // NEW: Modal to choose between Live Capture and File Upload
 const FlashFonicModeModal = ({ onSelect, onClose }) => (
     <div className="modal-overlay" onClick={onClose}>
@@ -294,7 +536,7 @@ const LandingPage = ({ onEnter }) => {
                     </div>
                     <div className="feature-card">
                         <h3>⚡️ Hands-Free Capture Modes</h3>
-                        <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable <strong>Auto-Flash</strong> to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
+                        <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable **Auto-Flash** to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
                     </div>
                     <div className="feature-card">
                         <h3>📚 Advanced Study Suite</h3>
@@ -989,8 +1231,9 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
             });
-            if (!response.ok) throw new Error('Scoring failed');
+            
             const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Scoring failed');
             
             const receivedScore = data.score;
             setLastScore(receivedScore);
@@ -1918,112 +2161,6 @@ const MainApp = () => {
         return currentFolders;
     };
 
-    const handleMoveToFolder = () => {
-        if (!selectedFolderForMove) {
-            setNotification("Please select a folder first.");
-            return;
-        }
-        const cardsToMove = generatedFlashcards.filter(card => checkedCards[card.id]);
-        if (cardsToMove.length === 0) {
-            setNotification("Please check the cards you want to move.");
-            return;
-        }
-
-        setFolders(prev => {
-            return updateFolderById(prev, selectedFolderForMove, (folder) => ({
-                ...folder,
-                cards: [...folder.cards, ...cardsToMove]
-            }));
-        });
-        setGeneratedFlashcards(prev => prev.filter(card => !checkedCards[card.id]));
-        setCheckedCards({});
-        setSelectedFolderForMove('');
-        setNotification(`${cardsToMove.length} card(s) moved.`);
-    };
-
-    const handleCreateFolder = (folderName) => {
-        const folderExists = Object.values(folders).some(folder => folder.name === folderName);
-        if (folderExists) {
-            setNotification("A folder with this name already exists.");
-        } else {
-            const newFolderId = generateUUID();
-            setFolders(prev => ({
-                ...prev,
-                [newFolderId]: {
-                    id: newFolderId,
-                    name: folderName,
-                    createdAt: Date.now(),
-                    lastViewed: Date.now(),
-                    cards: [],
-                    subfolders: {},
-                    flashNotes: null,
-                    leaderboard: []
-                }
-            }));
-        }
-        setModalConfig(null);
-    };
-
-    const handleAddSubfolder = (parentFolderId, subfolderName) => {
-        setFolders(prev => updateFolderById(prev, parentFolderId, (parentFolder) => {
-            const subfolderExists = Object.values(parentFolder.subfolders).some(sf => sf.name === subfolderName);
-            if (subfolderExists) {
-                setNotification("A subfolder with this name already exists in this folder.");
-                return parentFolder;
-            }
-            const newSubfolderId = generateUUID();
-            return {
-                ...parentFolder,
-                subfolders: {
-                    ...parentFolder.subfolders,
-                    [newSubfolderId]: {
-                        id: newSubfolderId,
-                        name: subfolderName,
-                        createdAt: Date.now(),
-                        lastViewed: Date.now(),
-                        cards: [],
-                        subfolders: {},
-                        flashNotes: null,
-                        leaderboard: []
-                    }
-                }
-            };
-        }));
-        setModalConfig(null);
-    };
-
-    const handleRenameFolder = (folderId, newName) => {
-        setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
-            ...folder,
-            name: newName
-        })));
-        setModalConfig(null);
-    };
-
-    const handleDeleteFolder = (folderId) => {
-        setFolders(prev => {
-            const deletedFolder = findFolderById(prev, folderId);
-            const updatedFolders = deleteFolderById(prev, folderId);
-
-            setExpandedFolderIds(currentExpandedIds => {
-                const newSet = new Set(currentExpandedIds);
-                newSet.delete(folderId);
-                const removeSubfolderIds = (currentFolder) => {
-                    for (const subId in currentFolder.subfolders) {
-                        newSet.delete(subId);
-                        removeSubfolderIds(currentFolder.subfolders[subId]);
-                    }
-                };
-                if (deletedFolder) {
-                    removeSubfolderIds(deletedFolder);
-                }
-                return newSet;
-            });
-            return updatedFolders;
-        });
-        setModalConfig(null);
-    };
-
     const deleteCardFromFolder = (folderId, cardId) => {
         setFolders(prevFolders => updateFolderById(prevFolders, folderId, (folder) => ({
             ...folder,
@@ -2705,7 +2842,8 @@ const MainApp = () => {
                         <div className="folder-card-actions">
                             <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
                                 <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.filter(folder => folder.id !== folder.id).map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
+                                {/* FIX: Corrected variable name from 'f' to 'folder' */}
+                                {allFoldersForMoveDropdown.map(folder => <option key={folder.id} value={folder.id}>{folder.name}</option>)}
                             </select>
                             <button
                                 onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
@@ -3120,7 +3258,7 @@ const MainApp = () => {
                             >
                                 Capture {fotoCardCount} Flashcards
                             </button>
-                             {/* FIX: Add Cancel button */}
+                               {/* FIX: Add Cancel button */}
                             <button onClick={() => setAiAnalysis(null)} className="modal-create-btn success">
                                 Cancel
                             </button>
@@ -3300,7 +3438,7 @@ const MainApp = () => {
                                 </>
                             )}
                             <div className="slider-container" style={{ marginTop: '1rem' }}>
-                                 {/* FIX: Update slider text */}
+                                    {/* FIX: Update slider text */}
                                 <label htmlFor="duration-slider-upload" className="slider-label">Capture Last: <span className="slider-value">{duration} seconds of audio</span></label>
                                 <input id="duration-slider-upload" type="range" min="5" max="30" step="1" value={duration} onChange={(e) => setDuration(Number(e.target.value))} />
                             </div>
@@ -3420,7 +3558,21 @@ const MainApp = () => {
                     setStudyingFolder(null);
                     setModalConfig(null);
                 }}>Send Feedback</button>
+                {/* New buttons for EULA and Privacy Policy */}
+                <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
+                    <button className="game-action-btn" onClick={() => setShowDocViewer('eula')}>User Agreement</button>
+                    <button className="game-action-btn" onClick={() => setShowDocViewer('privacy')}>Privacy Policy</button>
+                </div>
+                {/* Copyright notice */}
+                <p className="footer-credit" style={{ marginTop: '1rem', color: 'var(--primary-purple)' }}>Copyright FlashFonic, Trifecta Pro LLC</p>
             </div>
+            {/* Conditional rendering for DocViewer */}
+            {showDocViewer && (
+                <DocViewer
+                    docType={showDocViewer}
+                    onClose={() => setShowDocViewer(null)}
+                />
+            )}
         </>
     );
 };
@@ -3428,39 +3580,62 @@ const MainApp = () => {
 // --- Top-Level App Component ---
 const App = () => {
     const [showApp, setShowApp] = useState(false);
+    const [eulaAccepted, setEulaAccepted] = useState(false); // New state for EULA acceptance
+    const [showDocViewer, setShowDocViewer] = useState(null); // 'eula' or 'privacy'
     const audioInitialized = useRef(false); // Ref to track audio initialization
 
     useEffect(() => {
-        const hasEntered = localStorage.getItem('flashfonic-entered');
-        if (hasEntered) {
-            // FIX: Ensure audio context is started on subsequent visits too
-            if (!audioInitialized.current) {
-                Tone.start();
-                console.log("AudioContext started on return visit.");
-                audioInitialized.current = true;
+        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
+        if (hasAcceptedEULA === 'true') {
+            setEulaAccepted(true);
+            const hasEntered = localStorage.getItem('flashfonic-entered');
+            if (hasEntered) {
+                setShowApp(true);
+                // Ensure audio context is started on subsequent visits too
+                if (!audioInitialized.current) {
+                    Tone.start();
+                    console.log("AudioContext started on return visit.");
+                    audioInitialized.current = true;
+                }
             }
-            setShowApp(true);
         }
     }, []);
 
     const handleEnter = async () => {
-        // FIX: Start Tone.js AudioContext on the first user gesture
+        // This function is now called from the LandingPage, which is shown AFTER EULA acceptance
         if (!audioInitialized.current) {
             await Tone.start();
-            console.log("AudioContext started on first enter.");
+            console.log("AudioContext started on first enter from LandingPage.");
             audioInitialized.current = true;
         }
         localStorage.setItem('flashfonic-entered', 'true');
         setShowApp(true);
     };
 
-    if (!showApp) {
-        return <LandingPage onEnter={handleEnter} />;
+    const handleEULAAccept = async () => {
+        localStorage.setItem('flashfonic-eula-accepted', 'true');
+        setEulaAccepted(true);
+        // Now proceed to the original landing page flow (which will call handleEnter)
+        // No need to call Tone.start() here again, as handleEnter will handle it.
+    };
+
+    if (!eulaAccepted) {
+        return (
+            <div className="viewer-overlay"> {/* Use existing modal overlay styles for full page */}
+                <div className="modal-content" style={{ maxWidth: '800px', textAlign: 'left', padding: '2rem', overflowY: 'auto', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+                    <h2 className="how-to-play-title" style={{textAlign: 'center'}}>End-User License Agreement</h2>
+                    <div className="how-to-play-content" dangerouslySetInnerHTML={{ __html: marked(eulaContent) }} />
+                    <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+                        <button onClick={handleEULAAccept} className="modal-create-btn">I Agree</button>
+                    </div>
+                </div>
+            </div>
+        );
     }
 
     return (
         <div className="main-app-container">
-            <MainApp />
+            {showApp ? <MainApp /> : <LandingPage onEnter={handleEnter} />}
             <Analytics />
         </div>
     );
