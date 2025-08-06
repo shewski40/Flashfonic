@@ -30,7 +30,7 @@ Subject to the terms and conditions of this Agreement, FlashFonic grants You a l
 FlashFonic is designed to enhance your learning experience through the use of your device's microphone and camera, and advanced Artificial Intelligence (AI).
 
 * **Microphone Use (FlashFonic Mode):** When you activate features such as "Start Listening," "Voice Activate," or "Auto-Flash," the Application accesses your device's microphone to capture audio input. This audio is transmitted to our AI backend for real-time transcription and the generation of flashcards and summary notes. **Raw audio recordings are processed transiently and are not stored long-term on our servers.**
-* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed transiently and is not stored long-term on our servers.**
+* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed solely for text extraction and is not stored long-term on our servers.**
 * **Consent:** Your use of the microphone and camera features within the Application constitutes your express consent for FlashFonic to access and process your audio and image data solely for the purposes described herein. You may manage or revoke these permissions at any time through your device's operating system settings.
 * **AI Processing:** The AI models utilized by FlashFonic process your input (transcribed audio, extracted text from images) to generate new content (flashcards, notes). While we strive for accuracy, AI-generated content may contain **inaccuracies, errors, or unintended biases**. FlashFonic is a supplementary study tool, and **You are solely responsible for verifying the correctness and completeness of all AI-generated content.**
 * **Data Privacy:** We are committed to protecting your privacy. All data collected and processed by FlashFonic, including audio, image, and text inputs, is handled in accordance with our Privacy Policy. Data is used exclusively for the operation and improvement of the Application's core functionalities and is not shared with third parties for marketing or other unrelated purposes.
@@ -499,9 +499,10 @@ const LandingPage = ({ onEnter }) => {
             </nav>
 
             <header className="landing-hero">
-                <h1 className="landing-h1">The Future of Studying is Listening.</h1>
+                {/* Updated Tagline */}
+                <h1 className="landing-h1">The Future of Studying is Here.</h1>
                 <p className="landing-p">
-                    Introducing <span className="brand-bling">FlashFonic</span>, the world's first app that uses AI to instantly turn your spoken words, lectures, and audio notes into powerful flashcards.
+                    Introducing <span className="brand-bling">FlashFonic</span>, the world's first AI-powered learning companion that transforms your study materials into dynamic flashcards, organized notes, and engaging games.
                 </p>
                 <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
             </header>
@@ -512,45 +513,50 @@ const LandingPage = ({ onEnter }) => {
                     <div className="step">
                         <div className="step-number">1</div>
                         <h3>CAPTURE</h3>
-                        <p>Record live audio or upload a file.</p>
+                        <p>Record live audio, upload a file, or snap a photo of your notes.</p>
                     </div>
                     <div className="step">
                         <div className="step-number">2</div>
                         <h3>AI GENERATE</h3>
-                        <p>Our AI transcribes and creates a Q&A flashcard.</p>
+                        <p>Our intelligent AI instantly creates Q&A flashcards or comprehensive notes.</p>
                     </div>
                     <div className="step">
                         <div className="step-number">3</div>
-                        <h3>STUDY</h3>
-                        <p>Master your material with our advanced study tools.</p>
+                        <h3>MASTER</h3>
+                        <p>Solidify your knowledge with advanced study tools and fun, interactive games.</p>
                     </div>
                 </div>
             </section>
 
             <section className="features-section">
-                <h2>A Smarter Way to Learn</h2>
+                {/* New Section Title */}
+                <h2>Unleash Your Learning Superpowers.</h2>
                 <div className="features-grid">
-                    <div className="feature-card">
-                        <h3>🤖 Revolutionary Audio-to-Card AI</h3>
-                        <p>Stop typing, start talking. Our cutting-edge AI listens, transcribes, and intelligently crafts flashcards for you. Perfect for lectures, brainstorming, and hands-free learning.</p>
+                    {/* New Feature Card 1: FlashFoto */}
+                    <div className="feature-card" style={{ border: '1px solid #EC4899', boxShadow: '0 0 15px rgba(236, 72, 153, 0.3)' }}>
+                        <h3>📸 FlashFoto: Snap & Learn Instantly</h3>
+                        <p>Transform handwritten notes, textbook pages, or whiteboard diagrams into interactive flashcards. Just snap a photo, and our AI does the rest, extracting key information to create ready-to-study content.</p>
                     </div>
-                    <div className="feature-card">
-                        <h3>⚡️ Hands-Free Capture Modes</h3>
-                        <p>Stay in the zone. Use the "Flash It!" voice command to manually create cards, or enable **Auto-Flash** to automatically generate a new card at set intervals during a lecture. Learning has never been this passive and powerful.</p>
+                    {/* New Feature Card 2: FlashNotes */}
+                    <div className="feature-card" style={{ border: '1px solid #8B5CF6', boxShadow: '0 0 15px rgba(139, 92, 246, 0.3)' }}>
+                        <h3>📝 FlashNotes: Your Personal AI Study Guide</h3>
+                        <p>Turn your entire flashcard deck into a coherent, organized study guide with one click. FlashNotes synthesizes your Q&A pairs into comprehensive, markdown-formatted summaries, perfect for review sessions.</p>
                     </div>
-                    <div className="feature-card">
-                        <h3>📚 Advanced Study Suite</h3>
-                        <p>Study your way. Flip, scramble, and flag cards. Listen to your deck with our Text-to-Speech engine, and even reorder cards with a simple drag-and-drop.</p>
+                    {/* New Feature Card 3: Verbatim Master Game */}
+                    <div className="feature-card" style={{ border: '1px solid #10B981', boxShadow: '0 0 15px rgba(16, 185, 129, 0.3)' }}>
+                        <h3>🏆 Verbatim Master: Game Your Way to Recall</h3>
+                        <p>Challenge your memory with our interactive recall game. Listen to questions and speak your answers aloud. Our AI scores your precision, helping you achieve true mastery and solidify long-term retention.</p>
                     </div>
-                    <div className="feature-card">
-                        <h3>📂 Organize & Export with Ease</h3>
-                        <p>Keep your subjects sorted in folders. When you're ready to study offline, export any deck to a professional PDF or a simple CSV file in seconds.</p>
+                    {/* New Feature Card 4: More Intelligent Features */}
+                    <div className="feature-card" style={{ border: '1px solid #FFD700', boxShadow: '0 0 15px rgba(255, 215, 0, 0.3)' }}>
+                        <h3>✨ Smart Organization & Seamless Export</h3>
+                        <p>Effortlessly manage your knowledge with intuitive folders and subfolders. Export your custom flashcards to PDF or CSV, or your FlashNotes to PDF, for offline study and sharing. Your learning, your way.</p>
                     </div>
                 </div>
             </section>
 
             <footer className="landing-footer">
-                <h2>Ready to change the way you learn?</h2>
+                <h2>Ready to experience the future of studying?</h2>
                 <button onClick={onEnter} className="landing-cta">Start Flashing!</button>
                 <p className="footer-credit">Welcome to the FlashFonic Beta</p>
             </footer>
@@ -1631,7 +1637,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
 
 // --- MAIN APP COMPONENT ---
-const MainApp = () => {
+// showDocViewer and setShowDocViewer are now passed as props
+const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [appMode, setAppMode] = useState(null);
     const [isListening, setIsListening] = useState(false);
     const [notification, setNotification] = useState('');
@@ -3635,7 +3642,7 @@ const App = () => {
 
     return (
         <div className="main-app-container">
-            {showApp ? <MainApp /> : <LandingPage onEnter={handleEnter} />}
+            {showApp ? <MainApp setShowDocViewer={setShowDocViewer} showDocViewer={showDocViewer} /> : <LandingPage onEnter={handleEnter} />}
             <Analytics />
         </div>
     );
