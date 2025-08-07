@@ -462,6 +462,20 @@ const DocViewer = ({ docType, onClose }) => {
     );
 };
 
+// NEW: Component to display the EULA full-screen.
+const EULAModal = ({ onAccept }) => {
+    return (
+        <div className="viewer-overlay">
+            <div className="modal-content" style={{ maxWidth: '800px', textAlign: 'left', padding: '2rem', overflowY: 'auto', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+                <h2 className="how-to-play-title" style={{textAlign: 'center'}}>End-User License Agreement</h2>
+                <div className="how-to-play-content" dangerouslySetInnerHTML={{ __html: marked(eulaContent) }} />
+                <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+                    <button onClick={onAccept} className="modal-create-btn">I Agree</button>
+                </div>
+            </div>
+        </div>
+    );
+}
 
 // NEW: Modal to choose between Live Capture and File Upload
 const FlashFonicModeModal = ({ onSelect, onClose }) => (
@@ -549,7 +563,7 @@ const LandingPage = ({ onEnter }) => {
                         <p>Challenge your memory with our interactive recall game. Listen to questions and speak your answers aloud. Our AI scores your precision, helping you achieve true mastery and solidify long-term retention.</p>
                     </div>
                     {/* New Feature Card 4: More Intelligent Features */}
-                    <div className="feature-card" style={{ border: '1px solid #FFD700', boxShadow: '0 0 15px rgba(255, 215, 0, 0.3)' }}>
+                    <div className="feature-card" style={{ border: '19px solid #FFD700', boxShadow: '0 0 15px rgba(255, 215, 0, 0.3)' }}>
                         <h3>✨ Smart Organization & Seamless Export</h3>
                         <p>Effortlessly manage your knowledge with intuitive folders and subfolders. Export your custom flashcards to PDF or CSV, or your FlashNotes to PDF, for offline study and sharing. Your learning, your way.</p>
                     </div>
@@ -3597,56 +3611,62 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
 // --- Top-Level App Component ---
 const App = () => {
-    const [showApp, setShowApp] = useState(false);
-    const [eulaAccepted, setEulaAccepted] = useState(false); // New state for EULA acceptance
-    const [showDocViewer, setShowDocViewer] = useState(null); // 'eula' or 'privacy'
-    const audioInitialized = useRef(false); // Ref to track audio initialization
+    const [showLanding, setShowLanding] = useState(false);
+    const [eulaAccepted, setEulaAccepted] = useState(false);
+    const [hasEntered, setHasEntered] = useState(false);
+    const [showDocViewer, setShowDocViewer] = useState(null);
+    const audioInitialized = useRef(false);
 
     useEffect(() => {
         const queryParams = new URLSearchParams(window.location.search);
         const isDevMode = queryParams.get('dev') === 'true';
-
         let hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
+        let hasEnteredSession = localStorage.getItem('flashfonic-entered-session');
 
-        // If in dev mode, force EULA to show every time
+        // Force EULA and Landing page for dev mode
         if (isDevMode) {
-            hasAcceptedEULA = 'false'; // Override to force display
-            console.log("Dev mode active: Forcing EULA display.");
+            hasAcceptedEULA = 'false';
+            hasEnteredSession = 'false';
+            console.log("Dev mode active: Forcing EULA and Landing Page display.");
         }
 
-        if (hasAcceptedEULA === 'true') {
+        // Handle the initial page load based on local storage
+        if (hasAcceptedEULA === 'true' && hasEnteredSession === 'true') {
             setEulaAccepted(true);
-            const hasEntered = localStorage.getItem('flashfonic-entered');
-            if (hasEntered) {
-                setShowApp(true);
-                // Ensure audio context is started on subsequent visits too
-                if (!audioInitialized.current) {
-                    Tone.start();
-                    console.log("AudioContext started on return visit.");
-                    audioInitialized.current = true;
-                }
+            setHasEntered(true);
+            if (!audioInitialized.current) {
+                Tone.start();
+                console.log("AudioContext started on return visit.");
+                audioInitialized.current = true;
             }
+        } else if (hasAcceptedEULA === 'true' && hasEnteredSession !== 'true') {
+            setEulaAccepted(true);
+            setShowLanding(true);
+        } else {
+            // First time ever, show landing page to get user to click
+            setShowLanding(true);
         }
     }, []);
 
-    const handleEnter = async () => {
-        // This function is now called from the LandingPage, which is shown AFTER EULA acceptance
+    const handleStartLandingFlow = async () => {
+        // This is called by the landing page button
+        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
         const queryParams = new URLSearchParams(window.location.search);
         const isDevMode = queryParams.get('dev') === 'true';
-        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
 
-        if (!eulaAccepted && hasAcceptedEULA !== 'true' && !isDevMode) {
-            // This is the first time the user is entering, show EULA
-            setEulaAccepted(false); // Force EULA screen first
-        } else {
-            // EULA has been accepted or is in dev mode, proceed to main app
+        if (hasAcceptedEULA === 'true' || isDevMode) {
+            // EULA already accepted, or in dev mode, proceed to app
             if (!audioInitialized.current) {
                 await Tone.start();
-                console.log("AudioContext started on first enter from LandingPage.");
+                console.log("AudioContext started from Landing Page.");
                 audioInitialized.current = true;
             }
-            localStorage.setItem('flashfonic-entered', 'true');
-            setShowApp(true);
+            setHasEntered(true);
+            localStorage.setItem('flashfonic-entered-session', 'true');
+        } else {
+            // First time, show EULA modal
+            setShowLanding(false); // Hide the landing page
+            setEulaAccepted(false); // Make sure EULA modal is shown
         }
     };
 
@@ -3654,35 +3674,29 @@ const App = () => {
         localStorage.setItem('flashfonic-eula-accepted', 'true');
         setEulaAccepted(true);
         
+        // After accepting EULA, start audio and enter app
         if (!audioInitialized.current) {
             await Tone.start();
             console.log("AudioContext started after EULA acceptance.");
             audioInitialized.current = true;
         }
-        localStorage.setItem('flashfonic-entered', 'true');
-        setShowApp(true);
+        setHasEntered(true);
+        localStorage.setItem('flashfonic-entered-session', 'true');
     };
 
-    if (!eulaAccepted) {
+    // Main render logic
+    if (eulaAccepted && hasEntered) {
         return (
-            <div className="viewer-overlay">
-                <div className="modal-content" style={{ maxWidth: '800px', textAlign: 'left', padding: '2rem', overflowY: 'auto', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
-                    <h2 className="how-to-play-title" style={{textAlign: 'center'}}>End-User License Agreement</h2>
-                    <div className="how-to-play-content" dangerouslySetInnerHTML={{ __html: marked(eulaContent) }} />
-                    <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
-                        <button onClick={handleEULAAccept} className="modal-create-btn">I Agree</button>
-                    </div>
-                </div>
+            <div className="main-app-container">
+                <MainApp setShowDocViewer={setShowDocViewer} showDocViewer={showDocViewer} />
+                <Analytics />
             </div>
         );
+    } else if (showLanding) {
+        return <LandingPage onEnter={handleStartLandingFlow} />;
+    } else {
+        return <EULAModal onAccept={handleEULAAccept} />;
     }
-
-    return (
-        <div className="main-app-container">
-            {showApp ? <MainApp setShowDocViewer={setShowDocViewer} showDocViewer={showDocViewer} /> : <LandingPage onEnter={handleEnter} />}
-            <Analytics />
-        </div>
-    );
 };
 
 export default App;
