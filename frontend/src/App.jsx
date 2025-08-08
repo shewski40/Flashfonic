@@ -1849,7 +1849,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             setNotification('Card generated!');
         } catch (error) {
             console.error("Error:", error);
-            setNotification(`Error: ${error.message}`);
+            setNotification(`Error: ${error.message || 'Failed to connect to the backend server. Please try again later.'}`);
         } finally {
             setIsGenerating(false);
         }
@@ -1909,7 +1909,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                 setNotification("Audio is ready! You can now flash it!");
             } catch (error) {
                 console.error("Error processing audio:", error);
-                setNotification(`Error: ${error.message}`);
+                setNotification(`Error: ${error.message || 'Failed to connect to the backend server. Please try again later.'}`);
             } finally {
                 setIsProcessing(false);
             }
@@ -3611,91 +3611,77 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
 // --- Top-Level App Component ---
 const App = () => {
-    const [showLanding, setShowLanding] = useState(false);
+    const [showLanding, setShowLanding] = useState(true); // Now starts on landing page
     const [eulaAccepted, setEulaAccepted] = useState(false);
-    const [hasEntered, setHasEntered] = useState(false);
+    const [hasAgreedToEULAThisSession, setHasAgreedToEULAThisSession] = useState(false);
     const [showDocViewer, setShowDocViewer] = useState(null);
     const audioInitialized = useRef(false);
 
     useEffect(() => {
         const queryParams = new URLSearchParams(window.location.search);
         const isDevMode = queryParams.get('dev') === 'true';
-        let hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
-        let hasEnteredSession = localStorage.getItem('flashfonic-entered-session');
+        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
 
-        // Force EULA and Landing page for dev mode
         if (isDevMode) {
-            hasAcceptedEULA = 'false';
-            hasEnteredSession = 'false';
+            // In dev mode, force EULA to show every time
+            setEulaAccepted(false);
             console.log("Dev mode active: Forcing EULA and Landing Page display.");
-        }
-
-        // Handle the initial page load based on local storage
-        if (hasAcceptedEULA === 'true' && hasEnteredSession === 'true') {
+        } else if (hasAcceptedEULA === 'true') {
+            // In production, check if EULA has been accepted before
             setEulaAccepted(true);
-            setHasEntered(true);
-            if (!audioInitialized.current) {
-                Tone.start();
-                console.log("AudioContext started on return visit.");
-                audioInitialized.current = true;
-            }
-        } else if (hasAcceptedEULA === 'true' && hasEnteredSession !== 'true') {
-            setEulaAccepted(true);
-            setShowLanding(true);
-        } else {
-            // First time ever, show landing page to get user to click
-            setShowLanding(true);
         }
     }, []);
 
     const handleStartLandingFlow = async () => {
-        // This is called by the landing page button
-        const hasAcceptedEULA = localStorage.getItem('flashfonic-eula-accepted');
         const queryParams = new URLSearchParams(window.location.search);
         const isDevMode = queryParams.get('dev') === 'true';
 
-        if (hasAcceptedEULA === 'true' || isDevMode) {
-            // EULA already accepted, or in dev mode, proceed to app
+        // Check if EULA has been accepted this session or previously
+        if (eulaAccepted || isDevMode) {
+            // EULA is already accepted, proceed directly to the main app UI
             if (!audioInitialized.current) {
                 await Tone.start();
-                console.log("AudioContext started from Landing Page.");
+                console.log("AudioContext started from Landing Page after EULA check.");
                 audioInitialized.current = true;
             }
-            setHasEntered(true);
-            localStorage.setItem('flashfonic-entered-session', 'true');
+            setShowLanding(false);
         } else {
-            // First time, show EULA modal
-            setShowLanding(false); // Hide the landing page
-            setEulaAccepted(false); // Make sure EULA modal is shown
+            // First-time user, show EULA modal
+            setEulaAccepted(false); // Force EULA to show
         }
     };
 
     const handleEULAAccept = async () => {
         localStorage.setItem('flashfonic-eula-accepted', 'true');
         setEulaAccepted(true);
+        setHasAgreedToEULAThisSession(true); // Track acceptance for this session
         
-        // After accepting EULA, start audio and enter app
         if (!audioInitialized.current) {
             await Tone.start();
             console.log("AudioContext started after EULA acceptance.");
             audioInitialized.current = true;
         }
-        setHasEntered(true);
-        localStorage.setItem('flashfonic-entered-session', 'true');
     };
 
+    // This useEffect handles the transition from EULA to MainApp
+    useEffect(() => {
+        if (eulaAccepted && hasAgreedToEULAThisSession) {
+            setShowLanding(false);
+        }
+    }, [eulaAccepted, hasAgreedToEULAThisSession]);
+
     // Main render logic
-    if (eulaAccepted && hasEntered) {
+    if (eulaAccepted && !showLanding) {
         return (
             <div className="main-app-container">
                 <MainApp setShowDocViewer={setShowDocViewer} showDocViewer={showDocViewer} />
                 <Analytics />
             </div>
         );
-    } else if (showLanding) {
-        return <LandingPage onEnter={handleStartLandingFlow} />;
-    } else {
+    } else if (!eulaAccepted) {
         return <EULAModal onAccept={handleEULAAccept} />;
+    } else {
+        return <LandingPage onEnter={handleStartLandingFlow} />;
     }
 };
 
