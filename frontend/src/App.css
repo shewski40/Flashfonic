@@ -58,7 +58,7 @@ body {
   margin-bottom: 0.25rem;
 }
 
-/* --- FIX: Styling for "by FlashFonic" --- */
+/* --- NEW: Styling for "by FlashFonic" --- */
 .flashfoto-header .sub-brand {
     font-size: 1.1rem;
     font-weight: 500;
@@ -88,7 +88,7 @@ body {
   position: relative;
 }
 
-/* --- NEW --- Fix for main mode buttons */
+/* --- NEW: Styling for main mode buttons (FlashFonic/FlashFoto) --- */
 .main-mode-selector {
   display: flex;
   justify-content: center;
@@ -105,8 +105,6 @@ body {
     background: var(--brand-gradient);
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
 }
-
-
 /* --- END NEW --- */
 
 .main-controls .listening-control {
@@ -1162,7 +1160,7 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-/* --- VOICE SELECTOR STYLES (UPDATED) --- */
+/* --- NEW: Voice selector styles --- */
 .custom-select-container {
     position: relative;
 }
@@ -1228,7 +1226,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: var(--primary-purple);
     color: white;
 }
-/* --- END VOICE SELECTOR STYLES --- */
+/* --- END NEW --- */
 
 .stop-listening-bar {
   background-color: var(--danger-red);
@@ -2116,7 +2114,7 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
 }
 
-/* --- LEADERBOARD STYLES (UPDATED) --- */
+/* --- NEW: Leaderboard styles --- */
 .leaderboard-container {
   font-family: 'Poppins', sans-serif;
   width: 100%;
@@ -2219,7 +2217,7 @@ input[type="range"]::-webkit-slider-thumb {
   animation: flash 1.5s 3; /* Flash 3 times */
   border-radius: 8px;
 }
-/* --- END LEADERBOARD STYLES --- */
+/* --- END NEW --- */
 
 
 .medal-container {
@@ -2273,185 +2271,6 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .game-landing-title {
-    font-size: 3rem;
-    font-weight: 700;
-    font-family: 'Uncial Antiqua', cursive;
-    color: transparent;
-    background-clip: text;
-    -webkit-background-clip: text;
-    background-image: var(--brand-gradient);
-    text-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
-    letter-spacing: 2px;
-}
-
-.game-landing-actions {
-    display: flex;
-    gap: 1.5rem;
-}
-
-.game-play-mode-selector {
-    display: flex;
-    gap: 1rem;
-    width: 100%;
-    max-width: 400px;
-}
-
-.game-mode-btn {
-    flex: 1;
-    padding: 0.8em 1em;
-    border-radius: 8px;
-    border: 1px solid var(--border-color);
-    cursor: pointer;
-    font-weight: bold;
-    background-color: var(--content-bg);
-    color: var(--text-soft);
-    transition: all 0.2s ease;
-}
-
-.game-mode-btn.active {
-    background-color: var(--secondary-pink);
-    color: white;
-    border-color: var(--secondary-pink);
-}
-
-.continuous-play-notice {
-    margin-top: 1rem;
-    font-style: italic;
-    color: var(--text-dark);
-}
-
-.game-landing-voice-selector {
-    width: 100%;
-    max-width: 300px;
-}
-
-.how-to-play-overlay {
-    z-index: 1003;
-}
-
-.how-to-play-title {
-    background-image: var(--brand-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-}
-
-.how-to-play-content {
-    text-align: left;
-    color: var(--text-soft);
-    line-height: 1.6;
-    max-height: 70vh;
-    overflow-y: auto;
-    padding-right: 1rem;
-}
-
-.how-to-play-content h3 {
-    color: var(--primary-purple);
-    margin-top: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-.how-to-play-content ol, .how-to-play-content ul {
-    padding-left: 1.5rem;
-}
-
-.how-to-play-content li {
-    margin-bottom: 0.5rem;
-}
-
-.in-game-controls {
-    position: absolute;
-    bottom: 1rem;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 1rem;
-    z-index: 1002;
-}
-
-.in-game-controls button {
-    background-color: rgba(31, 41, 55, 0.8);
-    color: var(--text-soft);
-    border: 1px solid var(--border-color);
-    padding: 0.5em 1em;
-    border-radius: 8px;
-    cursor: pointer;
-    font-size: 0.9em;
-    font-weight: 500;
-}
-
-.game-pause-overlay {
-    background-color: rgba(17, 24, 39, 0.95);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2rem;
-    width: 100%;
-    height: 100%;
-    color: var(--text-light);
-}
-
-.game-pause-overlay h2 {
-    font-size: 2.5rem;
-}
-
-.in-game-voice-selector {
-    position: absolute;
-    bottom: 4rem;
-    left: 50%;
-    transform: translateX(-50%);
-    width: 100%;
-    max-width: 300px;
-    z-index: 1002;
-}
-
-.game-start-button {
-    padding: 1.5rem 3rem;
-    font-size: 3rem;
-    font-weight: bold;
-    border-radius: 50px;
-    border: 3px solid var(--primary-purple);
-    cursor: pointer;
-    background: transparent;
-    color: var(--primary-purple);
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 3px;
-}
-
-.game-start-button:hover {
-    background-color: var(--primary-purple);
-    color: white;
-    box-shadow: 0 0 25px var(--primary-purple);
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.anamnesis-landing-page {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 2rem;
-    width: 100%;
-    height: 100%;
-    background-color: #0A0A0A;
-    background-image:
-        linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)),
-        url('https://www.gstatic.com/images/branding/product/1x/gemini_2023_logo_48dp.png');
-    background-size: cover;
-    background-position: center;
-    color: var(--text-light);
-    text-align: center;
-    padding: 2rem;
-    box-sizing: border-box;
-}
-
-.anamnesis-title {
     font-family: 'Uncial Antiqua', cursive;
     font-size: 3rem;
     line-height: 1.2;
@@ -2571,7 +2390,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: var(--secondary-pink);
 }
 
-/* --- NEW STYLES FOR FLASHFOTO --- */
+/* --- NEW: FlashFoto styles --- */
 
 .image-preview-container {
     width: 100%;
@@ -2638,8 +2457,13 @@ input[type="range"]::-webkit-slider-thumb {
     font-weight: bold;
     cursor: pointer;
 }
-
-.ai-recommendation-actions button:last-child {
-    background-color: var(--content-bg);
-    border: 1px solid var(--primary-purple);
+/* Added danger style for the cancel button */
+.ai-recommendation-actions button.danger {
+  background-color: var(--danger-red);
 }
+
+/* NEW: Style for the "Clear Image" button */
+.start-stop-btn.cancel-action {
+  background-color: var(--danger-red);
+}
+/* --- END NEW --- */
