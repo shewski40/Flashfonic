@@ -58,13 +58,12 @@ body {
   margin-bottom: 0.25rem;
 }
 
-/* --- NEW: Styling for "by FlashFonic" --- */
 .flashfoto-header .sub-brand {
     font-size: 1.1rem;
     font-weight: 500;
-    color: var(--primary-purple); /* Match heading color */
-    margin-top: -0.5rem; /* Move closer to heading */
-    margin-bottom: 1.5rem; /* Add space below */
+    color: var(--primary-purple);
+    margin-top: -0.5rem;
+    margin-bottom: 1.5rem;
 }
 
 .subheading {
@@ -88,7 +87,6 @@ body {
   position: relative;
 }
 
-/* --- NEW: Styling for main mode buttons (FlashFonic/FlashFoto) --- */
 .main-mode-selector {
   display: flex;
   justify-content: center;
@@ -105,7 +103,6 @@ body {
     background: var(--brand-gradient);
     box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
 }
-/* --- END NEW --- */
 
 .main-controls .listening-control {
   display: flex;
@@ -542,7 +539,7 @@ input[type="range"]::-webkit-slider-thumb {
 
 .folder-main-actions {
   display: flex;
-  flex-wrap: wrap; /* Added this line to allow buttons to wrap on smaller screens */
+  flex-wrap: wrap;
   gap: 0.5rem;
   align-items: center;
 }
@@ -823,6 +820,7 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 0.5rem;
   font-family: inherit;
   font-size: 1em;
+  box-sizing: border-box; /* Added to ensure padding doesn't overflow */
 }
 
 .edit-actions {
@@ -1160,7 +1158,6 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
 }
 
-/* --- NEW: Voice selector styles --- */
 .custom-select-container {
     position: relative;
 }
@@ -1226,7 +1223,6 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: var(--primary-purple);
     color: white;
 }
-/* --- END NEW --- */
 
 .stop-listening-bar {
   background-color: var(--danger-red);
@@ -2114,7 +2110,6 @@ input[type="range"]::-webkit-slider-thumb {
   color: white;
 }
 
-/* --- NEW: Leaderboard styles --- */
 .leaderboard-container {
   font-family: 'Poppins', sans-serif;
   width: 100%;
@@ -2154,7 +2149,6 @@ input[type="range"]::-webkit-slider-thumb {
   margin: 0;
 }
 
-/* This is the new grid layout for both the header and the list items */
 .leaderboard-list > div,
 .leaderboard-list li {
   display: grid;
@@ -2166,12 +2160,10 @@ input[type="range"]::-webkit-slider-thumb {
   border-bottom: 1px solid var(--border-color);
 }
 
-/* Remove border from the last item */
 .leaderboard-list li:last-child {
   border-bottom: none;
 }
 
-/* Header specific styles */
 .leaderboard-list > div {
   font-weight: bold;
   color: var(--text-dark);
@@ -2188,7 +2180,6 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: normal;
 }
 
-/* Column-specific alignment and styling */
 .leaderboard-list span:nth-child(1) { /* Rank */
   color: var(--primary-purple);
   font-weight: bold;
@@ -2207,18 +2198,15 @@ input[type="range"]::-webkit-slider-thumb {
   font-weight: bold;
 }
 
-/* New animation for recent score */
 @keyframes flash {
   0%, 100% { background-color: transparent; }
   50% { background-color: rgba(236, 72, 153, 0.2); }
 }
 
 .leaderboard-list li.recent-score {
-  animation: flash 1.5s 3; /* Flash 3 times */
+  animation: flash 1.5s 3;
   border-radius: 8px;
 }
-/* --- END NEW --- */
-
 
 .medal-container {
   text-align: center;
@@ -2390,8 +2378,6 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: var(--secondary-pink);
 }
 
-/* --- NEW: FlashFoto styles --- */
-
 .image-preview-container {
     width: 100%;
     max-height: 300px;
@@ -2457,13 +2443,188 @@ input[type="range"]::-webkit-slider-thumb {
     font-weight: bold;
     cursor: pointer;
 }
-/* Added danger style for the cancel button */
 .ai-recommendation-actions button.danger {
   background-color: var(--danger-red);
 }
 
-/* NEW: Style for the "Clear Image" button */
 .start-stop-btn.cancel-action {
   background-color: var(--danger-red);
 }
-/* --- END NEW --- */
+
+.usage-counter {
+  position: absolute;
+  top: 1rem;
+  right: 1.5rem;
+  background-color: var(--dark-bg);
+  color: var(--secondary-pink);
+  padding: 0.3em 0.8em;
+  border-radius: 20px;
+  font-size: 0.8em;
+  font-weight: bold;
+  border: 1px solid var(--secondary-pink);
+}
+
+.upload-cancel-container {
+  text-align: center;
+  margin-top: -0.5rem;
+  margin-bottom: 1rem;
+}
+
+.cancel-upload-btn {
+  background: none;
+  border: 1px solid var(--danger-red);
+  color: var(--danger-red);
+  padding: 0.4em 1em;
+  border-radius: 20px;
+  font-size: 0.9em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-upload-btn:hover {
+  background-color: var(--danger-red);
+  color: white;
+}
+
+.in-game-controls {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  display: flex;
+  gap: 0.5rem;
+  z-index: 1002;
+}
+
+.in-game-controls button {
+  background-color: rgba(31, 41, 55, 0.8);
+  border: 1px solid var(--border-color);
+  color: var(--text-light);
+  padding: 0.5em 1em;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.game-pause-overlay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  color: var(--text-light);
+}
+
+.game-pause-overlay h2 {
+  font-size: 2.5rem;
+  margin: 0;
+}
+
+.game-start-button {
+  font-size: 4rem;
+  font-weight: bold;
+  color: white;
+  background: var(--brand-gradient);
+  border: none;
+  padding: 0.5em 1.5em;
+  border-radius: 20px;
+  cursor: pointer;
+  animation: pulse-blue 2s infinite;
+}
+
+.game-play-mode-selector {
+  display: flex;
+  background-color: var(--content-bg);
+  border-radius: 30px;
+  padding: 5px;
+  border: 1px solid var(--border-color);
+}
+
+.game-mode-btn {
+  padding: 0.6em 1.2em;
+  border: none;
+  background: none;
+  color: var(--text-dark);
+  font-weight: 500;
+  border-radius: 25px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.game-mode-btn.active {
+  background-color: var(--primary-purple);
+  color: white;
+}
+
+.game-landing-voice-selector {
+  width: 100%;
+  max-width: 250px;
+}
+
+.in-game-voice-selector {
+  position: absolute;
+  bottom: 1rem;
+  left: 1rem;
+  width: 200px;
+  z-index: 1002;
+}
+
+.continuous-play-notice {
+  font-size: 1rem;
+  font-style: italic;
+  color: var(--text-dark);
+  margin-top: 1rem;
+}
+
+.how-to-play-overlay .modal-content {
+  max-width: 600px;
+  text-align: left;
+}
+
+.how-to-play-title {
+  font-size: 1.8rem;
+  color: var(--primary-purple);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.how-to-play-content h3 {
+  font-size: 1.2rem;
+  color: var(--secondary-pink);
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.how-to-play-content p, 
+.how-to-play-content li {
+  color: var(--text-soft);
+  line-height: 1.6;
+}
+
+.how-to-play-content ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+.how-to-play-content li {
+  padding-left: 1em;
+  text-indent: -1em;
+}
+
+.how-to-play-content .modal-actions {
+  justify-content: center;
+  margin-top: 2rem;
+}
+
+.study-area-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+}
+
+.study-area-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  max-width: 900px;
+}
