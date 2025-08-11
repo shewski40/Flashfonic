@@ -1058,12 +1058,11 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
     );
 };
 
-// ... (rest of the components like GameViewer remain the same)
 const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy, mostRecentScore }) => {
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
-    const [gameState, setGameState] = useState('landing'); // landing, name_entry, ready, starting, asking, listening, scoring, round_result, game_over
+    const [gameState, setGameState] = useState('landing');
     const [userAnswer, setUserAnswer] = useState('');
     const [lastScore, setLastScore] = useState(null);
     const [isListening, setIsListening] = useState(false);
@@ -1071,9 +1070,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [isPaused, setIsPaused] = useState(false);
     const [playerName, setPlayerName] = useState('');
     const [showLeaderboard, setShowLeaderboard] = useState(false);
-    const [playMode, setPlayMode] = useState('continuous'); // 'manual' or 'continuous'
+    const [playMode, setPlayMode] = useState('continuous');
     
-    // Voice selection state
     const [voices, setVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState('');
     const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
@@ -1635,7 +1633,17 @@ const FolderItem = ({
     setSelectedFolderForMove,
     handleMoveSelectedCardsFromExpandedFolder,
     handleCardInFolderDragStart,
-    handleCardInFolderDrop
+    handleCardInFolderDrop,
+    // --- BUG FIX: Pass down functions needed by the restored buttons ---
+    isListening,
+    stopListening,
+    exportFolderToPDF,
+    exportFolderToCSV,
+    handleAddSubfolder,
+    handleRenameFolder,
+    handleDeleteFolder,
+    findFolderById,
+    folders
 }) => {
     const isExpanded = expandedFolderIds.has(folder.id);
     const paddingLeft = level * 20;
@@ -1651,7 +1659,12 @@ const FolderItem = ({
     return (
         <div
             key={folder.id}
-            className={`folder`}
+            className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
+            draggable
+            onDragStart={(e) => handleFolderDragStart(e, folder.id)}
+            onDragOver={handleFolderDragOver}
+            onDrop={(e) => handleFolderDrop(e, folder.id)}
+            onDragEnd={handleFolderDragEnd}
             style={{ paddingLeft: `${paddingLeft}px` }}
         >
             <div
@@ -1685,7 +1698,83 @@ const FolderItem = ({
             </div>
             {isExpanded && (
                 <div className="folder-expanded-content">
-                    {/* ... content of the expanded folder ... */}
+                    {/* --- BUG FIX: This entire block was missing. It has been restored. --- */}
+                    <div className="folder-expanded-header">
+                        <h3 className="folder-expanded-name">{folder.name}</h3>
+                        <div className="folder-main-actions">
+                            <button
+                                onClick={() => {
+                                    if (isListening) stopListening();
+                                    setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
+                                    setModalConfig(null);
+                                    setIsFeedbackModalOpen(false);
+                                }}
+                                className="study-btn-large"
+                            >
+                                Study
+                            </button>
+                            <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
+                            <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
+                        </div>
+                        <div className="folder-expanded-actions">
+                            <ActionsDropdown
+                                folder={folder}
+                                exportPdf={exportFolderToPDF}
+                                exportCsv={exportFolderToCSV}
+                                onAddSubfolder={(id) => {
+                                    setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
+                                }}
+                                onRenameFolder={(id, name) => {
+                                    setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
+                                }}
+                                onDeleteFolder={(id) => {
+                                    setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
+                                }}
+                            />
+                        </div>
+                    </div>
+                    {Object.values(folder.subfolders).length > 0 && (
+                        <div className="subfolder-list">
+                            {getSortedFolders(folder.subfolders).map(subfolder => (
+                                <FolderItem
+                                    key={subfolder.id}
+                                    folder={subfolder}
+                                    level={level + 1}
+                                    allFoldersForMoveDropdown={allFoldersForMoveDropdown}
+                                    onPlayGame={onPlayGame}
+                                    expandedFolderIds={expandedFolderIds}
+                                    handleFolderToggle={handleFolderToggle}
+                                    handleFolderDragStart={handleFolderDragStart}
+                                    handleFolderDragOver={handleFolderDragOver}
+                                    handleFolderDrop={handleFolderDrop}
+                                    handleFolderDragEnd={handleFolderDragEnd}
+                                    getSortedFolders={getSortedFolders}
+                                    renderCardContent={renderCardContent}
+                                    setStudyingFolder={setStudyingFolder}
+                                    setModalConfig={setModalConfig}
+                                    setIsFeedbackModalOpen={setIsFeedbackModalOpen}
+                                    setFlashNotesActionModal={setFlashNotesActionModal}
+                                    setShowGamesModal={setShowGamesModal}
+                                    selectedCardsInExpandedFolder={selectedCardsInExpandedFolder}
+                                    handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
+                                    selectedFolderForMove={selectedFolderForMove}
+                                    setSelectedFolderForMove={setSelectedFolderForMove}
+                                    handleMoveSelectedCardsFromExpandedFolder={handleMoveSelectedCardsFromExpandedFolder}
+                                    handleCardInFolderDragStart={handleCardInFolderDragStart}
+                                    handleCardInFolderDrop={handleCardInFolderDrop}
+                                    isListening={isListening}
+                                    stopListening={stopListening}
+                                    exportFolderToPDF={exportFolderToPDF}
+                                    exportFolderToCSV={exportFolderToCSV}
+                                    handleAddSubfolder={handleAddSubfolder}
+                                    handleRenameFolder={handleRenameFolder}
+                                    handleDeleteFolder={handleDeleteFolder}
+                                    findFolderById={findFolderById}
+                                    folders={folders}
+                                />
+                            ))}
+                        </div>
+                    )}
                     <div className="folder-card-list">
                         {folder.cards.length > 0 ? folder.cards.map((card) => (
                             <div
@@ -1705,7 +1794,19 @@ const FolderItem = ({
                             </div>
                         )) : <p className="subtle-text">No cards in this folder yet.</p>}
                     </div>
-                     {/* ... other expanded content ... */}
+                    <div className="folder-card-actions">
+                        <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                            <option value="" disabled>Move selected to...</option>
+                            {allFoldersForMoveDropdown.map(f => f.id !== folder.id && <option key={f.id} value={f.id}>{f.name}</option>)}
+                        </select>
+                        <button
+                            onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
+                            className="move-to-folder-btn"
+                            disabled={Object.values(selectedCardsInExpandedFolder).every(v => !v) || !selectedFolderForMove}
+                        >
+                            Move Selected
+                        </button>
+                    </div>
                 </div>
             )}
         </div>
@@ -3418,13 +3519,22 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                             setIsFeedbackModalOpen={setIsFeedbackModalOpen}
                             setFlashNotesActionModal={setFlashNotesActionModal}
                             setShowGamesModal={setShowGamesModal}
-                            selectedCardsInExpandedFolder={selectedCardsInExpandedFolder}
+                            selectedCardsInExpandedFolder={selectedCardsInExpandedFolder[folder.id] || {}}
                             handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
                             selectedFolderForMove={selectedFolderForMove}
                             setSelectedFolderForMove={setSelectedFolderForMove}
                             handleMoveSelectedCardsFromExpandedFolder={handleMoveSelectedCardsFromExpandedFolder}
                             handleCardInFolderDragStart={handleCardInFolderDragStart}
                             handleCardInFolderDrop={handleCardInFolderDrop}
+                            isListening={isListening}
+                            stopListening={stopListening}
+                            exportFolderToPDF={exportFolderToPDF}
+                            exportFolderToCSV={exportFolderToCSV}
+                            handleAddSubfolder={handleAddSubfolder}
+                            handleRenameFolder={handleRenameFolder}
+                            handleDeleteFolder={handleDeleteFolder}
+                            findFolderById={findFolderById}
+                            folders={folders}
                         />
                     )) : <p className="subtle-text">No folders created yet.</p>}
                 </div>
