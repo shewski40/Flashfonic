@@ -3566,6 +3566,7 @@ const App = () => {
     const [showLanding, setShowLanding] = useState(true);
     const [showEulaModal, setShowEulaModal] = useState(false);
     const [showDocViewer, setShowDocViewer] = useState(null);
+    const [appReady, setAppReady] = useState(false); // FIX: State to prevent blank screen
     const audioInitialized = useRef(false);
 
     const handleStartLandingFlow = async () => {
@@ -3582,6 +3583,7 @@ const App = () => {
                 audioInitialized.current = true;
             }
             setShowLanding(false);
+            setAppReady(true); // FIX: Directly set app as ready
         } else {
             setShowLanding(false);
             setShowEulaModal(true);
@@ -3601,6 +3603,7 @@ const App = () => {
             console.log("AudioContext started after EULA acceptance.");
             audioInitialized.current = true;
         }
+        setAppReady(true); // FIX: Set app as ready after EULA acceptance
     };
     
     if (showLanding) {
@@ -3611,12 +3614,18 @@ const App = () => {
         return <EULAModal onAccept={handleEULAAccept} />;
     }
     
-    return (
-        <div className="main-app-container">
-            <MainApp showDocViewer={showDocViewer} setShowDocViewer={setShowDocViewer} />
-            <Analytics />
-        </div>
-    );
+    // FIX: Render MainApp only when it's ready to avoid blank screen
+    if (appReady) {
+        return (
+            <div className="main-app-container">
+                <MainApp showDocViewer={showDocViewer} setShowDocViewer={setShowDocViewer} />
+                <Analytics />
+            </div>
+        );
+    }
+
+    // Return null or a loading spinner while waiting for the app to be ready
+    return null;
 };
 
 export default App;
