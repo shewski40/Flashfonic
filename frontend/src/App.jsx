@@ -1850,7 +1850,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [audioCacheId, setAudioCacheId] = useState(null);
     const [folderSortBy, setFolderSortBy] = useState('name');
     const [draggedFolderId, setDraggedFolderId] = useState(null);
-    const [expandedFolderIds, setExpandedFolderIds] = useState(new Set());
+    const [expandedFolderIds, setExpandedFolderIds] = new useState(new Set());
     const [selectedCardsInExpandedFolder, setSelectedCardsInExpandedFolder] = useState({});
     const [imageSrc, setImageSrc] = useState(null);
     const [isCameraOn, setIsCameraOn] = useState(false);
@@ -3236,6 +3236,16 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}
+            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+                <div className="usage-counter-new">
+                    <span className="counter-label">Flashcount: </span>
+                    {isDevMode ? (
+                        <span className="counter-value">unlimited</span>
+                    ) : (
+                        <span className="counter-value">{usage.limit - usage.count} cards (Free Trial)</span>
+                    )}
+                </div>
+            </div>
             <div className="main-mode-selector">
                 <button 
                     onClick={() => setModalConfig({ type: 'flashFonicMode' })} 
@@ -3254,11 +3264,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             {appMode && (
                 <div className="card main-controls" style={{position: 'relative'}}>
                     <div className="controls-header">
-                        {!isDevMode && (
-                            <div className="usage-counter">
-                                Beta Trial: {usage.limit - usage.count} cards left
-                            </div>
-                        )}
                     </div>
                     {appMode === 'live' ? (
                         <>
@@ -3326,8 +3331,10 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     ) : appMode === 'upload' ? (
                         <>
                             <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
-                                <p>1. Click "Select File" to upload an audio or video.</p>
-                                <p>2. Play the media, then hit "Flash It!" to create a card.</p>
+                                <ol>
+                                    <li>Click "Select File" to upload an audio or video.</li>
+                                    <li>Play the media, then hit "Flash It!" to create a card.</li>
+                                </ol>
                             </div>
                             <div className="upload-button-container">
                                 <button onClick={triggerFileUpload}>{fileName ? 'Change File' : 'Select File'}</button>
@@ -3411,8 +3418,10 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     ) : (
                         <>
                             <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
-                                <p>1. Choose your default number of flashcards via the slider below.</p>
-                                <p>2. Snap a photo or upload an image of your notes.</p>
+                                <ol>
+                                    <li>Choose your default number of flashcards via the slider below.</li>
+                                    <li>Snap a photo or upload an image of your notes.</li>
+                                </ol>
                             </div>
                             <div className="image-preview-container">
                                 <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -3444,7 +3453,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                             </div>
                             {aiAnalysis && (
                                 <div className="ai-recommendation">
-                                    <p>FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards to adequately capture this content. Do you agree?</p>
+                                    <p>FlashFonic recommends <strong>{aiAnalysis.recommendation}</strong> flashcards. Do you agree?</p>
                                     <div className="ai-recommendation-actions">
                                         <button onClick={() => handleGenerateFotoCards(aiAnalysis.recommendation)} disabled={isGenerating}>Capture as Recommended</button>
                                         <button onClick={() => handleGenerateFotoCards(fotoCardCount)} disabled={isGenerating}>Capture {fotoCardCount} Flashcards</button>
