@@ -944,7 +944,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [score, setScore] = useState(0);
     const [gameState, setGameState] = useState('landing');
     const [userAnswer, setUserAnswer] = useState('');
-    const [lastScore, setLastScore] = useState(null);
+    const [lastScore, setLastScore] = useState(0);
     const [isListening, setIsListening] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
@@ -1630,6 +1630,7 @@ const FolderItem = ({
     setIsFeedbackModalOpen,
     setFlashNotesActionModal,
     setShowGamesModal,
+    onLaunchFlashexam,
     selectedCardsInExpandedFolder,
     handleSelectedCardInExpandedFolder,
     selectedFolderForMove,
@@ -1717,6 +1718,7 @@ const FolderItem = ({
                             </button>
                             <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
                             <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
+                            <button onClick={() => onLaunchFlashexam(folder)} className="flashexam-button">Flashexam</button>
                         </div>
                         <div className="folder-expanded-actions">
                             <ActionsDropdown
@@ -1757,6 +1759,7 @@ const FolderItem = ({
                                     setIsFeedbackModalOpen={setIsFeedbackModalOpen}
                                     setFlashNotesActionModal={setFlashNotesActionModal}
                                     setShowGamesModal={setShowGamesModal}
+                                    onLaunchFlashexam={onLaunchFlashexam}
                                     selectedCardsInExpandedFolder={selectedCardsInExpandedFolder}
                                     handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
                                     selectedFolderForMove={selectedFolderForMove}
@@ -1816,6 +1819,143 @@ const FolderItem = ({
     );
 };
 
+// --- NEW MODAL COMPONENTS FOR FLASHEXAM ---
+
+const FlashexamMenuModal = ({ folder, allFolders, onStartExam, onCreateNewExam, onClose, onRenameExam, onDeleteExam }) => {
+    const savedExams = folder.flashexams || [];
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div className="viewer-header" style={{ marginBottom: '1rem' }}>
+                    <h2 style={{ textAlign: 'left', flexGrow: 1 }}>Flashexams for "{folder.name}"</h2>
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
+                <div className="flashexam-menu-container">
+                    {savedExams.length > 0 ? (
+                        <div className="exam-list">
+                            {savedExams.map(exam => (
+                                <div key={exam.id} className="exam-item">
+                                    <div className="exam-details">
+                                        <h4>{exam.name} ({exam.questions.length} Qs)</h4>
+                                        <p>Created: {new Date(exam.createdAt).toLocaleDateString()}</p>
+                                    </div>
+                                    <div className="exam-actions">
+                                        <button onClick={() => onStartExam(exam)}>Start</button>
+                                        <button onClick={() => onDeleteExam(folder.id, exam.id)} className="exam-delete-btn">🗑️</button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="subtle-text">No saved exams found.</p>
+                    )}
+                    <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem' }}>
+                        <button onClick={() => onCreateNewExam(folder.id)} className="modal-create-btn">Create New Exam</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FlashexamCreateModal = ({ currentFolder, allFolders, onClose, onSelectFolders, setModalConfig }) => {
+    const [selectedFolderIds, setSelectedFolderIds] = useState(new Set([currentFolder.id]));
+
+    const toggleFolderSelection = (folderId) => {
+        const newSelection = new Set(selectedFolderIds);
+        if (newSelection.has(folderId)) {
+            newSelection.delete(folderId);
+        } else {
+            newSelection.add(folderId);
+        }
+        setSelectedFolderIds(newSelection);
+    };
+
+    const handleCreateClick = () => {
+        const selectedFolders = allFolders.filter(f => selectedFolderIds.has(f.id));
+        if (selectedFolders.length > 0) {
+            onSelectFolders(selectedFolders);
+        }
+    };
+    
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div className="viewer-header" style={{ marginBottom: '1rem' }}>
+                    <h2 style={{ textAlign: 'left', flexGrow: 1 }}>Create a New Exam</h2>
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
+                <div className="flashexam-create-options">
+                    <button className="flashexam-option-btn" onClick={() => onSelectFolders([currentFolder])}>
+                        Create from "{currentFolder.name}"
+                    </button>
+                    <button className="flashexam-option-btn" onClick={() => setModalConfig({ type: 'flashexamMultiFolderSelect', allFolders, onSelectFolders })}>
+                        Create from Multiple Folders
+                    </button>
+                </div>
+                <div className="modal-actions" style={{ justifyContent: 'center' }}>
+                    <button onClick={onClose} className="modal-cancel-btn">Cancel</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FlashexamMultiFolderSelectModal = ({ allFolders, onClose, onConfirm, setModalConfig }) => {
+    const [selectedFolderIds, setSelectedFolderIds] = useState(new Set());
+    const [notification, setNotification] = useState('');
+
+    const toggleFolder = (folderId) => {
+        setSelectedFolders(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(folderId)) {
+                newSet.delete(folderId);
+            } else {
+                newSet.add(folderId);
+            }
+            return newSet;
+        });
+    };
+
+    const handleConfirm = () => {
+        if (selectedFolders.size === 0) {
+            setNotification("Please select at least one folder.");
+            return;
+        }
+        onConfirm(Array.from(selectedFolders));
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+                <div className="viewer-header">
+                    <h2 style={{ textAlign: 'left', flexGrow: 1 }}>Select Folders for Exam</h2>
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
+                <div className="folder-selection-list">
+                    {Object.values(allFolders).map(folder => (
+                        <div key={folder.id} className="folder-select-item">
+                            <input
+                                type="checkbox"
+                                id={folder.id}
+                                checked={selectedFolders.has(folder.id)}
+                                onChange={() => toggleFolder(folder.id)}
+                            />
+                            <label htmlFor={folder.id}>{folder.name} ({folder.cards.length} cards)</label>
+                        </div>
+                    ))}
+                </div>
+                {notification && <p className="notification">{notification}</p>}
+                <div className="modal-actions" style={{ justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                    <button onClick={onClose} className="modal-cancel-btn">Cancel</button>
+                    <button onClick={handleConfirm} className="modal-create-btn" disabled={selectedFolders.size === 0}>Next</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 // --- MAIN APP COMPONENT ---
 const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [appMode, setAppMode] = useState(null);
@@ -1867,6 +2007,10 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
     const [mostRecentScore, setMostRecentScore] = useState(null);
     const [isSafari, setIsSafari] = useState(false);
+    // NEW STATE FOR FLASHEXAM
+    const [flashexamConfig, setFlashexamConfig] = useState(null);
+    const [examInProgress, setExamInProgress] = useState(null);
+    const [examResults, setExamResults] = useState(null);
     
     const audioChunksRef = useRef([]);
     const headerChunkRef = useRef(null);
@@ -1928,7 +2072,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                         let newFolder;
                         if (Array.isArray(folder)) {
                             const folderId = generateUUID();
-                            newFolder = { id: folderId, name: key, createdAt: Date.now(), lastViewed: Date.now(), cards: folder, subfolders: {} };
+                            newFolder = { id: folderId, name: key, createdAt: Date.now(), lastViewed: Date.now(), cards: folder, subfolders: {}, flashexams: [] };
                         } else {
                             newFolder = { ...folder };
                             if (!newFolder.id) newFolder.id = generateUUID();
@@ -1938,6 +2082,8 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                             if (!newFolder.subfolders) newFolder.subfolders = {};
                             if (newFolder.flashNotes === undefined) newFolder.flashNotes = null;
                             if (newFolder.leaderboard === undefined) newFolder.leaderboard = [];
+                            // Ensure flashexams array exists
+                            if (!newFolder.flashexams) newFolder.flashexams = [];
                             newFolder.subfolders = convertFolderStructure(newFolder.subfolders);
                         }
                         newFolders[newFolder.id] = newFolder;
@@ -2365,6 +2511,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                 name: folderName,
                 cards: [],
                 subfolders: {},
+                flashexams: [],
                 createdAt: Date.now(),
                 lastViewed: Date.now(),
                 flashNotes: null,
@@ -2385,6 +2532,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     name: subfolderName,
                     cards: [],
                     subfolders: {},
+                    flashexams: [],
                     createdAt: Date.now(),
                     lastViewed: Date.now(),
                     flashNotes: null,
@@ -3120,6 +3268,112 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setNotification('');
     };
 
+    const handleLaunchFlashexam = (folder) => {
+        setFlashexamConfig({
+            mode: 'menu',
+            sourceFolders: [folder]
+        });
+        setModalConfig({ type: 'flashexamMenu' });
+    };
+
+    const handleCreateNewExam = (folderId) => {
+        setFlashexamConfig(prev => ({ ...prev, mode: 'create', sourceFolders: [findFolderById(folders, folderId)] }));
+        setModalConfig(null); // Close the menu modal
+        setModalConfig({ type: 'flashexamCreate' }); // Open the create modal
+    };
+    
+    const handleStartExamGeneration = async ({ examName, numQuestions, difficulty }) => {
+        const sourceCards = flashexamConfig.sourceFolders.flatMap(f => f.cards);
+        const cardIds = sourceCards.map(c => c.id);
+        const examId = generateUUID();
+        
+        setIsGenerating(true);
+        setNotification('Generating exam questions...');
+        setModalConfig(null); // Close the config modal
+
+        const cost = Math.floor(numQuestions * 0.5);
+
+        try {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-exam-questions', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cards: sourceCards, numQuestions, difficulty, examId }),
+            });
+
+            const data = await response.json();
+            if (!response.ok) throw new Error(data.error || 'Failed to generate exam questions.');
+
+            const newExam = {
+                id: examId,
+                name: examName,
+                questions: data.questions,
+                sourceCards: sourceCards,
+                createdAt: Date.now(),
+                difficulty: difficulty,
+            };
+
+            setFolders(prev => {
+                const newFolders = { ...prev };
+                newExam.sourceCards.forEach(card => {
+                    const folder = findFolderById(newFolders, findFolderIdForCard(newFolders, card.id));
+                    if (folder) {
+                        folder.flashexams = [...(folder.flashexams || []), newExam];
+                    }
+                });
+                return newFolders;
+            });
+            
+            setUsage(prevUsage => ({ ...prevUsage, count: prevUsage.count + cost }));
+
+            setExamInProgress(newExam);
+            setNotification(`Exam "${examName}" created with ${numQuestions} questions.`);
+
+        } catch (error) {
+            console.error('Error generating exam:', error);
+            setNotification(`Error generating exam: ${error.message}`);
+        } finally {
+            setIsGenerating(false);
+        }
+    };
+    
+    const findFolderIdForCard = (foldersObj, cardId) => {
+        for (const id in foldersObj) {
+            // FIX: Add a check for foldersObj[id].cards to prevent a runtime error
+            if (foldersObj[id].cards && foldersObj[id].cards.some(c => c.id === cardId)) return id;
+            const foundInSub = findFolderIdForCard(foldersObj[id].subfolders, cardId);
+            if (foundInSub) return foundInSub;
+        }
+        return null;
+    };
+    
+    const handleExamFinish = (score, totalQuestions, incorrectCards) => {
+        setExamInProgress(null);
+        setExamResults({ score, totalQuestions, incorrectCards });
+    };
+
+    const handleStudyIncorrectContent = (cards) => {
+        setExamResults(null);
+        setGeneratedFlashcards(cards);
+        setNotification(`${cards.length} cards added to your Review Queue from your exam.`)
+    };
+
+    const handleDeleteExam = (folderId, examId) => {
+        setFolders(prev => updateFolderById(prev, folderId, folder => ({
+            ...folder,
+            flashexams: folder.flashexams.filter(exam => exam.id !== examId),
+        })));
+        setNotification('Exam deleted.');
+    };
+    
+    // UI Render logic
+    if (examInProgress) {
+        return <FlashexamTestTaker exam={examInProgress} onExamFinish={handleExamFinish} />;
+    }
+    
+    if (examResults) {
+        return <FlashexamResultsModal score={examResults.score} totalQuestions={examResults.totalQuestions} incorrectCards={examResults.incorrectCards} onBack={() => setExamResults(null)} onStudyIncorrect={handleStudyIncorrectContent} />;
+    }
+    
     return (
         <>
             {studyingFolder && (
@@ -3194,7 +3448,52 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     }}
                 />
             )}
-
+            {modalConfig && modalConfig.type === 'flashexamMenu' && (
+                <FlashexamMenuModal
+                    folder={flashexamConfig.sourceFolders[0]}
+                    allFolders={allFoldersForMoveDropdown}
+                    onClose={() => setModalConfig(null)}
+                    onStartExam={(exam) => {
+                        setExamInProgress(exam);
+                        setModalConfig(null);
+                    }}
+                    onCreateNewExam={handleCreateNewExam}
+                    onDeleteExam={handleDeleteExam}
+                />
+            )}
+            {modalConfig && modalConfig.type === 'flashexamCreate' && (
+                <FlashexamCreateModal
+                    currentFolder={flashexamConfig.sourceFolders[0]}
+                    allFolders={allFoldersForMoveDropdown}
+                    onClose={() => setModalConfig(null)}
+                    onSelectFolders={(folders) => {
+                        setFlashexamConfig({ mode: 'configure', sourceFolders: folders });
+                        setModalConfig({ type: 'flashexamConfigure' });
+                    }}
+                    setModalConfig={setModalConfig} // FIX: Pass setModalConfig to the component
+                />
+            )}
+            {modalConfig && modalConfig.type === 'flashexamMultiFolderSelect' && (
+                <FlashexamMultiFolderSelectModal
+                    allFolders={allFoldersForMoveDropdown}
+                    onClose={() => setModalConfig(null)}
+                    onConfirm={(selectedFolderIds) => {
+                        const selectedFolders = allFoldersForMoveDropdown.filter(f => selectedFolderIds.includes(f.id));
+                        setFlashexamConfig({ mode: 'configure', sourceFolders: selectedFolders });
+                        setModalConfig({ type: 'flashexamConfigure' });
+                    }}
+                    setModalConfig={setModalConfig} // FIX: Pass setModalConfig to the component
+                />
+            )}
+            {modalConfig && modalConfig.type === 'flashexamConfigure' && (
+                <FlashexamConfigureModal
+                    onConfirm={handleStartExamGeneration}
+                    onBack={() => setModalConfig({ type: 'flashexamMenu' })}
+                    sourceFolders={flashexamConfig.sourceFolders}
+                    usage={usage}
+                    isDevMode={isDevMode}
+                />
+            )}
             
             {flashNotesActionModal && (
                 <FlashNotesActionModal
@@ -3236,13 +3535,13 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     <h2 className="subheading">Listen. Flash it. Learn.</h2>
                 </div>
             )}
-            <div style={{ textAlign: 'center', marginBottom: '1rem' }}>
+            <div className="flashcount-container">
                 <div className="usage-counter-new">
                     <span className="counter-label">Flashcount: </span>
                     {isDevMode ? (
                         <span className="counter-value">unlimited</span>
                     ) : (
-                        <span className="counter-value">{usage.limit - usage.count} cards (Free Trial)</span>
+                        <span className="counter-value">{usage.limit - usage.count} cards <span className="counter-suffix">(Free Trial)</span></span>
                     )}
                 </div>
             </div>
@@ -3536,6 +3835,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                             setIsFeedbackModalOpen={setIsFeedbackModalOpen}
                             setFlashNotesActionModal={setFlashNotesActionModal}
                             setShowGamesModal={setShowGamesModal}
+                            onLaunchFlashexam={handleLaunchFlashexam}
                             selectedCardsInExpandedFolder={selectedCardsInExpandedFolder[folder.id] || {}}
                             handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
                             selectedFolderForMove={selectedFolderForMove}
