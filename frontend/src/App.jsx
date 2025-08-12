@@ -633,6 +633,7 @@ const FlashNotesActionModal = ({ folder, onClose, onGenerate, isGenerating }) =>
                             {isGenerating ? 'Generating...' : 'Regenerate Notes'}
                         </button>
                     )}
+                    <button onClick={onClose} className="modal-cancel-btn">Cancel</button>
                 </div>
             </div>
         </div>
@@ -648,6 +649,9 @@ const FlashNotesViewer = ({ folderName, notes, onClose }) => {
                     <button onClick={onClose} className="viewer-close-btn">&times;</button>
                 </div>
                 <div className="flash-notes-content" dangerouslySetInnerHTML={{ __html: marked(notes) }} />
+                <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+                    <button onClick={onClose} className="modal-create-btn">Close</button>
+                </div>
             </div>
         </div>
     );
@@ -3249,17 +3253,21 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             
             {appMode && (
                 <div className="card main-controls" style={{position: 'relative'}}>
-                    {!isDevMode && (
-                        <div className="usage-counter">
-                            Beta Trial: {usage.limit - usage.count} cards left
-                        </div>
-                    )}
-
+                    <div className="controls-header">
+                        {!isDevMode && (
+                            <div className="usage-counter">
+                                Beta Trial: {usage.limit - usage.count} cards left
+                            </div>
+                        )}
+                    </div>
                     {appMode === 'live' ? (
                         <>
                             <div className="voice-hint" style={{marginBottom: '1.5rem'}}>
-                                <p>1. Click "Start Listening" to begin capturing audio.</p>
-                                <p>2. Hit "Flash It!" to create a card, or use the voice/auto features.</p>
+                                <ol>
+                                    <li>Choose a listening duration using the slider below.</li>
+                                    <li>Click "Start Listening" to begin capturing audio.</li>
+                                    <li>Hit "Flash It!" to create a card, or use the voice/auto features.</li>
+                                </ol>
                             </div>
                             <div className="listening-control">
                                 <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
