@@ -21,9 +21,7 @@
 
 body {
   margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background-color: var(--dark-bg);
@@ -1109,6 +1107,11 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
   max-width: 400px;
   text-align: center;
+}
+
+.modal-title-centered {
+    text-align: center !important;
+    flex-grow: 1;
 }
 
 .modal-content h2 {
@@ -2683,4 +2686,236 @@ input[type="range"]::-webkit-slider-thumb {
   align-items: center;
   width: 100%;
   max-width: 900px;
+}
+.flashexam-create-options {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.flashexam-create-btn {
+  background-color: var(--gold);
+  color: var(--dark-bg);
+  font-weight: 700;
+  font-size: 1.1em;
+  padding: 1em 1.5em;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.flashexam-create-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(255, 215, 0, 0.4);
+}
+
+.flashexam-create-btn:disabled {
+  background-color: var(--border-color);
+  color: var(--text-dark);
+  cursor: not-allowed;
+  box-shadow: none;
+  transform: none;
+}
+
+.final-percentage {
+  font-size: 3rem;
+  font-weight: bold;
+  color: var(--success-green);
+  margin-top: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.exam-score-counter {
+  display: flex;
+  gap: 1rem;
+  font-weight: bold;
+  font-size: 1.1rem;
+}
+
+.exam-score-counter span:first-child {
+  color: var(--success-green);
+}
+.exam-score-counter span:last-child {
+  color: var(--danger-red);
+}
+
+.card-face.flashexam-front {
+  padding-top: 4rem;
+}
+
+.flashexam-question {
+  font-size: 1.4rem;
+  font-weight: bold;
+}
+
+.flashexam-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  margin-top: 2rem;
+}
+
+.flashexam-choice-btn {
+  width: 100%;
+  background-color: var(--dark-bg);
+  color: var(--text-light);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 1em;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.flashexam-choice-btn:hover:not(:disabled) {
+  background-color: rgba(139, 92, 246, 0.2);
+  border-color: var(--primary-purple);
+}
+
+.flashexam-choice-btn.correct {
+  background-color: var(--success-green);
+  border-color: var(--success-green);
+  color: white;
+  animation: flash-green 1s ease;
+}
+
+.flashexam-choice-btn.incorrect {
+  background-color: var(--danger-red);
+  border-color: var(--danger-red);
+  color: white;
+  animation: shake 0.5s ease;
+}
+
+.flashexam-choice-btn:disabled {
+  cursor: not-allowed;
+}
+
+.card-face.flashexam-back {
+  padding-top: 2rem;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.flashexam-feedback h3 {
+  color: white;
+  font-size: 1.2rem;
+  border-bottom: 1px solid white;
+}
+
+.flashexam-feedback p {
+  font-size: 1rem;
+  color: var(--text-soft);
+}
+
+.flashexam-menu-container {
+    text-align: center;
+}
+
+.exam-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    max-height: 200px;
+    overflow-y: auto;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.exam-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--dark-bg);
+    padding: 0.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.exam-details h4 {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-light);
+}
+
+.exam-details p {
+    margin: 0;
+    font-size: 0.8rem;
+    color: var(--text-dark);
+}
+
+.exam-actions button {
+    background-color: var(--primary-purple);
+    color: white;
+    border: none;
+    padding: 0.5em 1em;
+    border-radius: 6px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.exam-delete-btn {
+    background-color: var(--danger-red) !important;
+    font-size: 1rem !important;
+    padding: 0.4em 0.8em !important;
+}
+
+.flashexam-create-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.flashexam-create-options button {
+    background-color: var(--gold);
+    color: var(--dark-bg);
+    font-weight: bold;
+    padding: 1em;
+    border-radius: 12px;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+}
+
+.flashexam-create-options button:hover {
+    box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+}
+
+.folder-selection-list {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    text-align: left;
+}
+
+.folder-select-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+}
+
+.folder-select-item input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+}
+.folder-select-item label {
+    font-weight: 500;
+}
+
+.notification {
+    color: var(--secondary-pink);
+    font-weight: bold;
+    margin-top: 1rem;
+}
+.in-game-voice-selector {
+  width: 100%;
 }
