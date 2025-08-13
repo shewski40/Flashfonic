@@ -1886,10 +1886,10 @@ const FlashexamCreateModal = ({ currentFolder, allFolders, onClose, onSelectFold
                     <button onClick={onClose} className="viewer-close-btn">&times;</button>
                 </div>
                 <div className="flashexam-create-options">
-                    <button className="flashexam-option-btn" onClick={() => onSelectFolders([currentFolder])}>
+                    <button className="modal-create-btn" onClick={() => onSelectFolders([currentFolder])}>
                         Create from "{currentFolder.name}"
                     </button>
-                    <button className="flashexam-option-btn" onClick={() => setModalConfig({ type: 'flashexamMultiFolderSelect', allFolders, onSelectFolders })}>
+                    <button className="modal-create-btn" onClick={() => setModalConfig({ type: 'flashexamMultiFolderSelect', allFolders, onSelectFolders })}>
                         Create from Multiple Folders
                     </button>
                 </div>
@@ -1901,12 +1901,188 @@ const FlashexamCreateModal = ({ currentFolder, allFolders, onClose, onSelectFold
     );
 };
 
+const FlashexamConfigureModal = ({ onConfirm, onBack, sourceFolders, usage, isDevMode }) => {
+    const totalCards = sourceFolders.reduce((sum, f) => sum + f.cards.length, 0);
+    const maxQuestions = Math.floor(totalCards * 1);
+    const [examName, setExamName] = useState('');
+    const [numQuestions, setNumQuestions] = useState(maxQuestions > 10 ? 10 : Math.max(5, maxQuestions));
+    const [selectedDifficulty, setSelectedDifficulty] = useState('medium');
+
+    const handleConfirm = () => {
+        const cost = Math.floor(numQuestions * 0.5);
+        if (!isDevMode && (usage.limit - usage.count < cost)) {
+            alert(`You need ${cost} Flashcount to create this exam, but only have ${usage.limit - usage.count}.`);
+            return;
+        }
+        onConfirm({ examName, numQuestions, difficulty: selectedDifficulty });
+    };
+
+    const questionOptions = [5, 10, 15, 20, 25, 30, 40, 50];
+    if (maxQuestions >= 75) questionOptions.push(75);
+    if (maxQuestions >= 100) questionOptions.push(100);
+    
+    // Dynamically generate question options up to maxQuestions
+    const availableQuestionOptions = questionOptions.filter(q => q <= maxQuestions);
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div className="viewer-header" style={{ marginBottom: '1rem' }}>
+                    <h2 style={{ textAlign: 'left', flexGrow: 1 }}>Configure Exam</h2>
+                    <button onClick={onBack} className="viewer-close-btn">&times;</button>
+                </div>
+                <p className="modal-message">
+                    Total cards available: <strong>{totalCards}</strong>. Maximum questions: <strong>{maxQuestions}</strong>.
+                </p>
+                <div className="form-group" style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                    <label htmlFor="exam-name" style={{ display: 'block', marginBottom: '0.5em' }}>Exam Name</label>
+                    <input id="exam-name" type="text" className="modal-input" placeholder="e.g., 'Chapter 5 Review'" value={examName} onChange={e => setExamName(e.target.value)} />
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                    <label htmlFor="num-questions" style={{ display: 'block', marginBottom: '0.5em' }}>Number of Questions</label>
+                    <select id="num-questions" className="modal-input" value={numQuestions} onChange={e => setNumQuestions(Number(e.target.value))}>
+                        {availableQuestionOptions.map(q => (
+                            <option key={q} value={q}>{q} Questions</option>
+                        ))}
+                        {maxQuestions > 50 && !availableQuestionOptions.includes(100) && (
+                            <option value={maxQuestions}>{maxQuestions} Questions (All)</option>
+                        )}
+                    </select>
+                </div>
+                <div className="form-group" style={{ marginBottom: '1rem', textAlign: 'left' }}>
+                    <label htmlFor="difficulty" style={{ display: 'block', marginBottom: '0.5em' }}>Difficulty</label>
+                    <select id="difficulty" className="modal-input" value={selectedDifficulty} onChange={e => setSelectedDifficulty(e.target.value)}>
+                        <option value="easy">Easy</option>
+                        <option value="medium">Medium</option>
+                        <option value="hard">Hard</option>
+                    </select>
+                </div>
+                <div className="modal-actions" style={{ justifyContent: 'flex-end', marginTop: '1.5rem' }}>
+                    <button onClick={onBack} className="modal-cancel-btn">Back</button>
+                    <button onClick={handleConfirm} className="modal-create-btn" disabled={!examName || numQuestions === 0}>Start Exam ({isDevMode ? "unlimited" : `${Math.floor(numQuestions * 0.5)} cards`})</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const FlashexamTestTaker = ({ exam, onExamFinish }) => {
+    const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+    const [userAnswers, setUserAnswers] = useState({});
+    const [isFlipped, setIsFlipped] = useState(false);
+    const [score, setScore] = useState(0);
+    const [incorrectCards, setIncorrectCards] = useState([]);
+    const currentQuestion = exam.questions[currentQuestionIndex];
+
+    const handleAnswer = (choice) => {
+        if (!isFlipped) {
+            const isCorrect = choice === currentQuestion.correctAnswer;
+            setUserAnswers(prev => ({ ...prev, [currentQuestionIndex]: { choice, isCorrect } }));
+            if (isCorrect) {
+                setScore(prev => prev + 1);
+            } else {
+                // Find the original flashcard from the sourceCards using its ID
+                const originalCard = exam.sourceCards.find(c => c.id === currentQuestion.sourceCardId);
+                if (originalCard) {
+                    setIncorrectCards(prev => [...prev, originalCard]);
+                }
+            }
+            setIsFlipped(true);
+        }
+    };
+
+    const handleNextQuestion = () => {
+        if (currentQuestionIndex < exam.questions.length - 1) {
+            setCurrentQuestionIndex(prev => prev + 1);
+            setIsFlipped(false);
+        } else {
+            onExamFinish(score, exam.questions.length, incorrectCards);
+        }
+    };
+    
+    const shuffleAnswers = useCallback((answers) => {
+        return [...answers].sort(() => Math.random() - 0.5);
+    }, []);
+
+    // Scramble answers on load for saved exams
+    useEffect(() => {
+        if (currentQuestion && !currentQuestion.shuffledAnswers) {
+            currentQuestion.shuffledAnswers = shuffleAnswers(currentQuestion.choices);
+        }
+    }, [currentQuestion, shuffleAnswers]);
+
+    return (
+        <div className="viewer-overlay">
+            <div className="viewer-header">
+                <h2>{exam.name}</h2>
+                <div className="exam-score-counter">
+                    <span>Correct: {score}</span>
+                    <span>Incorrect: {currentQuestionIndex - score}</span>
+                </div>
+            </div>
+            <div className="viewer-main">
+                <div className={`viewer-card ${isFlipped ? 'is-flipped' : ''}`} onClick={() => {}}>
+                    <div className="card-face card-front flashexam-front">
+                        <p className="flashexam-question"><strong>Q:</strong> {currentQuestion.question}</p>
+                        <div className="flashexam-choices">
+                            {currentQuestion.shuffledAnswers.map((choice, index) => (
+                                <button
+                                    key={index}
+                                    className={`flashexam-choice-btn ${isFlipped ? (choice === currentQuestion.correctAnswer ? 'correct' : 'incorrect') : ''}`}
+                                    onClick={() => handleAnswer(choice)}
+                                    disabled={isFlipped}
+                                >
+                                    {String.fromCharCode(65 + index)}. {choice}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="card-face card-back flashexam-back">
+                        <div className="flashexam-feedback">
+                            <h3>Answer Explanation</h3>
+                            <p dangerouslySetInnerHTML={{ __html: marked(currentQuestion.explanation) }} />
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {isFlipped && (
+                <div className="viewer-nav">
+                    <button onClick={handleNextQuestion}>
+                        {currentQuestionIndex < exam.questions.length - 1 ? 'Next Question' : 'Finish Exam'}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+const FlashexamResultsModal = ({ score, totalQuestions, incorrectCards, onBack, onStudyIncorrect }) => {
+    const percentage = totalQuestions > 0 ? ((score / totalQuestions) * 100).toFixed(0) : 0;
+    
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Exam Results</h2>
+                <p className="modal-message">You scored {score} out of {totalQuestions} questions correct.</p>
+                <h3 className="final-percentage">{percentage}%</h3>
+                <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+                    {incorrectCards.length > 0 && (
+                        <button className="modal-create-btn" onClick={() => onStudyIncorrect(incorrectCards)}>Study Incorrect Content</button>
+                    )}
+                    <button className="modal-cancel-btn" onClick={onBack}>Done</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+
 const FlashexamMultiFolderSelectModal = ({ allFolders, onClose, onConfirm, setModalConfig }) => {
     const [selectedFolderIds, setSelectedFolderIds] = useState(new Set());
     const [notification, setNotification] = useState('');
 
     const toggleFolder = (folderId) => {
-        setSelectedFolders(prev => {
+        setSelectedFolderIds(prev => {
             const newSet = new Set(prev);
             if (newSet.has(folderId)) {
                 newSet.delete(folderId);
@@ -1918,11 +2094,11 @@ const FlashexamMultiFolderSelectModal = ({ allFolders, onClose, onConfirm, setMo
     };
 
     const handleConfirm = () => {
-        if (selectedFolders.size === 0) {
+        if (selectedFolderIds.size === 0) {
             setNotification("Please select at least one folder.");
             return;
         }
-        onConfirm(Array.from(selectedFolders));
+        onConfirm(Array.from(selectedFolderIds));
     };
 
     return (
@@ -1938,7 +2114,7 @@ const FlashexamMultiFolderSelectModal = ({ allFolders, onClose, onConfirm, setMo
                             <input
                                 type="checkbox"
                                 id={folder.id}
-                                checked={selectedFolders.has(folder.id)}
+                                checked={selectedFolderIds.has(folder.id)}
                                 onChange={() => toggleFolder(folder.id)}
                             />
                             <label htmlFor={folder.id}>{folder.name} ({folder.cards.length} cards)</label>
@@ -1948,7 +2124,7 @@ const FlashexamMultiFolderSelectModal = ({ allFolders, onClose, onConfirm, setMo
                 {notification && <p className="notification">{notification}</p>}
                 <div className="modal-actions" style={{ justifyContent: 'flex-end', marginTop: '1.5rem' }}>
                     <button onClick={onClose} className="modal-cancel-btn">Cancel</button>
-                    <button onClick={handleConfirm} className="modal-create-btn" disabled={selectedFolders.size === 0}>Next</button>
+                    <button onClick={handleConfirm} className="modal-create-btn" disabled={selectedFolderIds.size === 0}>Next</button>
                 </div>
             </div>
         </div>
@@ -3278,14 +3454,11 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
     const handleCreateNewExam = (folderId) => {
         setFlashexamConfig(prev => ({ ...prev, mode: 'create', sourceFolders: [findFolderById(folders, folderId)] }));
-        setModalConfig(null); // Close the menu modal
-        setModalConfig({ type: 'flashexamCreate' }); // Open the create modal
+        setModalConfig({ type: 'flashexamCreate' });
     };
     
     const handleStartExamGeneration = async ({ examName, numQuestions, difficulty }) => {
         const sourceCards = flashexamConfig.sourceFolders.flatMap(f => f.cards);
-        const cardIds = sourceCards.map(c => c.id);
-        const examId = generateUUID();
         
         setIsGenerating(true);
         setNotification('Generating exam questions...');
@@ -3294,17 +3467,17 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         const cost = Math.floor(numQuestions * 0.5);
 
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-exam-questions', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashexam-questions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ cards: sourceCards, numQuestions, difficulty, examId }),
+                body: JSON.stringify({ cards: sourceCards, numQuestions, difficulty }),
             });
 
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Failed to generate exam questions.');
 
             const newExam = {
-                id: examId,
+                id: generateUUID(),
                 name: examName,
                 questions: data.questions,
                 sourceCards: sourceCards,
@@ -3338,7 +3511,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     
     const findFolderIdForCard = (foldersObj, cardId) => {
         for (const id in foldersObj) {
-            // FIX: Add a check for foldersObj[id].cards to prevent a runtime error
             if (foldersObj[id].cards && foldersObj[id].cards.some(c => c.id === cardId)) return id;
             const foundInSub = findFolderIdForCard(foldersObj[id].subfolders, cardId);
             if (foundInSub) return foundInSub;
@@ -3470,7 +3642,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                         setFlashexamConfig({ mode: 'configure', sourceFolders: folders });
                         setModalConfig({ type: 'flashexamConfigure' });
                     }}
-                    setModalConfig={setModalConfig} // FIX: Pass setModalConfig to the component
+                    setModalConfig={setModalConfig}
                 />
             )}
             {modalConfig && modalConfig.type === 'flashexamMultiFolderSelect' && (
@@ -3482,7 +3654,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                         setFlashexamConfig({ mode: 'configure', sourceFolders: selectedFolders });
                         setModalConfig({ type: 'flashexamConfigure' });
                     }}
-                    setModalConfig={setModalConfig} // FIX: Pass setModalConfig to the component
+                    setModalConfig={setModalConfig}
                 />
             )}
             {modalConfig && modalConfig.type === 'flashexamConfigure' && (
