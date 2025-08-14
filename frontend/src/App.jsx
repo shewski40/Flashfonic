@@ -2104,34 +2104,34 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash, fileType, audioCacheId]);
 
 
-    const stopListening = useCallback(() => {
-        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
-        if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
-        streamRef.current?.getTracks().forEach(track => track.stop());
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-            recognitionRef.current = null;
-        }
-        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-        if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
-        
-        setIsListening(false);
-        setNotification('');
-    }, []);
+    // --- Refactored start/stop listening functions for Safari compatibility ---
+const stopListening = useCallback(() => {
+    if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
+    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+    streamRef.current?.getTracks().forEach(track => track.stop());
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+        recognitionRef.current = null;
+    }
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+    if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
 
-    const startListening = useCallback(async () => {
-        if (!isDevMode && usage.count >= usage.limit) {
-            setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
-            return;
-        }
-        try {
-            streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
+    setIsListening(false);
+    setNotification('');
+}, []);
+
+const startListening = useCallback(() => {
+    // This part is the critical fix. We immediately call getUserMedia
+    // without any preceding async/await calls to satisfy Safari's security policy.
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            streamRef.current = stream;
             setIsListening(true);
             setNotification('Listening...');
 
             const mimeType = isSafari ? 'audio/mp4' : 'audio/webm; codecs=opus';
-            mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
-            
+            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
+
             audioChunksRef.current = [];
             headerChunkRef.current = null;
 
@@ -2140,7 +2140,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     audioChunksRef.current.push(event.data);
                     if (!headerChunkRef.current) {
                         headerChunkRef.current = event.data;
-                        
                         if (listeningDuration > 0) {
                             listeningTimeoutRef.current = setTimeout(() => {
                                 if (isAutoFlashOnRef.current) {
@@ -2179,14 +2178,14 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                     recognitionRef.current.start();
                 }
             }
-
-        } catch (err) {
+        })
+        .catch(err => {
             console.error("Error starting listening:", err);
-            setNotification("Microphone access denied or error.");
+            setNotification(`Microphone access denied or error: ${err.name}`);
             setIsListening(false);
-        }
-    }, [isDevMode, usage.count, usage.limit, isSafari, listeningDuration, voiceActivated, handleLiveFlashIt, stopListening]);
-
+        });
+}, [isSafari, listeningDuration, voiceActivated, handleLiveFlashIt, stopListening, isAutoFlashOnRef]);
+// --- End Refactored start/stop listening functions ---
     const stopCamera = useCallback(() => {
         if (videoRef.current && videoRef.current.srcObject) {
             videoRef.current.srcObject.getTracks().forEach(track => track.stop());
@@ -3275,7 +3274,16 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                                 </ol>
                             </div>
                             <div className="listening-control">
-                                <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
+                                <button onClick={isListening ? stopListening : () => {
+                                    if (!isDevMode && usage.count >= usage.limit) {
+                                        setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
+                                        return;
+                                    }
+                                    // New, direct call to the refactored function
+                                    startListening();
+                                }} className={`start-stop-btn ${isListening ? 'active' : ''}`}>
+                                    {isListening ? '■ Stop Listening' : '● Start Listening'}
+                                </button>
                             </div>
                             <div className="listening-modes">
                                 <button
