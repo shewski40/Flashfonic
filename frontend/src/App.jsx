@@ -2129,8 +2129,30 @@ const startListening = useCallback(() => {
             setIsListening(true);
             setNotification('Listening...');
 
-            const mimeType = isSafari ? 'audio/mp4' : 'audio/webm; codecs=opus';
-            mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
+            // Function to find a supported MIME type
+            const getSupportedMimeType = () => {
+                const supportedTypes = [
+                    'audio/webm;codecs=opus', // Best quality, modern browsers
+                    'audio/wav',               // Widely supported, uncompressed
+                    'audio/mpeg',              // MP3 format
+                    'audio/mp4'                // Common for video containers
+                ];
+                for (const type of supportedTypes) {
+                    if (MediaRecorder.isTypeSupported(type)) {
+                        console.log(`Using supported MIME type: ${type}`);
+                        return type;
+                    }
+                }
+                console.error("No supported audio MIME type found.");
+                return null; // Fallback to let MediaRecorder select its default
+            };
+
+            const mimeType = getSupportedMimeType();
+            if (mimeType) {
+                mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
+            } else {
+                mediaRecorderRef.current = new MediaRecorder(stream); // Let the browser use its default
+            }
 
             audioChunksRef.current = [];
             headerChunkRef.current = null;
