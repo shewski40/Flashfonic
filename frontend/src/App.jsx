@@ -1039,7 +1039,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         }
 
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
+            const response = await fetch('https://flashfonic-backend.onrender.com/score-answer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
@@ -1961,7 +1961,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setIsGenerating(true);
         setNotification('Generating flashcard...');
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
+            const response = await fetch('https://flashfonic-backend.onrender.com/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -2030,7 +2030,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         reader.onloadend = async () => {
             const base64File = reader.result.split(',')[1];
             try {
-                const response = await fetch('https://flashfonic-backend-shewski.replit.app/process-audio', {
+                const response = await fetch('https://flashfonic-backend.onrender.com/process-audio', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ audio_data: base64File })
@@ -2740,7 +2740,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setIsGeneratingNotes(true);
         setNotification('Synthesizing your Flash Notes with AI...');
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-notes', {
+            const response = await fetch('https://flashfonic-backend.onrender.com/generate-notes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cards: folder.cards }),
@@ -3047,7 +3047,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setNotification('Analyzing image with AI...');
         setAiAnalysis(null);
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/analyze-image', {
+            const response = await fetch('https://flashfonic-backend.onrender.com/analyze-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image_data: base64Image }),
@@ -3080,7 +3080,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setAiAnalysis(null);
         setImageSrc(null);
         try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcards-from-image', {
+            const response = await fetch('https://flashfonic-backend.onrender.com/generate-flashcards-from-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: textToProcess, cardCount: count }),
