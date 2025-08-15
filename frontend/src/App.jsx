@@ -2417,12 +2417,24 @@ const startListening = useCallback(() => {
     }, [updateFolderById]);
 
     const handleRenameFolder = useCallback((folderId, newName) => {
-        setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
-            ...folder,
-            name: newName
-        })));
+        const renameRecursive = (foldersObj) => {
+            const newFolders = { ...foldersObj };
+            if (newFolders[folderId]) {
+                newFolders[folderId] = { ...newFolders[folderId], name: newName };
+                return newFolders;
+            }
+            for (const id in newFolders) {
+                const updatedSubfolders = renameRecursive(newFolders[id].subfolders);
+                if (updatedSubfolders !== newFolders[id].subfolders) {
+                    newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
+                    return newFolders;
+                }
+            }
+            return foldersObj;
+        };
+        setFolders(renameRecursive(folders));
         setModalConfig(null);
-    }, [updateFolderById]);
+    }, [folders]);
 
     const handleDeleteFolder = useCallback((folderId) => {
         setFolders(prev => deleteFolderById(prev, folderId));
@@ -2855,7 +2867,7 @@ const startListening = useCallback(() => {
         doc.save(`${folderName}-FlashNotes.pdf`);
     };
 
-    const exportFolderToPDF = useCallback((folderId) => {
+   const exportFolderToPDF = useCallback((folderId) => {
         const folder = findFolderById(folders, folderId);
         if (!folder || folder.cards.length === 0) {
             setNotification("Folder not found or contains no cards for export.");
@@ -2877,7 +2889,7 @@ const startListening = useCallback(() => {
                         setNotification("Invalid number. Please choose 6, 8, or 10.");
                         return;
                     }
-                    
+
                     const doc = new jsPDF();
                     const cards = folder.cards;
                     const pageW = doc.internal.pageSize.getWidth();
@@ -2889,8 +2901,9 @@ const startListening = useCallback(() => {
                     };
                     const config = layoutConfig[cardsPerPage];
                     const margin = 15;
-                    const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
-                    const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
+                    const cardMargin = 5;
+                    const cardW = (pageW - (margin * 2) - cardMargin * (config.cols - 1)) / config.cols;
+                    const cardH = (pageH - 50 - cardMargin * (config.rows - 1)) / config.rows;
 
                     const drawHeader = () => {
                         doc.setFont('helvetica', 'bold');
@@ -2909,37 +2922,48 @@ const startListening = useCallback(() => {
                         
                         if (currentPageIndex > 0) doc.addPage();
                         drawHeader();
+
+                        // Draw card fronts
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(config.fontSize);
                         pageCards.forEach((card, index) => {
                             const row = Math.floor(index / config.cols);
                             const col = index % config.cols;
-                            const cardX = margin + (col * (cardW + margin));
-                            const cardY = 40 + (row * (cardH + margin));
+                            const cardX = margin + col * (cardW + cardMargin);
+                            const cardY = 50 + row * (cardH + cardMargin);
                             doc.setLineWidth(0.5);
                             doc.setDrawColor(0);
                             doc.setTextColor(0, 0, 0);
                             doc.rect(cardX, cardY, cardW, cardH);
-                            doc.setFontSize(config.fontSize);
                             const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
-                            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-                            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+                            doc.text(text, cardX + cardW / 2, cardY + cardH / 2, { align: 'center', baseline: 'middle' });
                         });
 
+                        // Draw card backs
                         if (pageCards.length > 0) {
                             doc.addPage();
                             drawHeader();
+                            doc.setFont('helvetica', 'normal');
+                            doc.setFontSize(config.fontSize);
                             pageCards.forEach((card, index) => {
                                 const row = Math.floor(index / config.cols);
                                 const col = index % config.cols;
-                                const cardX = margin + (col * (cardW + margin));
-                                const cardY = 40 + (row * (cardH + margin));
+                                const cardX = margin + col * (cardW + cardMargin);
+                                const cardY = 50 + row * (cardH + cardMargin);
                                 doc.setLineWidth(0.5);
                                 doc.setDrawColor(0);
                                 doc.setTextColor(0, 0, 0);
                                 doc.rect(cardX, cardY, cardW, cardH);
-                                doc.setFontSize(config.fontSize);
-                                const text = doc.splitTextToSize(`A: ${JSON.stringify(card.answer)}`, cardW - 10);
-                                const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-                                doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+
+                                let answerText = card.answer;
+                                if (Array.isArray(answerText)) {
+                                    answerText = answerText.join(' -> ').replace(/CHEM\[(.*?)\]/g, '$1');
+                                } else if (typeof answerText === 'string' && (answerText.includes('SMILES[') || answerText.includes('CHEM['))) {
+                                    answerText = answerText.replace(/SMILES\[(.*?)\]/g, '$1').replace(/CHEM\[(.*?)\]/g, '$1').replace(/>>/g, ' -> ');
+                                }
+
+                                const text = doc.splitTextToSize(`A: ${answerText}`, cardW - 10);
+                                doc.text(text, cardX + cardW / 2, cardY + cardH / 2, { align: 'center', baseline: 'middle' });
                             });
                         }
 
@@ -2963,6 +2987,17 @@ const startListening = useCallback(() => {
             return;
         }
 
+        const escapeCsvString = (str) => {
+            if (typeof str !== 'string') {
+                return str;
+            }
+            // Escape double quotes by doubling them, then wrap the whole string in double quotes
+            if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+                return `"${str.replace(/"/g, '""')}"`;
+            }
+            return str;
+        };
+
         setStudyingFolder(null);
         setIsFeedbackModalOpen(false);
 
@@ -2979,15 +3014,25 @@ const startListening = useCallback(() => {
                         return;
                     }
                     const cardsToExport = folder.cards.slice(0, numCards);
-                    
+
                     let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n";
                     csvContent += "Question,Answer\n";
+
                     cardsToExport.forEach(card => {
-                        const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
-                        const escapedAnswer = `"${JSON.stringify(card.answer).replace(/"/g, '""')}"`;
+                        let answerText = card.answer;
+                        if (Array.isArray(answerText)) {
+                            // Format chemical reactions cleanly
+                            answerText = answerText.join(' -> ').replace(/CHEM\[(.*?)\]/g, '$1');
+                        } else if (typeof answerText === 'string') {
+                            // Format SMILES strings cleanly
+                            answerText = answerText.replace(/SMILES\[(.*?)\]/g, '$1').replace(/>>/g, ' -> ');
+                        }
+
+                        const escapedQuestion = escapeCsvString(card.question);
+                        const escapedAnswer = escapeCsvString(answerText);
                         csvContent += `${escapedQuestion},${escapedAnswer}\n`;
                     });
-                    
+
                     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
                     const link = document.createElement("a");
                     link.href = URL.createObjectURL(blob);
