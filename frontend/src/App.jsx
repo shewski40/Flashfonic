@@ -948,7 +948,9 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => document.removeEventListener("mousedown", handleClickOutside);
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
     }, []);
 
     useEffect(() => {
@@ -1210,7 +1212,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
         if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
         if (percentage >= 90) return { name: 'Synapse Slayer', animation: 'gold-medal-animation', icon: '🧠' };
-        if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
+        if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '�️' };
         if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
         return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
     }, [deck.length, score]);
@@ -1820,7 +1822,6 @@ const EditableCardContent = ({ card, onSave, onCancel }) => {
     );
 };
 
-// --- MAIN APP COMPONENT ---
 const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [appMode, setAppMode] = useState(null);
     const [isListening, setIsListening] = useState(false);
