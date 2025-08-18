@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import jsPDF from 'https://unpkg.com/jspdf@2.5.1/dist/jspdf.umd.min.js';
-import { marked } from 'https://cdn.jsdelivr.net/npm/marked@10.0.0/lib/marked.esm.js';
-import { Analytics } from 'https://cdn.jsdelivr.net/npm/@vercel/analytics@1.0.1/dist/react.js';
+import jsPDF from 'jspdf';
+import { marked } from 'marked';
+import { Analytics } from '@vercel/analytics/react';
 import * as Tone from 'tone';
 import './App.css';
 
@@ -688,219 +688,6 @@ const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenam
     );
 };
 
-const FolderItem = ({
-    folder,
-    level = 0,
-    allFoldersForMoveDropdown,
-    onPlayGame,
-    expandedFolderIds,
-    handleFolderToggle,
-    handleFolderDragStart,
-    handleFolderDragOver,
-    handleFolderDrop,
-    handleFolderDragEnd,
-    getSortedFolders,
-    renderCardContent,
-    setStudyingFolder,
-    setModalConfig,
-    setIsFeedbackModalOpen,
-    setFlashNotesActionModal,
-    setShowGamesModal,
-    selectedCardsInExpandedFolder,
-    handleSelectedCardInExpandedFolder,
-    selectedFolderForMove,
-    setSelectedFolderForMove,
-    handleMoveSelectedCardsFromExpandedFolder,
-    handleCardInFolderDragStart,
-    handleCardInFolderDrop,
-    isListening,
-    stopListening,
-    exportFolderToPDF,
-    exportFolderToCSV,
-    handleAddSubfolder,
-    handleRenameFolder,
-    handleDeleteFolder,
-    findFolderById,
-    folders,
-    draggedFolderId
-}) => {
-    const isExpanded = expandedFolderIds.has(folder.id);
-    const paddingLeft = level * 20;
-
-    const countCardsRecursive = (currentFolder) => {
-        let count = currentFolder.cards.length;
-        for (const subfolderId in currentFolder.subfolders) {
-            count += countCardsRecursive(currentFolder.subfolders[subfolderId]);
-        }
-        return count;
-    };
-    
-    // Check if the current folder has any subfolders or cards in them
-    const canPlayGames = countCardsRecursive(folder) > 0;
-
-    return (
-        <div
-            key={folder.id}
-            className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
-            draggable
-            onDragStart={(e) => handleFolderDragStart(e, folder.id)}
-            onDragOver={handleFolderDragOver}
-            onDrop={(e) => handleFolderDrop(e, folder.id)}
-            onDragEnd={handleFolderDragEnd}
-            style={{ paddingLeft: `${paddingLeft}px` }}
-        >
-            <div
-                className="folder-summary-custom"
-                onClick={(e) => {
-                    e.stopPropagation();
-                    handleFolderToggle(folder.id, !isExpanded);
-                }}
-            >
-                <div className="folder-item-header">
-                    <span className="folder-name-display">
-                        <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span>
-                        {level > 0 && <span className="folder-icon">📁</span>}
-                        {folder.name}
-                        <span className="card-count-display"> ({countCardsRecursive(folder)} cards)</span>
-                    </span>
-                    <div className="folder-actions-right">
-                        {!isExpanded && canPlayGames && (
-                            <button
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
-                                }}
-                                className="study-btn-small"
-                            >
-                                Study
-                            </button>
-                        )}
-                    </div>
-                </div>
-            </div>
-            {isExpanded && (
-                <div className="folder-expanded-content">
-                    <div className="folder-expanded-header">
-                        <h3 className="folder-expanded-name">{folder.name}</h3>
-                        <div className="folder-main-actions">
-                            {canPlayGames && (
-                                <>
-                                    <button
-                                        onClick={() => {
-                                            if (isListening) stopListening();
-                                            setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
-                                            setModalConfig(null);
-                                            setIsFeedbackModalOpen(false);
-                                        }}
-                                        className="study-btn-large"
-                                    >
-                                        Study
-                                    </button>
-                                    <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
-                                    <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
-                                </>
-                            )}
-                        </div>
-                        <div className="folder-expanded-actions">
-                            <ActionsDropdown
-                                folder={folder}
-                                exportPdf={exportFolderToPDF}
-                                exportCsv={exportFolderToCSV}
-                                onAddSubfolder={(id) => {
-                                    setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
-                                }}
-                                onRenameFolder={(id, name) => {
-                                    setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
-                                }}
-                                onDeleteFolder={(id) => {
-                                    setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
-                                }}
-                            />
-                        </div>
-                    </div>
-                    {Object.values(folder.subfolders).length > 0 && (
-                        <div className="subfolder-list">
-                            {getSortedFolders(folder.subfolders).map(subfolder => (
-                                <FolderItem
-                                    key={subfolder.id}
-                                    folder={subfolder}
-                                    level={level + 1}
-                                    allFoldersForMoveDropdown={allFoldersForMoveDropdown}
-                                    onPlayGame={onPlayGame}
-                                    expandedFolderIds={expandedFolderIds}
-                                    handleFolderToggle={handleFolderToggle}
-                                    handleFolderDragStart={handleFolderDragStart}
-                                    handleFolderDragOver={handleFolderDragOver}
-                                    handleFolderDrop={handleFolderDrop}
-                                    handleFolderDragEnd={handleFolderDragEnd}
-                                    getSortedFolders={getSortedFolders}
-                                    renderCardContent={renderCardContent}
-                                    setStudyingFolder={setStudyingFolder}
-                                    setModalConfig={setModalConfig}
-                                    setIsFeedbackModalOpen={setIsFeedbackModalOpen}
-                                    setFlashNotesActionModal={setFlashNotesActionModal}
-                                    setShowGamesModal={setShowGamesModal}
-                                    selectedCardsInExpandedFolder={selectedCardsInExpandedFolder}
-                                    handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
-                                    selectedFolderForMove={selectedFolderForMove}
-                                    setSelectedFolderForMove={setSelectedFolderForMove}
-                                    handleMoveSelectedCardsFromExpandedFolder={handleMoveSelectedCardsFromExpandedFolder}
-                                    handleCardInFolderDragStart={handleCardInFolderDragStart}
-                                    handleCardInFolderDrop={handleCardInFolderDrop}
-                                    isListening={isListening}
-                                    stopListening={stopListening}
-                                    exportFolderToPDF={exportFolderToPDF}
-                                    exportFolderToCSV={exportFolderToCSV}
-                                    handleAddSubfolder={handleAddSubfolder}
-                                    handleRenameFolder={handleRenameFolder}
-                                    handleDeleteFolder={handleDeleteFolder}
-                                    findFolderById={findFolderById}
-                                    folders={folders}
-                                    draggedFolderId={draggedFolderId}
-                                />
-                            ))}
-                        </div>
-                    )}
-                    <div className="folder-card-list">
-                        {folder.cards.length > 0 ? folder.cards.map((card) => (
-                            <div
-                                key={card.id}
-                                className="card saved-card-in-folder"
-                                draggable
-                                onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
-                                onDragOver={(e) => e.preventDefault()}
-                                onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
-                            >
-                                <div className="card-selection">
-                                    <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
-                                </div>
-                                <div className="card-content">
-                                    {renderCardContent(card, 'folder', folder.id)}
-                                </div>
-                            </div>
-                        )) : <p className="subtle-text">No cards in this folder yet.</p>}
-                    </div>
-                    {folder.cards.length > 0 && (
-                        <div className="folder-card-actions">
-                            <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
-                                <option value="" disabled>Move selected to...</option>
-                                {allFoldersForMoveDropdown.map(f => f.id !== folder.id && <option key={f.id} value={f.id}>{f.name}</option>)}
-                            </select>
-                            <button
-                                onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
-                                className="move-to-folder-btn"
-                                disabled={Object.values(selectedCardsInExpandedFolder).every(v => !v) || !selectedFolderForMove}
-                            >
-                                Move Selected
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
-        </div>
-    );
-};
-
 const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => {
     const [deck, setDeck] = useState([...folder.cards]);
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -948,9 +735,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
             }
         };
         document.addEventListener("mousedown", handleClickOutside);
-        return () => {
-            document.removeEventListener("mousedown", handleClickOutside);
-        };
+        return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
     useEffect(() => {
@@ -1254,7 +1039,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         }
 
         try {
-            const response = await fetch('https://flashfonic-backend.onrender.com/score-answer', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
@@ -1822,6 +1607,216 @@ const EditableCardContent = ({ card, onSave, onCancel }) => {
     );
 };
 
+// --- REFACTOR FIX for FOLDER DRAG & DROP / BUTTONS BUG ---
+// The FolderItem component is now defined outside of MainApp.
+// This prevents React from redefining it on every state change in the parent,
+// which was causing the entire folder list to unmount and remount, losing scroll position.
+// This component has been fully restored to include all the missing buttons and functionality.
+const FolderItem = ({
+    folder,
+    level = 0,
+    allFoldersForMoveDropdown,
+    onPlayGame,
+    expandedFolderIds,
+    handleFolderToggle,
+    handleFolderDragStart,
+    handleFolderDragOver,
+    handleFolderDrop,
+    handleFolderDragEnd,
+    getSortedFolders,
+    renderCardContent,
+    setStudyingFolder,
+    setModalConfig,
+    setIsFeedbackModalOpen,
+    setFlashNotesActionModal,
+    setShowGamesModal,
+    selectedCardsInExpandedFolder,
+    handleSelectedCardInExpandedFolder,
+    selectedFolderForMove,
+    setSelectedFolderForMove,
+    handleMoveSelectedCardsFromExpandedFolder,
+    handleCardInFolderDragStart,
+    handleCardInFolderDrop,
+    isListening,
+    stopListening,
+    exportFolderToPDF,
+    exportFolderToCSV,
+    handleAddSubfolder,
+    handleRenameFolder,
+    handleDeleteFolder,
+    findFolderById,
+    folders,
+    draggedFolderId
+}) => {
+    const isExpanded = expandedFolderIds.has(folder.id);
+    const paddingLeft = level * 20;
+
+    const countCardsRecursive = (currentFolder) => {
+        let count = currentFolder.cards.length;
+        for (const subfolderId in currentFolder.subfolders) {
+            count += countCardsRecursive(currentFolder.subfolders[subfolderId]);
+        }
+        return count;
+    };
+
+    return (
+        <div
+            key={folder.id}
+            className={`folder ${draggedFolderId === folder.id ? 'dragging' : ''}`}
+            draggable
+            onDragStart={(e) => handleFolderDragStart(e, folder.id)}
+            onDragOver={handleFolderDragOver}
+            onDrop={(e) => handleFolderDrop(e, folder.id)}
+            onDragEnd={handleFolderDragEnd}
+            style={{ paddingLeft: `${paddingLeft}px` }}
+        >
+            <div
+                className="folder-summary-custom"
+                onClick={(e) => {
+                    e.stopPropagation();
+                    handleFolderToggle(folder.id, !isExpanded);
+                }}
+            >
+                <div className="folder-item-header">
+                    <span className="folder-name-display">
+                        <span className={`folder-toggle-arrow ${isExpanded ? 'rotated' : ''}`}>▶</span>
+                        {level > 0 && <span className="folder-icon">📁</span>}
+                        {folder.name}
+                        <span className="card-count-display"> ({countCardsRecursive(folder)} cards)</span>
+                    </span>
+                    <div className="folder-actions-right">
+                        {!isExpanded && (
+                            <button
+                                onClick={(e) => {
+                                    e.stopPropagation();
+                                    setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
+                                }}
+                                className="study-btn-small"
+                            >
+                                Study
+                            </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+            {isExpanded && (
+                <div className="folder-expanded-content">
+                    <div className="folder-expanded-header">
+                        <h3 className="folder-expanded-name">{folder.name}</h3>
+                        <div className="folder-main-actions">
+                            <button
+                                onClick={() => {
+                                    if (isListening) stopListening();
+                                    setStudyingFolder({ id: folder.id, name: folder.name, cards: folder.cards });
+                                    setModalConfig(null);
+                                    setIsFeedbackModalOpen(false);
+                                }}
+                                className="study-btn-large"
+                            >
+                                Study
+                            </button>
+                            <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
+                            <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
+                        </div>
+                        <div className="folder-expanded-actions">
+                            <ActionsDropdown
+                                folder={folder}
+                                exportPdf={exportFolderToPDF}
+                                exportCsv={exportFolderToCSV}
+                                onAddSubfolder={(id) => {
+                                    setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
+                                }}
+                                onRenameFolder={(id, name) => {
+                                    setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
+                                }}
+                                onDeleteFolder={(id) => {
+                                    setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
+                                }}
+                            />
+                        </div>
+                    </div>
+                    {Object.values(folder.subfolders).length > 0 && (
+                        <div className="subfolder-list">
+                            {getSortedFolders(folder.subfolders).map(subfolder => (
+                                <FolderItem
+                                    key={subfolder.id}
+                                    folder={subfolder}
+                                    level={level + 1}
+                                    allFoldersForMoveDropdown={allFoldersForMoveDropdown}
+                                    onPlayGame={onPlayGame}
+                                    expandedFolderIds={expandedFolderIds}
+                                    handleFolderToggle={handleFolderToggle}
+                                    handleFolderDragStart={handleFolderDragStart}
+                                    handleFolderDragOver={handleFolderDragOver}
+                                    handleFolderDrop={handleFolderDrop}
+                                    handleFolderDragEnd={handleFolderDragEnd}
+                                    getSortedFolders={getSortedFolders}
+                                    renderCardContent={renderCardContent}
+                                    setStudyingFolder={setStudyingFolder}
+                                    setModalConfig={setModalConfig}
+                                    setIsFeedbackModalOpen={setIsFeedbackModalOpen}
+                                    setFlashNotesActionModal={setFlashNotesActionModal}
+                                    setShowGamesModal={setShowGamesModal}
+                                    selectedCardsInExpandedFolder={selectedCardsInExpandedFolder}
+                                    handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
+                                    selectedFolderForMove={selectedFolderForMove}
+                                    setSelectedFolderForMove={setSelectedFolderForMove}
+                                    handleMoveSelectedCardsFromExpandedFolder={handleMoveSelectedCardsFromExpandedFolder}
+                                    handleCardInFolderDragStart={handleCardInFolderDragStart}
+                                    handleCardInFolderDrop={handleCardInFolderDrop}
+                                    isListening={isListening}
+                                    stopListening={stopListening}
+                                    exportFolderToPDF={exportFolderToPDF}
+                                    exportFolderToCSV={exportFolderToCSV}
+                                    handleAddSubfolder={handleAddSubfolder}
+                                    handleRenameFolder={handleRenameFolder}
+                                    handleDeleteFolder={handleDeleteFolder}
+                                    findFolderById={findFolderById}
+                                    folders={folders}
+                                    draggedFolderId={draggedFolderId}
+                                />
+                            ))}
+                        </div>
+                    )}
+                    <div className="folder-card-list">
+                        {folder.cards.length > 0 ? folder.cards.map((card) => (
+                            <div
+                                key={card.id}
+                                className="card saved-card-in-folder"
+                                draggable
+                                onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
+                                onDragOver={(e) => e.preventDefault()}
+                                onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
+                            >
+                                <div className="card-selection">
+                                    <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
+                                </div>
+                                <div className="card-content">
+                                    {renderCardContent(card, 'folder', folder.id)}
+                                </div>
+                            </div>
+                        )) : <p className="subtle-text">No cards in this folder yet.</p>}
+                    </div>
+                    <div className="folder-card-actions">
+                        <select className="folder-select" value={selectedFolderForMove} onChange={(e) => setSelectedFolderForMove(e.target.value)}>
+                            <option value="" disabled>Move selected to...</option>
+                            {allFoldersForMoveDropdown.map(f => f.id !== folder.id && <option key={f.id} value={f.id}>{f.name}</option>)}
+                        </select>
+                        <button
+                            onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
+                            className="move-to-folder-btn"
+                            disabled={Object.values(selectedCardsInExpandedFolder).every(v => !v) || !selectedFolderForMove}
+                        >
+                            Move Selected
+                        </button>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+// --- MAIN APP COMPONENT ---
 const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [appMode, setAppMode] = useState(null);
     const [isListening, setIsListening] = useState(false);
@@ -1966,7 +1961,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setIsGenerating(true);
         setNotification('Generating flashcard...');
         try {
-            const response = await fetch('https://flashfonic-backend.onrender.com/generate-flashcard', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(requestBody)
@@ -2035,7 +2030,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         reader.onloadend = async () => {
             const base64File = reader.result.split(',')[1];
             try {
-                const response = await fetch('https://flashfonic-backend.onrender.com/process-audio', {
+                const response = await fetch('https://flashfonic-backend-shewski.replit.app/process-audio', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ audio_data: base64File })
@@ -2109,56 +2104,34 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     }, [appMode, isUploadAutoFlashOn, isPlaying, uploadAutoFlashInterval, handleUploadFlash, fileType, audioCacheId]);
 
 
-    // --- Refactored start/stop listening functions for Safari compatibility ---
-const stopListening = useCallback(() => {
-    if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
-    if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
-    streamRef.current?.getTracks().forEach(track => track.stop());
-    if (recognitionRef.current) {
-        recognitionRef.current.stop();
-        recognitionRef.current = null;
-    }
-    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+    const stopListening = useCallback(() => {
+        if (listeningTimeoutRef.current) clearTimeout(listeningTimeoutRef.current);
+        if (mediaRecorderRef.current?.state !== 'inactive') mediaRecorderRef.current.stop();
+        streamRef.current?.getTracks().forEach(track => track.stop());
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            recognitionRef.current = null;
+        }
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        if (silenceTimeoutRef.current) clearTimeout(silenceTimeoutRef.current);
+        
+        setIsListening(false);
+        setNotification('');
+    }, []);
 
-    setIsListening(false);
-    setNotification('');
-}, []);
-
-const startListening = useCallback(() => {
-    // This part is the critical fix. We immediately call getUserMedia
-    // without any preceding async/await calls to satisfy Safari's security policy.
-    navigator.mediaDevices.getUserMedia({ audio: true })
-        .then(stream => {
-            streamRef.current = stream;
+    const startListening = useCallback(async () => {
+        if (!isDevMode && usage.count >= usage.limit) {
+            setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
+            return;
+        }
+        try {
+            streamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
             setIsListening(true);
             setNotification('Listening...');
 
-            // Function to find a supported MIME type
-            const getSupportedMimeType = () => {
-                const supportedTypes = [
-                    'audio/webm;codecs=opus', // Best quality, modern browsers
-                    'audio/wav',               // Widely supported, uncompressed
-                    'audio/mpeg',              // MP3 format
-                    'audio/mp4'                // Common for video containers
-                ];
-                for (const type of supportedTypes) {
-                    if (MediaRecorder.isTypeSupported(type)) {
-                        console.log(`Using supported MIME type: ${type}`);
-                        return type;
-                    }
-                }
-                console.error("No supported audio MIME type found.");
-                return null; // Fallback to let MediaRecorder select its default
-            };
-
-            const mimeType = getSupportedMimeType();
-            if (mimeType) {
-                mediaRecorderRef.current = new MediaRecorder(stream, { mimeType });
-            } else {
-                mediaRecorderRef.current = new MediaRecorder(stream); // Let the browser use its default
-            }
-
+            const mimeType = isSafari ? 'audio/mp4' : 'audio/webm; codecs=opus';
+            mediaRecorderRef.current = new MediaRecorder(streamRef.current, { mimeType });
+            
             audioChunksRef.current = [];
             headerChunkRef.current = null;
 
@@ -2167,6 +2140,7 @@ const startListening = useCallback(() => {
                     audioChunksRef.current.push(event.data);
                     if (!headerChunkRef.current) {
                         headerChunkRef.current = event.data;
+                        
                         if (listeningDuration > 0) {
                             listeningTimeoutRef.current = setTimeout(() => {
                                 if (isAutoFlashOnRef.current) {
@@ -2205,14 +2179,14 @@ const startListening = useCallback(() => {
                     recognitionRef.current.start();
                 }
             }
-        })
-        .catch(err => {
+
+        } catch (err) {
             console.error("Error starting listening:", err);
-            setNotification(`Microphone access denied or error: ${err.name}`);
+            setNotification("Microphone access denied or error.");
             setIsListening(false);
-        });
-}, [isSafari, listeningDuration, voiceActivated, handleLiveFlashIt, stopListening, isAutoFlashOnRef]);
-// --- End Refactored start/stop listening functions ---
+        }
+    }, [isDevMode, usage.count, usage.limit, isSafari, listeningDuration, voiceActivated, handleLiveFlashIt, stopListening]);
+
     const stopCamera = useCallback(() => {
         if (videoRef.current && videoRef.current.srcObject) {
             videoRef.current.srcObject.getTracks().forEach(track => track.stop());
@@ -2422,24 +2396,12 @@ const startListening = useCallback(() => {
     }, [updateFolderById]);
 
     const handleRenameFolder = useCallback((folderId, newName) => {
-        const renameRecursive = (foldersObj) => {
-            const newFolders = { ...foldersObj };
-            if (newFolders[folderId]) {
-                newFolders[folderId] = { ...newFolders[folderId], name: newName };
-                return newFolders;
-            }
-            for (const id in newFolders) {
-                const updatedSubfolders = renameRecursive(newFolders[id].subfolders);
-                if (updatedSubfolders !== newFolders[id].subfolders) {
-                    newFolders[id] = { ...newFolders[id], subfolders: updatedSubfolders };
-                    return newFolders;
-                }
-            }
-            return foldersObj;
-        };
-        setFolders(renameRecursive(folders));
+        setFolders(prev => updateFolderById(prev, folderId, (folder) => ({
+            ...folder,
+            name: newName
+        })));
         setModalConfig(null);
-    }, [folders]);
+    }, [updateFolderById]);
 
     const handleDeleteFolder = useCallback((folderId) => {
         setFolders(prev => deleteFolderById(prev, folderId));
@@ -2760,7 +2722,7 @@ const startListening = useCallback(() => {
         }
         return flatList;
     }, []);
-    const allFoldersForMoveDropdown = useMemo(() => getAllFoldersFlat(folders), [folders, getAllFoldersFlat]);
+    const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
     const handleGenerateNotes = async (folder, action, forceRegenerate = false) => {
         setFlashNotesActionModal(null);
@@ -2778,7 +2740,7 @@ const startListening = useCallback(() => {
         setIsGeneratingNotes(true);
         setNotification('Synthesizing your Flash Notes with AI...');
         try {
-            const response = await fetch('https://flashfonic-backend.onrender.com/generate-notes', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-notes', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cards: folder.cards }),
@@ -2882,107 +2844,95 @@ const startListening = useCallback(() => {
         setStudyingFolder(null);
         setIsFeedbackModalOpen(false);
 
-        setModalConfig({
-            type: 'prompt',
-            title: 'Export to PDF',
-            message: 'How many flashcards per page? (6, 8, or 10)',
-            defaultValue: '8',
-            onConfirm: (value) => {
-                setModalConfig(null);
-                const cardsPerPage = parseInt(value, 10);
-                if (![6, 8, 10].includes(cardsPerPage)) {
-                    setNotification("Invalid number. Please choose 6, 8, or 10.");
-                    return;
-                }
-
-                const doc = new jsPDF();
-                const cards = folder.cards;
-                const pageW = doc.internal.pageSize.getWidth();
-                const pageH = doc.internal.pageSize.getHeight();
-                const layoutConfig = {
-                    6: { rows: 3, cols: 2, fontSize: 12 },
-                    8: { rows: 4, cols: 2, fontSize: 10 },
-                    10: { rows: 5, cols: 2, fontSize: 9 },
-                };
-                const config = layoutConfig[cardsPerPage];
-                const margin = 15;
-                const cardMargin = 5;
-                const cardW = (pageW - (margin * 2) - cardMargin * (config.cols - 1)) / config.cols;
-                const cardH = (pageH - 50 - cardMargin * (config.rows - 1)) / config.rows;
-
-                const drawHeader = () => {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(30);
-                    doc.setTextColor(139, 92, 246);
-                    doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(16);
-                    doc.setTextColor(31, 41, 55);
-                    doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
-                };
-
-                let currentPageIndex = 0;
-                while (currentPageIndex < cards.length) {
-                    const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
+        setTimeout(() => {
+            setModalConfig({
+                type: 'prompt',
+                title: 'Export to PDF',
+                message: 'How many flashcards per page? (6, 8, or 10)',
+                defaultValue: '8',
+                onConfirm: (value) => {
+                    const cardsPerPage = parseInt(value, 10);
+                    if (![6, 8, 10].includes(cardsPerPage)) {
+                        setNotification("Invalid number. Please choose 6, 8, or 10.");
+                        return;
+                    }
                     
-                    if (currentPageIndex > 0) doc.addPage();
-                    drawHeader();
+                    const doc = new jsPDF();
+                    const cards = folder.cards;
+                    const pageW = doc.internal.pageSize.getWidth();
+                    const pageH = doc.internal.pageSize.getHeight();
+                    const layoutConfig = {
+                        6: { rows: 3, cols: 2, fontSize: 12 },
+                        8: { rows: 4, cols: 2, fontSize: 10 },
+                        10: { rows: 5, cols: 2, fontSize: 9 },
+                    };
+                    const config = layoutConfig[cardsPerPage];
+                    const margin = 15;
+                    const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
+                    const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
 
-                    // Draw card fronts
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(config.fontSize);
-                    pageCards.forEach((card, index) => {
-                        const row = Math.floor(index / config.cols);
-                        const col = index % config.cols;
-                        const cardX = margin + col * (cardW + cardMargin);
-                        const cardY = 50 + row * (cardH + cardMargin);
-                        doc.setLineWidth(0.5);
-                        doc.setDrawColor(0);
-                        doc.setTextColor(0, 0, 0);
-                        doc.rect(cardX, cardY, cardW, cardH);
-                        const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
-                        doc.text(text, cardX + cardW / 2, cardY + cardH / 2, { align: 'center', baseline: 'middle' });
-                    });
-
-                    // Draw card backs
-                    if (pageCards.length > 0) {
-                        doc.addPage();
-                        drawHeader();
+                    const drawHeader = () => {
+                        doc.setFont('helvetica', 'bold');
+                        doc.setFontSize(30);
+                        doc.setTextColor(139, 92, 246);
+                        doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
                         doc.setFont('helvetica', 'normal');
-                        doc.setFontSize(config.fontSize);
+                        doc.setFontSize(16);
+                        doc.setTextColor(31, 41, 55);
+                        doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
+                    };
+
+                    let currentPageIndex = 0;
+                    while (currentPageIndex < cards.length) {
+                        const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
+                        
+                        if (currentPageIndex > 0) doc.addPage();
+                        drawHeader();
                         pageCards.forEach((card, index) => {
                             const row = Math.floor(index / config.cols);
                             const col = index % config.cols;
-                            const cardX = margin + col * (cardW + cardMargin);
-                            const cardY = 50 + row * (cardH + cardMargin);
+                            const cardX = margin + (col * (cardW + margin));
+                            const cardY = 40 + (row * (cardH + margin));
                             doc.setLineWidth(0.5);
                             doc.setDrawColor(0);
                             doc.setTextColor(0, 0, 0);
                             doc.rect(cardX, cardY, cardW, cardH);
-
-                            let answerText = card.answer;
-                            if (Array.isArray(answerText)) {
-                                // Format chemical reactions cleanly
-                                answerText = answerText.join(' -> ').replace(/CHEM\[(.*?)\]/g, '$1');
-                            } else if (typeof answerText === 'string' && (answerText.includes('SMILES[') || answerText.includes('CHEM['))) {
-                                // Format SMILES strings cleanly
-                                answerText = answerText.replace(/SMILES\[(.*?)\]/g, '$1').replace(/>>/g, ' -> ');
-                            }
-
-                            const text = doc.splitTextToSize(`A: ${answerText}`, cardW - 10);
-                            doc.text(text, cardX + cardW / 2, cardY + cardH / 2, { align: 'center', baseline: 'middle' });
+                            doc.setFontSize(config.fontSize);
+                            const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
+                            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+                            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
                         });
-                    }
 
-                    currentPageIndex += cardsPerPage;
+                        if (pageCards.length > 0) {
+                            doc.addPage();
+                            drawHeader();
+                            pageCards.forEach((card, index) => {
+                                const row = Math.floor(index / config.cols);
+                                const col = index % config.cols;
+                                const cardX = margin + (col * (cardW + margin));
+                                const cardY = 40 + (row * (cardH + margin));
+                                doc.setLineWidth(0.5);
+                                doc.setDrawColor(0);
+                                doc.setTextColor(0, 0, 0);
+                                doc.rect(cardX, cardY, cardW, cardH);
+                                doc.setFontSize(config.fontSize);
+                                const text = doc.splitTextToSize(`A: ${JSON.stringify(card.answer)}`, cardW - 10);
+                                const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+                                doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+                            });
+                        }
+
+                        currentPageIndex += cardsPerPage;
+                    }
+                    
+                    doc.save(`${folder.name}-flashcards.pdf`);
+                    setModalConfig(null);
+                },
+                onClose: () => {
+                    setModalConfig(null);
                 }
-                
-                doc.save(`${folder.name}-flashcards.pdf`);
-            },
-            onClose: () => {
-                setModalConfig(null);
-            }
-        });
+            });
+        }, 0);
     }, [folders, findFolderById]);
     
     const exportFolderToCSV = useCallback((folderId) => {
@@ -2995,63 +2945,44 @@ const startListening = useCallback(() => {
         setStudyingFolder(null);
         setIsFeedbackModalOpen(false);
 
-        setModalConfig({
-            type: 'prompt',
-            title: 'Export to CSV',
-            message: 'How many flashcards do you want to export?',
-            defaultValue: folder.cards.length.toString(),
-            onConfirm: (value) => {
-                setModalConfig(null);
-                const numCards = parseInt(value, 10);
-                if (isNaN(numCards) || numCards <= 0 || numCards > folder.cards.length) {
-                    setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`);
-                    return;
+        setTimeout(() => {
+            setModalConfig({
+                type: 'prompt',
+                title: 'Export to CSV',
+                message: 'How many flashcards do you want to export?',
+                defaultValue: folder.cards.length.toString(),
+                onConfirm: (value) => {
+                    const numCards = parseInt(value, 10);
+                    if (isNaN(numCards) || numCards <= 0 || numCards > folder.cards.length) {
+                        setNotification(`Invalid number. Please enter a number between 1 and ${folder.cards.length}.`);
+                        return;
+                    }
+                    const cardsToExport = folder.cards.slice(0, numCards);
+                    
+                    let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n";
+                    csvContent += "Question,Answer\n";
+                    cardsToExport.forEach(card => {
+                        const escapedQuestion = `"${card.question.replace(/"/g, '""')}"`;
+                        const escapedAnswer = `"${JSON.stringify(card.answer).replace(/"/g, '""')}"`;
+                        csvContent += `${escapedQuestion},${escapedAnswer}\n`;
+                    });
+                    
+                    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+                    const link = document.createElement("a");
+                    link.href = URL.createObjectURL(blob);
+                    link.download = `${folder.name}-flashcards.csv`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                    URL.revokeObjectURL(link.href);
+                    setNotification(`Exported ${numCards} cards to ${folder.name}-flashcards.csv`);
+                    setModalConfig(null);
+                },
+                onClose: () => {
+                    setModalConfig(null);
                 }
-                const cardsToExport = folder.cards.slice(0, numCards);
-
-                const escapeCsvString = (str) => {
-                    if (typeof str !== 'string') {
-                        return str;
-                    }
-                    // Escape double quotes by doubling them, then wrap the whole string in double quotes
-                    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
-                        return `"${str.replace(/"/g, '""')}"`;
-                    }
-                    return str;
-                };
-
-                let csvContent = "FlashFonic\nListen. Flash it. Learn.\n\n";
-                csvContent += "Question,Answer\n";
-
-                cardsToExport.forEach(card => {
-                    let answerText = card.answer;
-                    if (Array.isArray(answerText)) {
-                        // Format chemical reactions cleanly
-                        answerText = answerText.join(' -> ').replace(/CHEM\[(.*?)\]/g, '$1');
-                    } else if (typeof answerText === 'string') {
-                        // Format SMILES strings cleanly
-                        answerText = answerText.replace(/SMILES\[(.*?)\]/g, '$1').replace(/>>/g, ' -> ');
-                    }
-
-                    const escapedQuestion = escapeCsvString(card.question);
-                    const escapedAnswer = escapeCsvString(answerText);
-                    csvContent += `${escapedQuestion},${escapedAnswer}\n`;
-                });
-
-                const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-                const link = document.createElement("a");
-                link.href = URL.createObjectURL(blob);
-                link.download = `${folder.name}-flashcards.csv`;
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-                URL.revokeObjectURL(link.href);
-                setNotification(`Exported ${numCards} cards to ${folder.name}-flashcards.csv`);
-            },
-            onClose: () => {
-                setModalConfig(null);
-            }
-        });
+            });
+        }, 0);
     }, [folders, findFolderById]);
 
     const handleFotoFileChange = (event) => {
@@ -3116,7 +3047,7 @@ const startListening = useCallback(() => {
         setNotification('Analyzing image with AI...');
         setAiAnalysis(null);
         try {
-            const response = await fetch('https://flashfonic-backend.onrender.com/analyze-image', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/analyze-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ image_data: base64Image }),
@@ -3149,7 +3080,7 @@ const startListening = useCallback(() => {
         setAiAnalysis(null);
         setImageSrc(null);
         try {
-            const response = await fetch('https://flashfonic-backend.onrender.com/generate-flashcards-from-image', {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcards-from-image', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: textToProcess, cardCount: count }),
@@ -3235,7 +3166,7 @@ const startListening = useCallback(() => {
                     message={promptModalConfig.message}
                     defaultValue={promptModalConfig.defaultValue}
                     onConfirm={promptModalConfig.onConfirm}
-                    onClose={() => setModalConfig(null)}
+                    onClose={() => setPromptModalConfig(null)}
                 />
             )}
             {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
@@ -3344,16 +3275,7 @@ const startListening = useCallback(() => {
                                 </ol>
                             </div>
                             <div className="listening-control">
-                                <button onClick={isListening ? stopListening : () => {
-                                    if (!isDevMode && usage.count >= usage.limit) {
-                                        setNotification(`You have 0 cards left for today. Your limit will reset tomorrow.`);
-                                        return;
-                                    }
-                                    // New, direct call to the refactored function
-                                    startListening();
-                                }} className={`start-stop-btn ${isListening ? 'active' : ''}`}>
-                                    {isListening ? '■ Stop Listening' : '● Start Listening'}
-                                </button>
+                                <button onClick={isListening ? stopListening : startListening} className={`start-stop-btn ${isListening ? 'active' : ''}`}>{isListening ? '■ Stop Listening' : '● Start Listening'}</button>
                             </div>
                             <div className="listening-modes">
                                 <button
@@ -3614,7 +3536,7 @@ const startListening = useCallback(() => {
                             setIsFeedbackModalOpen={setIsFeedbackModalOpen}
                             setFlashNotesActionModal={setFlashNotesActionModal}
                             setShowGamesModal={setShowGamesModal}
-                            selectedCardsInExpandedFolder={selectedCardsInExpandedFolder}
+                            selectedCardsInExpandedFolder={selectedCardsInExpandedFolder[folder.id] || {}}
                             handleSelectedCardInExpandedFolder={handleSelectedCardInExpandedFolder}
                             selectedFolderForMove={selectedFolderForMove}
                             setSelectedFolderForMove={setSelectedFolderForMove}
