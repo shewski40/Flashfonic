@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+// These imports are now handled directly in this file for reliability.
 import jsPDF from 'jspdf';
 import { marked } from 'marked';
-import { Analytics } from '@vercel/analytics/react';
+// import { Analytics } from '@vercel/analytics/react';
 import * as Tone from 'tone';
 import './App.css';
 
