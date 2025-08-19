@@ -2845,59 +2845,121 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         doc.save(`${folderName}-FlashNotes.pdf`);
     };
 
-    const exportFolderToPDF = useCallback((folderId) => {
-        const folder = findFolderById(folders, folderId);
-        if (!folder || folder.cards.length === 0) {
-            setNotification("Folder not found or contains no cards for export.");
-            return;
-        }
+    // --- HELPER FUNCTION FOR PDF EXPORT FIX ---
+// This function sanitizes the content of a card so it can be correctly printed to a PDF.
+const renderContentForPdf = (content) => {
+    // If content is an array, assume it's a chemical reaction
+    if (Array.isArray(content)) {
+        const chemRegex = /CHEM\[(.*?)\]/g;
+        // Map over the array and replace the CHEM[...] tags with readable text
+        const textArray = content.map(item => {
+            const match = typeof item === 'string' && item.match(chemRegex);
+            return match ? `[Structure of ${match[1]}]` : item;
+        });
+        // Join the items with an arrow to represent the reaction
+        return textArray.join(' → ');
+    } else if (typeof content === 'string') {
+        // Handle SMILES strings, SMILES reactions, and LaTeX, replacing them with a simplified text
+        let text = content;
+        const smilesRegex = /SMILES\[(.*?)\]/g;
+        const smilesReactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/g;
+        const latexRegex = /\$\$(.*?)\$\$/g;
+        const inlineLatexRegex = /\$(.*?)\$/g;
 
-        setStudyingFolder(null);
-        setIsFeedbackModalOpen(false);
+        // Order matters here, handle reaction first so it doesn't get caught by single molecule regex
+        text = text.replace(smilesReactionRegex, '[Chemical Reaction]');
+        text = text.replace(smilesRegex, '[Chemical Structure]');
+        text = text.replace(latexRegex, '[Formula]');
+        text = text.replace(inlineLatexRegex, '[Formula]');
+        return text;
+    }
+    // Return the content as a string for all other types
+    return String(content);
+};
 
-        setTimeout(() => {
-            setModalConfig({
-                type: 'prompt',
-                title: 'Export to PDF',
-                message: 'How many flashcards per page? (6, 8, or 10)',
-                defaultValue: '8',
-                onConfirm: (value) => {
-                    const cardsPerPage = parseInt(value, 10);
-                    if (![6, 8, 10].includes(cardsPerPage)) {
-                        setNotification("Invalid number. Please choose 6, 8, or 10.");
-                        return;
-                    }
+// --- START REFACTORED PDF EXPORT FUNCTION ---
+// This entire function has been refactored to use the new helper function
+// and correctly position text within the generated PDF card rectangles.
+const exportFolderToPDF = useCallback((folderId) => {
+    const folder = findFolderById(folders, folderId);
+    if (!folder || folder.cards.length === 0) {
+        setNotification("Folder not found or contains no cards for export.");
+        return;
+    }
+
+    setStudyingFolder(null);
+    setIsFeedbackModalOpen(false);
+
+    setTimeout(() => {
+        setModalConfig({
+            type: 'prompt',
+            title: 'Export to PDF',
+            message: 'How many flashcards per page? (6, 8, or 10)',
+            defaultValue: '8',
+            onConfirm: (value) => {
+                const cardsPerPage = parseInt(value, 10);
+                if (![6, 8, 10].includes(cardsPerPage)) {
+                    setNotification("Invalid number. Please choose 6, 8, or 10.");
+                    return;
+                }
+                
+                const doc = new jsPDF();
+                const cards = folder.cards;
+                const pageW = doc.internal.pageSize.getWidth();
+                const pageH = doc.internal.pageSize.getHeight();
+                const layoutConfig = {
+                    6: { rows: 3, cols: 2, fontSize: 12 },
+                    8: { rows: 4, cols: 2, fontSize: 10 },
+                    10: { rows: 5, cols: 2, fontSize: 9 },
+                };
+                const config = layoutConfig[cardsPerPage];
+                const margin = 15;
+                const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
+                const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
+
+                const drawHeader = () => {
+                    doc.setFont('helvetica', 'bold');
+                    doc.setFontSize(30);
+                    doc.setTextColor(139, 92, 246);
+                    doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+                    doc.setFont('helvetica', 'normal');
+                    doc.setFontSize(16);
+                    doc.setTextColor(31, 41, 55);
+                    doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
+                };
+
+                // Draw the front of the cards
+                let currentPageIndex = 0;
+                while (currentPageIndex < cards.length) {
+                    const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
                     
-                    const doc = new jsPDF();
-                    const cards = folder.cards;
-                    const pageW = doc.internal.pageSize.getWidth();
-                    const pageH = doc.internal.pageSize.getHeight();
-                    const layoutConfig = {
-                        6: { rows: 3, cols: 2, fontSize: 12 },
-                        8: { rows: 4, cols: 2, fontSize: 10 },
-                        10: { rows: 5, cols: 2, fontSize: 9 },
-                    };
-                    const config = layoutConfig[cardsPerPage];
-                    const margin = 15;
-                    const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
-                    const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
-
-                    const drawHeader = () => {
-                        doc.setFont('helvetica', 'bold');
-                        doc.setFontSize(30);
-                        doc.setTextColor(139, 92, 246);
-                        doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
-                        doc.setFont('helvetica', 'normal');
-                        doc.setFontSize(16);
-                        doc.setTextColor(31, 41, 55);
-                        doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
-                    };
-
-                    let currentPageIndex = 0;
-                    while (currentPageIndex < cards.length) {
-                        const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
+                    if (currentPageIndex > 0) doc.addPage();
+                    drawHeader();
+                    pageCards.forEach((card, index) => {
+                        const row = Math.floor(index / config.cols);
+                        const col = index % config.cols;
+                        const cardX = margin + (col * (cardW + margin));
+                        const cardY = 40 + (row * (cardH + margin));
+                        doc.setLineWidth(0.5);
+                        doc.setDrawColor(0);
+                        doc.setTextColor(0, 0, 0);
+                        doc.rect(cardX, cardY, cardW, cardH);
+                        doc.setFontSize(config.fontSize);
                         
-                        if (currentPageIndex > 0) doc.addPage();
+                        const text = doc.splitTextToSize(`Q: ${renderContentForPdf(card.question)}`, cardW - 10);
+                        const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
+                        doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
+                    });
+                    currentPageIndex += cardsPerPage;
+                }
+
+                // Draw the back of the cards
+                currentPageIndex = 0;
+                while (currentPageIndex < cards.length) {
+                    const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
+
+                    if (pageCards.length > 0) {
+                        doc.addPage();
                         drawHeader();
                         pageCards.forEach((card, index) => {
                             const row = Math.floor(index / config.cols);
@@ -2909,43 +2971,25 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                             doc.setTextColor(0, 0, 0);
                             doc.rect(cardX, cardY, cardW, cardH);
                             doc.setFontSize(config.fontSize);
-                            const text = doc.splitTextToSize(`Q: ${card.question}`, cardW - 10);
+                            
+                            const text = doc.splitTextToSize(`A: ${renderContentForPdf(card.answer)}`, cardW - 10);
                             const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
                             doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
                         });
-
-                        if (pageCards.length > 0) {
-                            doc.addPage();
-                            drawHeader();
-                            pageCards.forEach((card, index) => {
-                                const row = Math.floor(index / config.cols);
-                                const col = index % config.cols;
-                                const cardX = margin + (col * (cardW + margin));
-                                const cardY = 40 + (row * (cardH + margin));
-                                doc.setLineWidth(0.5);
-                                doc.setDrawColor(0);
-                                doc.setTextColor(0, 0, 0);
-                                doc.rect(cardX, cardY, cardW, cardH);
-                                doc.setFontSize(config.fontSize);
-                                const answerText = JSON.stringify(card.answer).replace(/["{}]/g, '').replace(/,/g, ', ');
-                                const text = doc.splitTextToSize(`A: ${answerText}`, cardW - 10);
-                                const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-                                doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-                            });
-                        }
-
-                        currentPageIndex += cardsPerPage;
                     }
-                    
-                    doc.save(`${folder.name}-flashcards.pdf`);
-                    setModalConfig(null);
-                },
-                onClose: () => {
-                    setModalConfig(null);
+                    currentPageIndex += cardsPerPage;
                 }
-            });
-        }, 0);
-    }, [folders, findFolderById]);
+                
+                doc.save(`${folder.name}-flashcards.pdf`);
+                setModalConfig(null);
+            },
+            onClose: () => {
+                setModalConfig(null);
+            }
+        });
+    }, 0);
+}, [folders, findFolderById, setModalConfig, setNotification, setStudyingFolder, setIsFeedbackModalOpen]);
+// --- END REFACTORED PDF EXPORT FUNCTION ---
     
     const exportFolderToCSV = useCallback((folderId) => {
         const folder = findFolderById(folders, folderId);
