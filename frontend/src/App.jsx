@@ -2845,7 +2845,8 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         doc.save(`${folderName}-FlashNotes.pdf`);
     };
 
-    // --- HELPER FUNCTION FOR PDF EXPORT FIX ---
+// --- START REFACTORED PDF EXPORT FUNCTION ---
+// --- HELPER FUNCTION FOR PDF EXPORT FIX ---
 // This function sanitizes the content of a card so it can be correctly printed to a PDF.
 const renderContentForPdf = (content) => {
     // If content is an array, assume it's a chemical reaction
