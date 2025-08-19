@@ -118,6 +118,11 @@ body {
   position: relative;
 }
 
+.card-selection {
+  /* This is the key fix to allow clicks on the checkbox */
+  pointer-events: auto;
+}
+
 .main-mode-selector {
   display: flex;
   justify-content: center;

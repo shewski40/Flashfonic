@@ -1668,11 +1668,6 @@ const FolderItem = ({
         return count;
     };
 
-    const handleCheckboxChange = (e, cardId) => {
-        e.stopPropagation(); // This is the crucial fix: stop the event from bubbling up to the draggable parent div
-        handleSelectedCardInExpandedFolder(folder.id, cardId);
-    };
-
     return (
         <div
             key={folder.id}
@@ -1797,16 +1792,16 @@ const FolderItem = ({
                             <div
                                 key={card.id}
                                 className="card saved-card-in-folder"
-                                // draggable
+                                draggable
                                 onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
                             >
                                 <div className="card-selection" onClick={e => e.stopPropagation()}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={!!selectedCardsInExpandedFolder[folder.id]?.[card.id]} 
-                                        onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)} 
+                                    <input
+                                        type="checkbox"
+                                        checked={!!(selectedCardsInExpandedFolder[folder.id] && selectedCardsInExpandedFolder[folder.id][card.id])}
+                                        onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)}
                                     />
                                 </div>
                                 <div className="card-content">
@@ -1823,11 +1818,7 @@ const FolderItem = ({
                         <button
                             onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
                             className="move-to-folder-btn"
-                            disabled={
-                                !selectedFolderForMove ||
-                                !Object.values(selectedCardsInExpandedFolder)
-                                    .some(folder => Object.values(folder).some(checked => checked))
-                            }
+                            disabled={!(selectedCardsInExpandedFolder[folder.id] && Object.values(selectedCardsInExpandedFolder[folder.id]).some(v => v)) || !selectedFolderForMove}
                         >
                             Move Selected
                         </button>
