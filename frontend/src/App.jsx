@@ -1790,7 +1790,7 @@ const FolderItem = ({
                     <div className="folder-card-list">
                         {folder.cards.length > 0 ? folder.cards.map((card) => (
                             <div
-                                key={`${card.id}-${!!selectedCardsInExpandedFolder[folder.id]?.[card.id]}`}
+                                key={card.id}
                                 className="card saved-card-in-folder"
                                 draggable
                                 onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
