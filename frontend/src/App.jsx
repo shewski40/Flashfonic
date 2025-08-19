@@ -1823,7 +1823,11 @@ const FolderItem = ({
                         <button
                             onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
                             className="move-to-folder-btn"
-                            disabled={Object.values(selectedCardsInExpandedFolder).every(v => !v) || !selectedFolderForMove}
+                            disabled={
+                                !selectedFolderForMove ||
+                                !Object.values(selectedCardsInExpandedFolder)
+                                    .some(folder => Object.values(folder).some(checked => checked))
+                            }
                         >
                             Move Selected
                         </button>
@@ -2645,7 +2649,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         }
 
         const sourceFolder = findFolderById(folders, sourceFolderId);
-        const cardsToMove = sourceFolder.cards.filter(card => selectedCardsInExpandedFolder[card.id]);
+        const cardsToMove = sourceFolder.cards.filter(card => selectedCardsInExpandedFolder[sourceFolderId]?.[card.id]);
         
         if (cardsToMove.length === 0) {
             setNotification("Please check the cards to move.");
@@ -2656,7 +2660,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             let newFolders = { ...prev };
             newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
                 ...folder,
-                cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[card.id])
+                cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[sourceFolderId]?.[card.id])
             }));
             newFolders = updateFolderById(newFolders, destinationFolderId, (folder) => ({
                 ...folder,
