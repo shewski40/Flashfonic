@@ -2629,6 +2629,9 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             const folderSelection = newSelection[folderId] ? { ...newSelection[folderId] } : {};
             folderSelection[cardId] = !folderSelection[cardId];
             newSelection[folderId] = folderSelection;
+
+            console.log("Updated checkbox state:", newSelection); // ← Add this line
+
             return newSelection;
         });
     }, []);
