@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-import jsPDF from 'jspdf';
-import { marked } from 'marked';
-import { Analytics } from '@vercel/analytics/react';
+// The following imports are now handled via script tags in index.html to resolve compilation errors.
+// import jsPDF from 'jspdf';
+// import { marked } from 'marked';
+// import { Analytics } from '@vercel/analytics/react'; 
 import * as Tone from 'tone';
 import './App.css';
 
 // --- EULA and Privacy Policy Content (Embedded as String Constants) ---
-// Note: It's good practice to move long content like this to a separate file,
-// but for this example, we will keep it here as a string for simplicity.
 const eulaContent = `
 # FlashFonic End-User License Agreement (EULA)
 
@@ -657,7 +656,7 @@ const FlashNotesViewer = ({ folderName, notes, onClose }) => {
     );
 };
 
-const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenameFolder, onDeleteFolder }) => {
+const ActionsDropdown = ({ folder, onRenameFolder, onAddSubfolder, onDeleteFolder, exportPdf, exportCsv }) => {
     const [isOpen, setIsOpen] = useState(false);
     const menuRef = useRef(null);
 
@@ -671,22 +670,29 @@ const ActionsDropdown = ({ folder, exportPdf, exportCsv, onAddSubfolder, onRenam
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
 
+    const handleActionClick = (e, actionFn) => {
+        e.stopPropagation();
+        actionFn();
+        setIsOpen(false);
+    };
+
     return (
         <div className="actions-dropdown-container" ref={menuRef}>
             <button className="actions-tab" onClick={(e) => { e.stopPropagation(); setIsOpen(!isOpen); }}>Actions</button>
             {isOpen && (
                 <div className="actions-dropdown-menu">
-                    <button onClick={(e) => { e.stopPropagation(); onAddSubfolder(folder.id); setIsOpen(false); }}>Add Subfolder</button>
-                    <button onClick={(e) => { e.stopPropagation(); onRenameFolder(folder.id, folder.name); setIsOpen(false); }}>Rename Folder</button>
-                    <button onClick={(e) => { e.stopPropagation(); onDeleteFolder(folder.id); setIsOpen(false); }}>Delete Folder</button>
+                    <button onClick={(e) => handleActionClick(e, () => onAddSubfolder(folder.id))}>Add Subfolder</button>
+                    <button onClick={(e) => handleActionClick(e, () => onRenameFolder(folder.id, folder.name))}>Rename Folder</button>
+                    <button onClick={(e) => handleActionClick(e, () => onDeleteFolder(folder.id))}>Delete Folder</button>
                     <hr style={{borderTop: '1px solid var(--border-color)', margin: '0.5rem 0'}} />
-                    <button onClick={(e) => { e.stopPropagation(); exportPdf(folder.id); setIsOpen(false); }}>Export PDF</button>
-                    <button onClick={(e) => { e.stopPropagation(); exportCsv(folder.id); setIsOpen(false); }}>Export CSV</button>
+                    <button onClick={(e) => handleActionClick(e, () => exportPdf(folder.id))}>Export PDF</button>
+                    <button onClick={(e) => handleActionClick(e, () => exportCsv(folder.id))}>Export CSV</button>
                 </div>
             )}
         </div>
     );
 };
+
 
 const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis }) => {
     const [deck, setDeck] = useState([...folder.cards]);
@@ -1654,7 +1660,10 @@ const FolderItem = ({
     const countCardsRecursive = (currentFolder) => {
         let count = currentFolder.cards.length;
         for (const subfolderId in currentFolder.subfolders) {
-            count += countCardsRecursive(currentFolder.subfolders[subfolderId]);
+            const sub = findFolderById(folders, subfolderId);
+            if (sub) {
+                count += countCardsRecursive(sub);
+            }
         }
         return count;
     };
@@ -1893,6 +1902,8 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
     useEffect(() => {
         const queryParams = new URLSearchParams(window.location.search);
+        const userAgent = navigator.userAgent;
+        setIsSafari(/Safari/i.test(userAgent) && !/Chrome/i.test(userAgent));
         if (queryParams.get('dev') === 'true') {
             setIsDevMode(true);
             setNotification('Developer mode active: Usage limit disabled.');
@@ -2182,7 +2193,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
         } catch (err) {
             console.error("Error starting listening:", err);
-            setNotification("Microphone access denied or error.");
+            setNotification("Microphone access denied or error. Please check permissions and try again.");
             setIsListening(false);
         }
     }, [isDevMode, usage.count, usage.limit, isSafari, listeningDuration, voiceActivated, handleLiveFlashIt, stopListening]);
@@ -2916,7 +2927,8 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                                 doc.setTextColor(0, 0, 0);
                                 doc.rect(cardX, cardY, cardW, cardH);
                                 doc.setFontSize(config.fontSize);
-                                const text = doc.splitTextToSize(`A: ${JSON.stringify(card.answer)}`, cardW - 10);
+                                const answerText = JSON.stringify(card.answer).replace(/["{}]/g, '').replace(/,/g, ', ');
+                                const text = doc.splitTextToSize(`A: ${answerText}`, cardW - 10);
                                 const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
                                 doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
                             });
@@ -3160,13 +3172,13 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
                 />
             )}
 
-            {promptModalConfig && (
+            {modalConfig && modalConfig.type === 'prompt' && (
                 <PromptModal
-                    title={promptModalConfig.title}
-                    message={promptModalConfig.message}
-                    defaultValue={promptModalConfig.defaultValue}
-                    onConfirm={promptModalConfig.onConfirm}
-                    onClose={() => setPromptModalConfig(null)}
+                    title={modalConfig.title}
+                    message={modalConfig.message}
+                    defaultValue={modalConfig.defaultValue}
+                    onConfirm={modalConfig.onConfirm}
+                    onClose={() => setModalConfig(null)}
                 />
             )}
             {modalConfig && modalConfig.type === 'createFolder' && ( <CreateFolderModal onClose={() => setModalConfig(null)} onCreate={modalConfig.onConfirm} title={modalConfig.title} /> )}
@@ -3636,7 +3648,7 @@ const App = () => {
         return (
             <div className="main-app-container">
                 <MainApp showDocViewer={showDocViewer} setShowDocViewer={setShowDocViewer} />
-                <Analytics />
+                {/* <Analytics /> */}
             </div>
         );
     }
