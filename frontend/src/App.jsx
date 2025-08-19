@@ -1824,7 +1824,6 @@ const FolderItem = ({
         </div>
     );
 };
-
 // --- MAIN APP COMPONENT ---
 const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [appMode, setAppMode] = useState(null);
