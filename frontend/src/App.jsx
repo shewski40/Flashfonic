@@ -3558,12 +3558,10 @@ const exportFolderToPDF = useCallback((folderId) => {
                         <div key={card.id} className="card generated-card">
                             <div className="card-selection">
                                 <input 
-                                    type="checkbox" 
-                                    checked={!!selectedCardsInExpandedFolder[folder.id]?.[card.id]} 
-                                    onChange={() => {
-                                        console.log("Checkbox clicked:", folder.id, card.id);
-                                        handleSelectedCardInExpandedFolder(folder.id, card.id);
-                                    }} 
+                                    type="checkbox"
+                                    onChange={(e) => {
+                                        console.log("Raw checked value:", e.target.checked);
+                                    }}
                                 />
                             </div>
                         </div>
