@@ -1797,7 +1797,7 @@ const FolderItem = ({
                             <div
                                 key={card.id}
                                 className="card saved-card-in-folder"
-                                draggable
+                                // draggable
                                 onDragStart={(e) => handleCardInFolderDragStart(e, card.id, folder.id)}
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
