@@ -2627,7 +2627,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             newSelection[folderId] = folderSelection;
             return newSelection;
         });
-    }, []);
+}, []);
 
     const handleMoveSelectedCardsFromExpandedFolder = useCallback((sourceFolderId, destinationFolderId) => {
         if (!sourceFolderId || !destinationFolderId) {
@@ -3549,10 +3549,10 @@ const exportFolderToPDF = useCallback((folderId) => {
                     {generatedFlashcards.map(card => (
                         <div key={card.id} className="card generated-card">
                             <div className="card-selection">
-                                <input
-                                    type="checkbox"
-                                    checked={!!selectedCardsInExpandedFolder[card.id]}
-                                    onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)}
+                                <input 
+                                    type="checkbox" 
+                                    checked={!!selectedCardsInExpandedFolder[folder.id]?.[card.id]} 
+                                    onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)} 
                                 />
                             </div>
                         </div>
