@@ -1668,6 +1668,11 @@ const FolderItem = ({
         return count;
     };
 
+    const handleCheckboxChange = (e, cardId) => {
+        e.stopPropagation(); // This is the crucial fix: stop the event from bubbling up to the draggable parent div
+        handleSelectedCardInExpandedFolder(folder.id, cardId);
+    };
+
     return (
         <div
             key={folder.id}
@@ -1797,8 +1802,12 @@ const FolderItem = ({
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
                             >
-                                <div className="card-selection">
-                                    <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
+                                <div className="card-selection" onClick={e => e.stopPropagation()}>
+                                    <input
+                                        type="checkbox"
+                                        checked={!!selectedCardsInExpandedFolder[folder.id]?.[card.id]}
+                                        onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)}
+                                    />
                                 </div>
                                 <div className="card-content">
                                     {renderCardContent(card, 'folder', folder.id)}
