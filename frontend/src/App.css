@@ -119,8 +119,10 @@ body {
 }
 
 .card-selection {
-  /* This is the key fix to allow clicks on the checkbox */
-  pointer-events: auto;
+    /* This rule is designed to force the browser to recognize clicks on the checkbox area. */
+    position: relative;
+    z-index: 10; /* Ensures the checkbox is on top of other elements. */
+    pointer-events: auto; /* Explicitly enables mouse events on this element. */
 }
 
 .main-mode-selector {
