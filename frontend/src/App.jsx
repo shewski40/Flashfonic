@@ -1,8 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
-// The following imports are now handled via script tags in index.html to resolve compilation errors.
-// import jsPDF from 'jspdf';
-// import { marked } from 'marked';
-// import { Analytics } from '@vercel/analytics/react'; 
+import jsPDF from 'jspdf';
+import { marked } from 'marked';
+import { Analytics } from '@vercel/analytics/react';
 import * as Tone from 'tone';
 import './App.css';
 
@@ -2846,8 +2845,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     };
 
 // --- START REFACTORED PDF EXPORT FUNCTION ---
-// --- HELPER FUNCTION FOR PDF EXPORT FIX ---
-// This function sanitizes the content of a card so it can be correctly printed to a PDF.
+// This helper function sanitizes the content of a card so it can be correctly printed to a PDF.
 const renderContentForPdf = (content) => {
     // If content is an array, assume it's a chemical reaction
     if (Array.isArray(content)) {
