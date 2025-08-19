@@ -1893,6 +1893,15 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     
+    const findParentFolderId = (foldersObj, targetId) => {
+    for (const id in foldersObj) {
+        if (id === targetId) return null;
+        if (foldersObj[id].subfolders[targetId]) return id;
+        const found = findParentFolderId(foldersObj[id].subfolders, targetId);
+        if (found) return found;
+    }
+    return null;
+};
     const isGeneratingRef = useRef(isGenerating);
     useEffect(() => { isGeneratingRef.current = isGenerating; }, [isGenerating]);
 
