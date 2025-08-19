@@ -118,13 +118,6 @@ body {
   position: relative;
 }
 
-.card-selection {
-    /* This rule is designed to force the browser to recognize clicks on the checkbox area. */
-    position: relative;
-    z-index: 10; /* Ensures the checkbox is on top of other elements. */
-    pointer-events: auto; /* Explicitly enables mouse events on this element. */
-}
-
 .main-mode-selector {
   display: flex;
   justify-content: center;
@@ -2685,14 +2678,36 @@ input[type="range"]::-webkit-slider-thumb {
   max-width: 900px;
 }
 
-input[type="checkbox"] {
-  appearance: checkbox !important;
-  -webkit-appearance: checkbox !important;
-  -moz-appearance: checkbox !important;
-  width: 18px;
-  height: 18px;
-  opacity: 1 !important;
-  pointer-events: auto !important;
+/* --- FIX for Checkbox Display Issue --- */
+/* This rule forces native rendering and ensures the checkbox is visible and clickable. */
+.card-selection {
   position: relative;
-  z-index: 9999;
+  z-index: 10;
+  pointer-events: all; /* Use 'all' to ensure the element receives all click events */
+  cursor: pointer;
+}
+
+.card-selection input[type="checkbox"] {
+  -webkit-appearance: checkbox !important; 
+  -moz-appearance: checkbox !important;
+  appearance: checkbox !important;
+  display: block !important;
+  
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  min-height: 20px !important;
+  
+  background-color: #ffffff !important;
+  border: 1px solid #6b7280 !important;
+  border-radius: 4px !important;
+  
+  cursor: pointer !important;
+  z-index: 10 !important;
+}
+
+/* Explicitly style the checked state */
+.card-selection input[type="checkbox"]:checked {
+  background-color: var(--primary-purple) !important;
+  border-color: var(--primary-purple) !important;
 }
