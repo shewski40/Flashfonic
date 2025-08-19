@@ -1803,10 +1803,10 @@ const FolderItem = ({
                                 onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
                             >
                                 <div className="card-selection" onClick={e => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={!!selectedCardsInExpandedFolder[folder.id]?.[card.id]}
-                                        onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)}
+                                    <input 
+                                        type="checkbox" 
+                                        checked={!!selectedCardsInExpandedFolder[folder.id]?.[card.id]} 
+                                        onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)} 
                                     />
                                 </div>
                                 <div className="card-content">
@@ -2636,7 +2636,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             newSelection[folderId] = folderSelection;
             return newSelection;
         });
-}, []);
+    }, []);
 
     const handleMoveSelectedCardsFromExpandedFolder = useCallback((sourceFolderId, destinationFolderId) => {
         if (!sourceFolderId || !destinationFolderId) {
