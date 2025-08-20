@@ -1797,12 +1797,8 @@ const FolderItem = ({
                                 onDragOver={(e) => e.preventDefault()}
                                 onDrop={(e) => handleCardInFolderDrop(e, card.id, folder.id)}
                             >
-                                <div className="card-selection" onClick={e => e.stopPropagation()}>
-                                    <input
-                                        type="checkbox"
-                                        checked={!!(selectedCardsInExpandedFolder[folder.id] && selectedCardsInExpandedFolder[folder.id][card.id])}
-                                        onChange={() => handleSelectedCardInExpandedFolder(folder.id, card.id)}
-                                    />
+                                <div className="card-selection">
+                                    <input type="checkbox" checked={!!selectedCardsInExpandedFolder[card.id]} onChange={() => handleSelectedCardInExpandedFolder(card.id)} />
                                 </div>
                                 <div className="card-content">
                                     {renderCardContent(card, 'folder', folder.id)}
@@ -1818,7 +1814,7 @@ const FolderItem = ({
                         <button
                             onClick={() => handleMoveSelectedCardsFromExpandedFolder(folder.id, selectedFolderForMove)}
                             className="move-to-folder-btn"
-                            disabled={!(selectedCardsInExpandedFolder[folder.id] && Object.values(selectedCardsInExpandedFolder[folder.id]).some(v => v)) || !selectedFolderForMove}
+                            disabled={Object.values(selectedCardsInExpandedFolder).every(v => !v) || !selectedFolderForMove}
                         >
                             Move Selected
                         </button>
@@ -1828,6 +1824,7 @@ const FolderItem = ({
         </div>
     );
 };
+
 // --- MAIN APP COMPONENT ---
 const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [appMode, setAppMode] = useState(null);
@@ -1897,15 +1894,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
     
-    const findParentFolderId = (foldersObj, targetId) => {
-    for (const id in foldersObj) {
-        if (id === targetId) return null;
-        if (foldersObj[id].subfolders[targetId]) return id;
-        const found = findParentFolderId(foldersObj[id].subfolders, targetId);
-        if (found) return found;
-    }
-    return null;
-};
     const isGeneratingRef = useRef(isGenerating);
     useEffect(() => { isGeneratingRef.current = isGenerating; }, [isGenerating]);
 
@@ -2623,19 +2611,12 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         }
     }, [updateFolderById]);
 
-    const handleSelectedCardInExpandedFolder = useCallback((folderId, cardId) => {
-        setSelectedCardsInExpandedFolder(prev => {
-            const newSelection = { ...prev };
-            const folderSelection = newSelection[folderId] ? { ...newSelection[folderId] } : {};
-            folderSelection[cardId] = !folderSelection[cardId];
-            newSelection[folderId] = folderSelection;
-
-            console.log("Updated checkbox state:");
-            console.log(JSON.stringify(newSelection, null, 2));
-
-            return newSelection;
-        });
-    }, []);
+    const handleSelectedCardInExpandedFolder = (cardId) => {
+        setSelectedCardsInExpandedFolder(prev => ({
+            ...prev,
+            [cardId]: !prev[cardId]
+        }));
+    };
 
     const handleMoveSelectedCardsFromExpandedFolder = useCallback((sourceFolderId, destinationFolderId) => {
         if (!sourceFolderId || !destinationFolderId) {
@@ -2644,7 +2625,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         }
 
         const sourceFolder = findFolderById(folders, sourceFolderId);
-        const cardsToMove = sourceFolder.cards.filter(card => selectedCardsInExpandedFolder[sourceFolderId]?.[card.id]);
+        const cardsToMove = sourceFolder.cards.filter(card => selectedCardsInExpandedFolder[card.id]);
         
         if (cardsToMove.length === 0) {
             setNotification("Please check the cards to move.");
@@ -2655,7 +2636,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
             let newFolders = { ...prev };
             newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
                 ...folder,
-                cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[sourceFolderId]?.[card.id])
+                cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[card.id])
             }));
             newFolders = updateFolderById(newFolders, destinationFolderId, (folder) => ({
                 ...folder,
@@ -3557,12 +3538,10 @@ const exportFolderToPDF = useCallback((folderId) => {
                     {generatedFlashcards.map(card => (
                         <div key={card.id} className="card generated-card">
                             <div className="card-selection">
-                                <input 
-                                    type="checkbox"
-                                    onChange={(e) => {
-                                        console.log("Raw checked value:", e.target.checked);
-                                    }}
-                                />
+                                <input type="checkbox" checked={!!checkedCards[card.id]} onChange={() => handleCardCheck(card.id)} />
+                            </div>
+                            <div className="card-content">
+                                {renderCardContent(card, 'queue')}
                             </div>
                         </div>
                     ))}
