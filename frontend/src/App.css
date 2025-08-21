@@ -2681,36 +2681,36 @@ input[type="range"]::-webkit-slider-thumb {
 /* --- FIX for Checkbox Display Issue --- */
 /* This rule forces native rendering and ensures the checkbox is visible and clickable. */
 .card-selection {
-  position: relative;
-  z-index: 10;
-  pointer-events: all;
-  cursor: pointer;
+    position: relative;
+    z-index: 10;
+    pointer-events: all;
+    cursor: pointer;
 }
 
 .card-selection input[type="checkbox"] {
-  /* This forces the native checkbox appearance and size, overriding global resets. */
-  -webkit-appearance: checkbox !important; 
-  -moz-appearance: checkbox !important;
-  appearance: checkbox !important;
-  display: block !important;
-  
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  min-height: 20px !important;
-  
-  background-color: #ffffff !important;
-  border: 1px solid #6b7280 !important;
-  border-radius: 4px !important;
-  
-  cursor: pointer !important;
-  z-index: 10 !important;
+    /* This forces the native checkbox appearance and size, overriding global resets. */
+    -webkit-appearance: checkbox !important; 
+    -moz-appearance: checkbox !important;
+    appearance: checkbox !important;
+    display: block !important;
+
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    min-height: 20px !important;
+
+    background-color: #ffffff !important;
+    border: 1px solid #6b7280 !important;
+    border-radius: 4px !important;
+
+    cursor: pointer !important;
+    z-index: 10 !important;
 }
 
 /* Explicitly style the checked state */
 .card-selection input[type="checkbox"]:checked {
-  background-color: var(--primary-purple) !important;
-  border-color: var(--primary-purple) !important;
+    background-color: var(--primary-purple) !important;
+    border-color: var(--primary-purple) !important;
 }
 
 .folder-card-list .card {
