@@ -2548,34 +2548,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         }
     }, [updateFolderById]);
 
-    const handleSelectedCardInExpandedFolder = (folderId, cardId) => {
-        setSelectedCardsInExpandedFolder(prev => {
-            const currentFolderState = prev[folderId] || {};
-            const newFolderState = {
-                ...currentFolderState,
-                [cardId]: !currentFolderState[cardId]
-            };
-            return {
-                ...prev,
-                [folderId]: newFolderState
-            };
-        });
-    };
-
-    const handleMoveSelectedCardsFromExpandedFolder = useCallback((sourceFolderId, destinationFolderId) => {
-        if (!sourceFolderId || !destinationFolderId) {
-            setNotification("Please select a destination folder.");
-            return;
-        }
-
-        const sourceFolder = findFolderById(folders, sourceFolderId);
-        const cardsToMove = sourceFolder.cards.filter(card => selectedCardsInExpandedFolder[card.id]);
-        
-        if (cardsToMove.length === 0) {
-            setNotification("Please check the cards to move.");
-            return;
-        }
-
         // --- REFACTOR FIX: NEW STATE HANDLERS FOR MainApp ---
 
     const handleSelectedCardInExpandedFolder = (folderId, cardId) => {
@@ -2629,21 +2601,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
         setNotification(`${cardsToMove.length} card(s) moved.`);
     };
-        setFolders(prev => {
-            let newFolders = { ...prev };
-            newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
-                ...folder,
-                cards: folder.cards.filter(card => !selectedCardsInExpandedFolder[card.id])
-            }));
-            newFolders = updateFolderById(newFolders, destinationFolderId, (folder) => ({
-                ...folder,
-                cards: [...folder.cards, ...cardsToMove]
-            }));
-            return newFolders;
-        });
-        setSelectedCardsInExpandedFolder({});
-        setNotification(`${cardsToMove.length} card(s) moved to ${findFolderById(folders, destinationFolderId)?.name}.`);
-    }, [folders, selectedCardsInExpandedFolder, findFolderById, updateFolderById]);
 
     const handleCardInFolderDragStart = (e, cardId, folderId) => {
         e.dataTransfer.setData("cardId", cardId);
