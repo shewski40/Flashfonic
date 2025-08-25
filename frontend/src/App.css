@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@500;700&family=Uncial+Antiqua&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
+@import url('https://fonts.googleapis.com/css2?family=Cinzel+Decorative:wght@700&display=swap');
 
 :root {
   --primary-purple: #8B5CF6;
@@ -2307,7 +2307,7 @@ input[type="range"]::-webkit-slider-thumb {
     background-color: var(--dark-bg);
 }
 
-.game-landing-title {
+.anamnesis-title {
     font-family: 'Uncial Antiqua', cursive;
     font-size: 3rem;
     line-height: 1.2;
