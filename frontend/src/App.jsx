@@ -1512,35 +1512,45 @@ const KatexRenderer = ({ text }) => {
 };
 
 const ContentRenderer = ({ content, reactionSummary }) => {
-    // --- NEW: Logic to handle the structured full_reaction format ---
+    // --- Handles the new, structured full_reaction format ---
     if (typeof content === 'object' && !Array.isArray(content) && content !== null && content.type === 'full_reaction') {
         return (
-            <div className="reaction-container">
-                {/* Renders the Reactants on the left side */}
-                <div className="reaction-side">
-                    {content.reactants.map((reactant, index) => (
-                        <React.Fragment key={index}>
-                            <ContentRenderer content={[reactant]} />
-                            {index < content.reactants.length - 1 && <span className="plus-sign">+</span>}
-                        </React.Fragment>
-                    ))}
-                </div>
+            // This new wrapper div allows us to add the summary below the reaction
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                <div className="reaction-container">
+                    {/* Renders the Reactants on the left side */}
+                    <div className="reaction-side">
+                        {content.reactants.map((reactant, index) => (
+                            <React.Fragment key={`reactant-${index}`}>
+                                <ContentRenderer content={[reactant]} />
+                                {index < content.reactants.length - 1 && <span className="plus-sign">+</span>}
+                            </React.Fragment>
+                        ))}
+                    </div>
 
-                {/* Renders the Arrow and the Reagents above it */}
-                <div className="reaction-arrow-group">
-                    <span className="reagents">{content.reagents.join(', ')}</span>
-                    <span className="arrow">→</span>
-                </div>
+                    {/* Renders the Arrow and the Reagents above it */}
+                    <div className="reaction-arrow-group">
+                        <span className="reagents">{content.reagents.join(', ')}</span>
+                        <span className="arrow">→</span>
+                    </div>
 
-                {/* Renders the Products on the right side */}
-                <div className="reaction-side">
-                    {content.products.map((product, index) => (
-                        <React.Fragment key={index}>
-                            <ContentRenderer content={[product]} />
-                            {index < content.products.length - 1 && <span className="plus-sign">+</span>}
-                        </React.Fragment>
-                    ))}
+                    {/* Renders the Products on the right side */}
+                    <div className="reaction-side">
+                        {content.products.map((product, index) => (
+                            <React.Fragment key={`product-${index}`}>
+                                <ContentRenderer content={[product]} />
+                                {index < content.products.length - 1 && <span className="plus-sign">+</span>}
+                            </React.Fragment>
+                        ))}
+                    </div>
                 </div>
+                {/* --- THIS IS THE FIX --- */}
+                {/* We now check for and display the reactionSummary for complex reactions too */}
+                {reactionSummary && (
+                    <p style={{ margin: '0.75rem 0 0 0', fontStyle: 'italic', fontSize: '0.85em', maxWidth: '90%' }}>
+                        {reactionSummary}
+                    </p>
+                )}
             </div>
         );
     }
