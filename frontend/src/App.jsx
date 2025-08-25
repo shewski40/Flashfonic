@@ -1451,68 +1451,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
-const ContentRenderer = ({ content, reactionSummary }) => {
-    // Renders chemical structures, formulas, or standard text.
-    if (Array.isArray(content)) {
-        return (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    {content.map((item, index) => {
-                        const chemRegex = /CHEM\[(.*?)\]/;
-                        const match = typeof item === 'string' && item.match(chemRegex);
-                        if (match) {
-                            const chemicalName = encodeURIComponent(match[1]);
-                            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${chemicalName}/image?format=png&width=300&height=300`;
-                            return (
-                                <React.Fragment key={index}>
-                                    <ChemicalImage src={imageUrl} alt={`Structure of ${match[1]}`} />
-                                    {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>→</span>}
-                                </React.Fragment>
-                            );
-                        }
-                        return null;
-                    })}
-                </div>
-                {reactionSummary && (
-                    <p style={{ margin: '0.75rem 0 0 0', fontStyle: 'italic', fontSize: '0.85em', maxWidth: '90%' }}>
-                        {reactionSummary}
-                    </p>
-                )}
-            </div>
-        );
-    }
-    
-    if (typeof content === 'string') {
-        const reactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/;
-        const reactionMatch = content.match(reactionRegex);
-        if (reactionMatch) {
-            const reactantSmiles = encodeURIComponent(reactionMatch[1]);
-            const productSmiles = encodeURIComponent(reactionMatch[2]);
-            const reactantImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${reactantSmiles}/image?format=png&width=400&height=400`;
-            const productImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${productSmiles}/image?format=png&width=400&height=400`;
-            return (
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                    <ChemicalImage src={reactantImageUrl} alt="Reactant Structure" />
-                    <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>→</span>
-                    <ChemicalImage src={productImageUrl} alt="Product Structure" />
-                </div>
-            );
-        }
-        
-        const singleMoleculeRegex = /SMILES\[(.*?)\]/;
-        const singleMatch = content.match(singleMoleculeRegex);
-        if (singleMatch) {
-            const smiles = encodeURIComponent(singleMatch[1]);
-            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=500&height=500`;
-            return <ChemicalImage src={imageUrl} alt="Chemical Structure" />;
-        }
-        
-        return <KatexRenderer text={content} />;
-    }
-
-    return null;
-};
-
 const ChemicalImage = ({ src, alt }) => {
     const [isLoading, setIsLoading] = useState(true);
 
@@ -1571,6 +1509,101 @@ const KatexRenderer = ({ text }) => {
     }, [text]);
 
     return <span ref={containerRef} />;
+};
+
+const ContentRenderer = ({ content, reactionSummary }) => {
+    // --- NEW: Logic to handle the structured full_reaction format ---
+    if (typeof content === 'object' && !Array.isArray(content) && content !== null && content.type === 'full_reaction') {
+        return (
+            <div className="reaction-container">
+                {/* Renders the Reactants on the left side */}
+                <div className="reaction-side">
+                    {content.reactants.map((reactant, index) => (
+                        <React.Fragment key={index}>
+                            <ContentRenderer content={[reactant]} />
+                            {index < content.reactants.length - 1 && <span className="plus-sign">+</span>}
+                        </React.Fragment>
+                    ))}
+                </div>
+
+                {/* Renders the Arrow and the Reagents above it */}
+                <div className="reaction-arrow-group">
+                    <span className="reagents">{content.reagents.join(', ')}</span>
+                    <span className="arrow">→</span>
+                </div>
+
+                {/* Renders the Products on the right side */}
+                <div className="reaction-side">
+                    {content.products.map((product, index) => (
+                        <React.Fragment key={index}>
+                            <ContentRenderer content={[product]} />
+                            {index < content.products.length - 1 && <span className="plus-sign">+</span>}
+                        </React.Fragment>
+                    ))}
+                </div>
+            </div>
+        );
+    }
+
+    // --- Original logic for simple reactions, molecules, and text ---
+    if (Array.isArray(content)) {
+        return (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    {content.map((item, index) => {
+                        const chemRegex = /CHEM\[(.*?)\]/;
+                        const match = typeof item === 'string' && item.match(chemRegex);
+                        if (match) {
+                            const chemicalName = encodeURIComponent(match[1]);
+                            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${chemicalName}/image?format=png&width=300&height=300`;
+                            return (
+                                <React.Fragment key={index}>
+                                    <ChemicalImage src={imageUrl} alt={`Structure of ${match[1]}`} />
+                                    {index < content.length - 1 && <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>→</span>}
+                                </React.Fragment>
+                            );
+                        }
+                        return null;
+                    })}
+                </div>
+                {reactionSummary && (
+                    <p style={{ margin: '0.75rem 0 0 0', fontStyle: 'italic', fontSize: '0.85em', maxWidth: '90%' }}>
+                        {reactionSummary}
+                    </p>
+                )}
+            </div>
+        );
+    }
+    
+    if (typeof content === 'string') {
+        const reactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/;
+        const reactionMatch = content.match(reactionRegex);
+        if (reactionMatch) {
+            const reactantSmiles = encodeURIComponent(reactionMatch[1]);
+            const productSmiles = encodeURIComponent(reactionMatch[2]);
+            const reactantImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${reactantSmiles}/image?format=png&width=400&height=400`;
+            const productImageUrl = `https://cactus.nci.nih.gov/chemical/structure/${productSmiles}/image?format=png&width=400&height=400`;
+            return (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                    <ChemicalImage src={reactantImageUrl} alt="Reactant Structure" />
+                    <span style={{ fontSize: '2rem', fontWeight: 'bold' }}>→</span>
+                    <ChemicalImage src={productImageUrl} alt="Product Structure" />
+                </div>
+            );
+        }
+        
+        const singleMoleculeRegex = /SMILES\[(.*?)\]/;
+        const singleMatch = content.match(singleMoleculeRegex);
+        if (singleMatch) {
+            const smiles = encodeURIComponent(singleMatch[1]);
+            const imageUrl = `https://cactus.nci.nih.gov/chemical/structure/${smiles}/image?format=png&width=500&height=500`;
+            return <ChemicalImage src={imageUrl} alt="Chemical Structure" />;
+        }
+        
+        return <KatexRenderer text={content} />;
+    }
+
+    return null;
 };
 
 // --- REFACTOR FIX: STABLE & CORRECTED COMPONENTS ---
