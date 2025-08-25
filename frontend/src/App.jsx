@@ -2959,7 +2959,16 @@ const exportFolderToPDF = useCallback((folderId) => {
             const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
             const cardH = (pageH - 40 - (config.rows * margin)) / config.rows;
 
-            const drawHeader = () => { /* ... No changes needed here ... */ };
+            const drawHeader = () => {
+                doc.setFont('helvetica', 'bold');
+                doc.setFontSize(30);
+                doc.setTextColor(139, 92, 246);
+                doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(16);
+                doc.setTextColor(31, 41, 55);
+                doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
+            };
 
             const getImageAsBase64 = async (url) => {
                 try {
@@ -2974,13 +2983,12 @@ const exportFolderToPDF = useCallback((folderId) => {
                 } catch (e) { return null; }
             };
 
-            // --- FINAL UNIFIED DRAWING FUNCTION ---
             const drawCardContent = async (content, prefix, x, y, w, h) => {
                 doc.setFontSize(config.fontSize);
                 doc.setTextColor(0, 0, 0);
 
                 let isChemical = (typeof content === 'object' && content !== null) || (typeof content === 'string' && content.includes('CHEM['));
-
+                
                 if (!isChemical) {
                     const fullText = `${prefix} ${renderContentForPdf(content)}`;
                     const textLines = doc.splitTextToSize(fullText, w - 10);
@@ -2989,8 +2997,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                     doc.text(textLines, x + w / 2, textY, { align: 'center' });
                     return;
                 }
-
-                // --- Unified Centering for All Chemical Content ---
+                
                 let structure = { reactants: [], products: [], reagents: [] };
                 if (content && content.type === 'full_reaction') {
                     structure = content;
@@ -2998,19 +3005,30 @@ const exportFolderToPDF = useCallback((folderId) => {
                     structure.products = content;
                 }
                 
-                const imgSize = config.imgSize;
-                const plusSignWidth = 5;
-                const arrowZoneWidth = 20;
+                // --- AUTO-SCALING LOGIC ---
+                let imgSize = config.imgSize;
+                let plusSignWidth = 5;
+                let arrowZoneWidth = 20;
 
-                const totalReactantWidth = (structure.reactants.length * imgSize) + Math.max(0, structure.reactants.length - 1) * plusSignWidth;
-                const totalProductWidth = (structure.products.length * imgSize) + Math.max(0, structure.products.length - 1) * plusSignWidth;
-                const arrowWidth = (structure.reactants.length > 0) ? arrowZoneWidth : 0;
-                const totalContentWidth = totalReactantWidth + arrowWidth + totalProductWidth;
+                let totalContentWidth = (structure.reactants.length * imgSize) + Math.max(0, structure.reactants.length - 1) * plusSignWidth +
+                                      ((structure.reactants.length > 0) ? arrowZoneWidth : 0) +
+                                      (structure.products.length * imgSize) + Math.max(0, structure.products.length - 1) * plusSignWidth;
                 
-                let currentX = x + (w - totalContentWidth) / 2; // Center the entire block
-                const contentY = y + (h - imgSize) / 2; // Vertical center for all images
+                if (totalContentWidth > w - 10) {
+                    const scaleFactor = (w - 10) / totalContentWidth;
+                    imgSize *= scaleFactor;
+                    plusSignWidth *= scaleFactor;
+                    arrowZoneWidth *= scaleFactor;
+                }
+                // Recalculate width with new scaled sizes for centering
+                totalContentWidth = (structure.reactants.length * imgSize) + Math.max(0, structure.reactants.length - 1) * plusSignWidth +
+                                  ((structure.reactants.length > 0) ? arrowZoneWidth : 0) +
+                                  (structure.products.length * imgSize) + Math.max(0, structure.products.length - 1) * plusSignWidth;
 
-                doc.text(prefix, x + 5, y + 7); // Keep prefix at top-left for consistency
+                let currentX = x + (w - totalContentWidth) / 2;
+                const contentY = y + (h - imgSize) / 2;
+
+                doc.text(prefix, x + 5, y + 7);
 
                 for (let i = 0; i < structure.reactants.length; i++) {
                     const match = structure.reactants[i].match(/CHEM\[(.*?)\]/);
@@ -3026,12 +3044,12 @@ const exportFolderToPDF = useCallback((folderId) => {
                     }
                 }
 
-                if (arrowWidth > 0) {
+                if (structure.reactants.length > 0) {
                     const arrowX = currentX + (arrowZoneWidth / 2);
                     doc.setFontSize(config.fontSize * 0.8);
                     doc.text(structure.reagents.join(', '), arrowX, y + (h / 2) - 5, { align: 'center' });
                     doc.setFontSize(config.fontSize * 1.5);
-                    doc.text('→', arrowX, y + h / 2 + 2, { align: 'center', baseline: 'middle' });
+                    doc.text('-->', arrowX, y + h / 2 + 2, { align: 'center', baseline: 'middle' }); // Universal Arrow
                     currentX += arrowZoneWidth;
                 }
 
@@ -3050,8 +3068,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                 }
             };
 
-            const cardSides = ['front', 'back'];
-            for (const side of cardSides) {
+            for (const side of ['front', 'back']) {
                 if (side === 'back' && cards.length > 0) doc.addPage();
                 drawHeader();
 
@@ -3061,7 +3078,6 @@ const exportFolderToPDF = useCallback((folderId) => {
                         doc.addPage();
                         drawHeader();
                     }
-                    
                     const card = cards[i];
                     const cardIndexOnPage = i % cardsPerPage;
                     const row = Math.floor(cardIndexOnPage / config.cols);
