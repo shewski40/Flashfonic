@@ -1938,39 +1938,52 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
     }, [folders]);
 
-    const generateFlashcardRequest = useCallback(async (requestBody) => {
-        setIsGenerating(true);
-        setNotification('Generating flashcard...');
-        try {
-            const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(requestBody)
-            });
-            
-            const data = await response.json();
-            if (!response.ok) {
-                throw new Error(data.error || 'Failed to generate flashcard.');
-            }
-            
-            const newCard = { ...data, id: Date.now(), lastViewed: null, isFlagged: false };
-            setGeneratedFlashcards(prev => [newCard, ...prev]);
-            
-            if (!isDevMode) {
-                setUsage(prevUsage => {
-                    const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
-                    localStorage.setItem('flashfonic-usage', JSON.stringify(newUsage));
-                    return newUsage;
-                });
-            }
-            setNotification('Card generated!');
-        } catch (error) {
-            console.error("Error:", error);
-            setNotification(`Error: ${error.message || 'Failed to connect to the backend server. Please try again later.'}`);
-        } finally {
-            setIsGenerating(false);
+    // Replace your existing generateFlashcardRequest function with this one:
+
+const generateFlashcardRequest = useCallback(async (requestBody) => {
+    setIsGenerating(true);
+    setNotification('Generating flashcard...');
+    try {
+        const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-flashcard', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(requestBody)
+        });
+        
+        const data = await response.json();
+        if (!response.ok) {
+            throw new Error(data.error || 'Failed to generate flashcard.');
         }
-    }, [isDevMode]);
+
+        // --- THIS IS THE FIX ---
+        // We check the AI's response. If it's a structured reaction,
+        // we wrap it so the 'answer' field contains the entire reaction object.
+        let finalCardData = data;
+        if (data.type === 'full_reaction') {
+            finalCardData = {
+                question: data.question,
+                answer: data // The entire structured object is now the answer
+            };
+        }
+        
+        const newCard = { ...finalCardData, id: Date.now(), lastViewed: null, isFlagged: false };
+        setGeneratedFlashcards(prev => [newCard, ...prev]);
+        
+        if (!isDevMode) {
+            setUsage(prevUsage => {
+                const newUsage = { ...prevUsage, count: prevUsage.count + 1 };
+                localStorage.setItem('flashfonic-usage', JSON.stringify(newUsage));
+                return newUsage;
+            });
+        }
+        setNotification('Card generated!');
+    } catch (error) {
+        console.error("Error:", error);
+        setNotification(`Error: ${error.message || 'Failed to connect to the backend server. Please try again later.'}`);
+    } finally {
+        setIsGenerating(false);
+    }
+}, [isDevMode]); // Keep dependencies as they are in your file
 
     const handleLiveFlashIt = useCallback(async () => {
         if (!isDevMode && usage.count >= usage.limit) {
