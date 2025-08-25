@@ -2865,29 +2865,38 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
 // --- START REFACTORED PDF EXPORT FUNCTION ---
 // This helper function sanitizes the content of a card so it can be correctly printed to a PDF.
 
+// Replace your function with this final, robust version:
+
 const renderContentForPdf = (content) => {
     // --- NEW: Logic to handle structured reactions for the PDF ---
     if (typeof content === 'object' && !Array.isArray(content) && content !== null && content.type === 'full_reaction') {
-        // Helper to extract just the chemical name (e.g., "CHEM[Ethanol]" -> "Ethanol")
-        const extractName = (chemString) => chemString.replace(/CHEM\[(.*?)\]/, '$1');
+        // Helper to safely extract chemical names
+        const extractName = (chemString) => {
+            if (typeof chemString !== 'string') return '[Invalid Chemical]';
+            const match = chemString.match(/CHEM\[(.*?)\]/);
+            return match && match[1] ? match[1] : '[Unnamed Chemical]';
+        };
         
-        const reactants = content.reactants.map(extractName).join(' + ');
-        const products = content.products.map(extractName).join(' + ');
-        const reagents = content.reagents.join(', ');
+        const reactants = Array.isArray(content.reactants) ? content.reactants.map(extractName).join(' + ') : '';
+        const products = Array.isArray(content.products) ? content.products.map(extractName).join(' + ') : '';
+        const reagents = Array.isArray(content.reagents) ? content.reagents.join(', ') : '';
         
-        // Assemble the final text string for the PDF, handling cases with or without reagents
         if (reagents) {
             return `${reactants} --[${reagents}]--> ${products}`;
         }
         return `${reactants} --> ${products}`;
     }
 
-    // Handles simple molecule/reaction arrays (e.g., ["CHEM[Ethanol]"])
+    // --- YOUR EXISTING CODE, NOW MADE SAFER ---
+
+    // Handles simple molecule/reaction arrays
     if (Array.isArray(content)) {
-        const chemRegex = /CHEM\[(.*?)\]/g;
         const textArray = content.map(item => {
-            const match = typeof item === 'string' && item.match(chemRegex);
-            return match ? `[Structure of ${match[1]}]` : item;
+            if (typeof item !== 'string') return '[Invalid Data]'; // Safety check
+            const chemRegex = /CHEM\[(.*?)\]/;
+            const match = item.match(chemRegex);
+            // Safety check for the match result
+            return match && typeof match[1] !== 'undefined' ? `[Structure of ${match[1] || 'Unnamed'}]` : item;
         });
         return textArray.join(' → ');
     }
@@ -2908,6 +2917,7 @@ const renderContentForPdf = (content) => {
     }
     
     // Fallback for any other unknown data type
+    if (!content) return ''; // Safety check for null or undefined
     return String(content);
 };
 
