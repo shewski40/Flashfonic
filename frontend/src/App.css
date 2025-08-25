@@ -2725,3 +2725,46 @@ input[type="range"]::-webkit-slider-thumb {
 .how-to-play-overlay {
   z-index: 1002; /* This raises it above the game-state-overlay (1001) */
 }
+
+/* --- Styles for Structured Chemical Reactions --- */
+.reaction-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+  width: 100%;
+}
+
+.reaction-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.reaction-arrow-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+
+.reagents {
+  font-size: 0.8em;
+  color: var(--text-soft);
+  margin-bottom: -0.5rem; /* Pulls the arrow closer */
+}
+
+.arrow {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: var(--primary-purple);
+}
+
+.plus-sign {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin: 0 0.5rem;
+}
