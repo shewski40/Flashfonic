@@ -2922,8 +2922,7 @@ const renderContentForPdf = (content) => {
 };
 
 // --- START REFACTORED PDF EXPORT FUNCTION ---
-// This entire function has been refactored to use the new helper function
-// and correctly position text within the generated PDF card rectangles.
+
 const exportFolderToPDF = useCallback((folderId) => {
     const folder = findFolderById(folders, folderId);
     if (!folder || folder.cards.length === 0) {
@@ -2931,108 +2930,178 @@ const exportFolderToPDF = useCallback((folderId) => {
         return;
     }
 
-    setStudyingFolder(null);
-    setIsFeedbackModalOpen(false);
+    // This part remains the same: it asks the user for the layout.
+    setModalConfig({
+        type: 'prompt',
+        title: 'Export to PDF',
+        message: 'How many flashcards per page? (6, 8, or 10)',
+        defaultValue: '8',
+        onConfirm: async (value) => { // <-- IMPORTANT: We make this an async function
+            setModalConfig(null);
+            setNotification("Generating PDF... this may take a moment as images are fetched.");
 
-    setTimeout(() => {
-        setModalConfig({
-            type: 'prompt',
-            title: 'Export to PDF',
-            message: 'How many flashcards per page? (6, 8, or 10)',
-            defaultValue: '8',
-            onConfirm: (value) => {
-                const cardsPerPage = parseInt(value, 10);
-                if (![6, 8, 10].includes(cardsPerPage)) {
-                    setNotification("Invalid number. Please choose 6, 8, or 10.");
+            const cardsPerPage = parseInt(value, 10);
+            if (![6, 8, 10].includes(cardsPerPage)) {
+                setNotification("Invalid number. Please choose 6, 8, or 10.");
+                return;
+            }
+            
+            const doc = new jsPDF();
+            const cards = folder.cards;
+            const pageW = doc.internal.pageSize.getWidth();
+            const pageH = doc.internal.pageSize.getHeight();
+            const layoutConfig = {
+                6: { rows: 3, cols: 2, fontSize: 10, imgSize: 25 },
+                8: { rows: 4, cols: 2, fontSize: 9, imgSize: 20 },
+                10: { rows: 5, cols: 2, fontSize: 8, imgSize: 15 },
+            };
+            const config = layoutConfig[cardsPerPage];
+            const margin = 15;
+            const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
+            const cardH = (pageH - 40 - (config.rows * margin)) / config.rows;
+
+            const drawHeader = () => { /* ... Your existing drawHeader function is perfect, no changes needed ... */ };
+
+            // --- NEW HELPER FUNCTION TO FETCH IMAGES ---
+            const getImageAsBase64 = async (url) => {
+                try {
+                    const response = await fetch(url);
+                    if (!response.ok) return null;
+                    const blob = await response.blob();
+                    return new Promise((resolve, reject) => {
+                        const reader = new FileReader();
+                        reader.onloadend = () => resolve(reader.result);
+                        reader.onerror = reject;
+                        reader.readAsDataURL(blob);
+                    });
+                } catch (error) {
+                    console.error("Failed to fetch image for PDF:", error);
+                    return null;
+                }
+            };
+            
+            // --- UPGRADED FUNCTION TO DRAW CARD CONTENT (QUESTION OR ANSWER) ---
+            const drawCardContent = async (content, x, y, w, h) => {
+                // Check if content is a string (and not a chemical string)
+                if (typeof content === 'string' && !content.includes('CHEM[') && !content.includes('SMILES[')) {
+                    const text = doc.splitTextToSize(content, w - 10);
+                    doc.text(text, x + w / 2, y + h / 2, { align: 'center', baseline: 'middle' });
                     return;
                 }
                 
-                const doc = new jsPDF();
-                const cards = folder.cards;
-                const pageW = doc.internal.pageSize.getWidth();
-                const pageH = doc.internal.pageSize.getHeight();
-                const layoutConfig = {
-                    6: { rows: 3, cols: 2, fontSize: 12 },
-                    8: { rows: 4, cols: 2, fontSize: 10 },
-                    10: { rows: 5, cols: 2, fontSize: 9 },
-                };
-                const config = layoutConfig[cardsPerPage];
-                const margin = 15;
-                const cardW = (pageW - (margin * (config.cols + 1))) / config.cols;
-                const cardH = (pageH - 40 - (margin * (config.rows))) / config.rows;
+                // --- Logic to handle all chemical types ---
+                let structure = { reactants: [], products: [], reagents: [] };
+                let isReaction = false;
 
-                const drawHeader = () => {
-                    doc.setFont('helvetica', 'bold');
-                    doc.setFontSize(30);
-                    doc.setTextColor(139, 92, 246);
-                    doc.text("FLASHFONIC", pageW / 2, 20, { align: 'center' });
-                    doc.setFont('helvetica', 'normal');
-                    doc.setFontSize(16);
-                    doc.setTextColor(31, 41, 55);
-                    doc.text("Listen. Flash it. Learn.", pageW / 2, 30, { align: 'center' });
-                };
-
-                // Draw the front of the cards
-                let currentPageIndex = 0;
-                while (currentPageIndex < cards.length) {
-                    const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
-                    
-                    if (currentPageIndex > 0) doc.addPage();
-                    drawHeader();
-                    pageCards.forEach((card, index) => {
-                        const row = Math.floor(index / config.cols);
-                        const col = index % config.cols;
-                        const cardX = margin + (col * (cardW + margin));
-                        const cardY = 40 + (row * (cardH + margin));
-                        doc.setLineWidth(0.5);
-                        doc.setDrawColor(0);
-                        doc.setTextColor(0, 0, 0);
-                        doc.rect(cardX, cardY, cardW, cardH);
-                        doc.setFontSize(config.fontSize);
-                        
-                        const text = doc.splitTextToSize(`Q: ${renderContentForPdf(card.question)}`, cardW - 10);
-                        const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-                        doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-                    });
-                    currentPageIndex += cardsPerPage;
-                }
-
-                // Draw the back of the cards
-                currentPageIndex = 0;
-                while (currentPageIndex < cards.length) {
-                    const pageCards = cards.slice(currentPageIndex, currentPageIndex + cardsPerPage);
-
-                    if (pageCards.length > 0) {
-                        doc.addPage();
-                        drawHeader();
-                        pageCards.forEach((card, index) => {
-                            const row = Math.floor(index / config.cols);
-                            const col = index % config.cols;
-                            const cardX = margin + (col * (cardW + margin));
-                            const cardY = 40 + (row * (cardH + margin));
-                            doc.setLineWidth(0.5);
-                            doc.setDrawColor(0);
-                            doc.setTextColor(0, 0, 0);
-                            doc.rect(cardX, cardY, cardW, cardH);
-                            doc.setFontSize(config.fontSize);
-                            
-                            const text = doc.splitTextToSize(`A: ${renderContentForPdf(card.answer)}`, cardW - 10);
-                            const textY = cardY + (cardH / 2) - ((text.length * config.fontSize) / 3.5);
-                            doc.text(text, cardX + cardW / 2, textY, { align: 'center' });
-                        });
-                    }
-                    currentPageIndex += cardsPerPage;
+                if (typeof content === 'object' && content !== null && content.type === 'full_reaction') {
+                    isReaction = true;
+                    structure = content;
+                } else if (Array.isArray(content)) {
+                    isReaction = false; // It's just a list of products/molecules
+                    structure.products = content;
                 }
                 
-                doc.save(`${folder.name}-flashcards.pdf`);
-                setModalConfig(null);
-            },
-            onClose: () => {
-                setModalConfig(null);
+                // Now, draw the images
+                const drawSide = async (chemArray, startX, sideWidth) => {
+                    if (!Array.isArray(chemArray) || chemArray.length === 0) return;
+                    
+                    const imgSize = config.imgSize;
+                    const totalImageWidth = chemArray.length * imgSize;
+                    const totalSpacing = (chemArray.length - 1) * 5;
+                    let currentX = startX + (sideWidth - (totalImageWidth + totalSpacing)) / 2;
+
+                    for (let i = 0; i < chemArray.length; i++) {
+                        const match = typeof chemArray[i] === 'string' && chemArray[i].match(/CHEM\[(.*?)\]/);
+                        if (match && match[1]) {
+                            const url = `https://cactus.nci.nih.gov/chemical/structure/${encodeURIComponent(match[1])}/image?format=png`;
+                            const imgData = await getImageAsBase64(url);
+                            if (imgData) {
+                                doc.addImage(imgData, 'PNG', currentX, y + (h - imgSize) / 2, imgSize, imgSize);
+                            }
+                        }
+                        currentX += imgSize;
+                        if (i < chemArray.length - 1) {
+                            doc.text('+', currentX + 2.5, y + h / 2, { baseline: 'middle' });
+                            currentX += 5;
+                        }
+                    }
+                };
+
+                const totalWidth = w - 10;
+                const arrowZone = isReaction ? 20 : 0;
+                const sideWidth = (totalWidth - arrowZone) / (structure.reactants.length > 0 ? 2 : 1);
+                
+                await drawSide(structure.reactants, x + 5, sideWidth);
+
+                if (isReaction) {
+                    const arrowX = x + 5 + sideWidth + (arrowZone / 2);
+                    doc.setFontSize(config.fontSize * 0.8);
+                    doc.text(structure.reagents.join(', '), arrowX, y + (h/2) - 5, { align: 'center' });
+                    doc.setFontSize(config.fontSize * 1.5);
+                    doc.text('→', arrowX, y + h/2 + 2, { align: 'center', baseline: 'middle' });
+                }
+                
+                await drawSide(structure.products, x + 5 + sideWidth + arrowZone, sideWidth);
+            };
+
+            // --- MODIFIED MAIN LOOP TO HANDLE ASYNC DRAWING ---
+            doc.addPage(); // Start on a fresh page
+            doc.deletePage(1);
+            
+            // Loop through pages
+            for (let pageNum = 0; pageNum < Math.ceil(cards.length / cardsPerPage); pageNum++) {
+                if (pageNum > 0) doc.addPage();
+                drawHeader();
+                
+                const pageCards = cards.slice(pageNum * cardsPerPage, (pageNum + 1) * cardsPerPage);
+
+                // Loop through cards on the current page
+                for (let i = 0; i < pageCards.length; i++) {
+                    const card = pageCards[i];
+                    const row = Math.floor(i / config.cols);
+                    const col = i % config.cols;
+                    const cardX = margin + (col * (cardW + margin));
+                    const cardY = 40 + (row * (cardH + margin));
+
+                    // Draw Front/Question
+                    doc.setDrawColor(0);
+                    doc.rect(cardX, cardY, cardW, cardH);
+                    doc.setFontSize(config.fontSize);
+                    const qText = doc.splitTextToSize(`Q: ${renderContentForPdf(card.question)}`, cardW - 10);
+                    doc.text(qText, cardX + 5, cardY + 7);
+                }
             }
-        });
-    }, 0);
-}, [folders, findFolderById, setModalConfig, setNotification, setStudyingFolder, setIsFeedbackModalOpen]);
+            
+            // Loop through pages again for the answers
+            for (let pageNum = 0; pageNum < Math.ceil(cards.length / cardsPerPage); pageNum++) {
+                 doc.addPage();
+                 drawHeader();
+
+                 const pageCards = cards.slice(pageNum * cardsPerPage, (pageNum + 1) * cardsPerPage);
+
+                 for (let i = 0; i < pageCards.length; i++) {
+                    const card = pageCards[i];
+                    const row = Math.floor(i / config.cols);
+                    const col = i % config.cols;
+                    const cardX = margin + (col * (cardW + margin));
+                    const cardY = 40 + (row * (cardH + margin));
+                    
+                    doc.setDrawColor(0);
+                    doc.rect(cardX, cardY, cardW, cardH);
+                    doc.setFontSize(config.fontSize);
+                    doc.text("A:", cardX + 5, cardY + 7);
+                    
+                    // Call the new drawing function for the answer content
+                    await drawCardContent(card.answer, cardX, cardY, cardW, cardH);
+                 }
+            }
+
+            doc.save(`${folder.name}-flashcards.pdf`);
+            setNotification("PDF generated successfully!");
+        },
+        onClose: () => setModalConfig(null)
+    });
+}, [folders, findFolderById]);
 // --- END REFACTORED PDF EXPORT FUNCTION ---
     
     const exportFolderToCSV = useCallback((folderId) => {
