@@ -1965,8 +1965,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
     }, [folders]);
 
-    // Replace your existing generateFlashcardRequest function with this one:
-
 const generateFlashcardRequest = useCallback(async (requestBody) => {
     setIsGenerating(true);
     setNotification('Generating flashcard...');
@@ -1982,14 +1980,12 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
             throw new Error(data.error || 'Failed to generate flashcard.');
         }
 
-        // --- THIS IS THE FIX ---
-        // We check the AI's response. If it's a structured reaction,
-        // we wrap it so the 'answer' field contains the entire reaction object.
         let finalCardData = data;
         if (data.type === 'full_reaction') {
             finalCardData = {
                 question: data.question,
-                answer: data // The entire structured object is now the answer
+                answer: data,
+                reactionSummary: data.reactionSummary // This is the new line
             };
         }
         
@@ -2010,7 +2006,7 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
     } finally {
         setIsGenerating(false);
     }
-}, [isDevMode]); // Keep dependencies as they are in your file
+}, [isDevMode, setUsage, updateFolderById]); // Updated dependencies
 
     const handleLiveFlashIt = useCallback(async () => {
         if (!isDevMode && usage.count >= usage.limit) {
