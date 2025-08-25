@@ -2864,33 +2864,50 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
 
 // --- START REFACTORED PDF EXPORT FUNCTION ---
 // This helper function sanitizes the content of a card so it can be correctly printed to a PDF.
+
 const renderContentForPdf = (content) => {
-    // If content is an array, assume it's a chemical reaction
+    // --- NEW: Logic to handle structured reactions for the PDF ---
+    if (typeof content === 'object' && !Array.isArray(content) && content !== null && content.type === 'full_reaction') {
+        // Helper to extract just the chemical name (e.g., "CHEM[Ethanol]" -> "Ethanol")
+        const extractName = (chemString) => chemString.replace(/CHEM\[(.*?)\]/, '$1');
+        
+        const reactants = content.reactants.map(extractName).join(' + ');
+        const products = content.products.map(extractName).join(' + ');
+        const reagents = content.reagents.join(', ');
+        
+        // Assemble the final text string for the PDF, handling cases with or without reagents
+        if (reagents) {
+            return `${reactants} --[${reagents}]--> ${products}`;
+        }
+        return `${reactants} --> ${products}`;
+    }
+
+    // Handles simple molecule/reaction arrays (e.g., ["CHEM[Ethanol]"])
     if (Array.isArray(content)) {
         const chemRegex = /CHEM\[(.*?)\]/g;
-        // Map over the array and replace the CHEM[...] tags with readable text
         const textArray = content.map(item => {
             const match = typeof item === 'string' && item.match(chemRegex);
             return match ? `[Structure of ${match[1]}]` : item;
         });
-        // Join the items with an arrow to represent the reaction
         return textArray.join(' → ');
-    } else if (typeof content === 'string') {
-        // Handle SMILES strings, SMILES reactions, and LaTeX, replacing them with a simplified text
+    }
+    
+    // Handles SMILES, LaTeX, and plain text strings
+    if (typeof content === 'string') {
         let text = content;
         const smilesRegex = /SMILES\[(.*?)\]/g;
         const smilesReactionRegex = /SMILES\[(.*?)\]>>SMILES\[(.*?)\]/g;
         const latexRegex = /\$\$(.*?)\$\$/g;
         const inlineLatexRegex = /\$(.*?)\$/g;
 
-        // Order matters here, handle reaction first so it doesn't get caught by single molecule regex
         text = text.replace(smilesReactionRegex, '[Chemical Reaction]');
         text = text.replace(smilesRegex, '[Chemical Structure]');
         text = text.replace(latexRegex, '[Formula]');
         text = text.replace(inlineLatexRegex, '[Formula]');
         return text;
     }
-    // Return the content as a string for all other types
+    
+    // Fallback for any other unknown data type
     return String(content);
 };
 
