@@ -2717,3 +2717,8 @@ input[type="range"]::-webkit-slider-thumb {
     /* This rule is needed to ensure the checkbox is visible. */
     position: relative;
 }
+
+/* --- FIX for How to Play Modal --- */
+.how-to-play-overlay {
+  z-index: 1002; /* This raises it above the game-state-overlay (1001) */
+}
