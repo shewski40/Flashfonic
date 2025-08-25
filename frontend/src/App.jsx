@@ -1751,6 +1751,23 @@ const FolderItem = ({
                             <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
                             <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
                         </div>
+                        {/* REFORMATTING ACTIONS BUTTON: */}
+                        <div className="folder-expanded-actions">
+                            <ActionsDropdown
+                                folder={folder}
+                                exportPdf={exportFolderToPDF}
+                                exportCsv={exportFolderToCSV}
+                                onAddSubfolder={(id) => {
+                                    setModalConfig({ type: 'createFolder', title: 'Add Subfolder', onConfirm: (name) => handleAddSubfolder(id, name) });
+                                }}
+                                onRenameFolder={(id, name) => {
+                                    setModalConfig({ type: 'prompt', title: 'Rename Folder', message: 'Enter new name for folder:', defaultValue: name, onConfirm: (newName) => handleRenameFolder(id, newName) });
+                                }}
+                                onDeleteFolder={(id) => {
+                                    setModalConfig({ type: 'confirm', message: `Are you sure you want to delete "${findFolderById(folders, id)?.name}"? This will also delete all subfolders and cards within it.`, onConfirm: () => handleDeleteFolder(id) });
+                                }}
+                            />
+                        </div>
                     </div>
                     {/* Subfolders will be rendered recursively from MainApp */}
                     <div className="folder-card-list">
