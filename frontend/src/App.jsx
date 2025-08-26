@@ -968,6 +968,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const recognitionRef = useRef(null);
     const silenceTimerRef = useRef(null);
     const speechEndTimerRef = useRef(null);
+    const gameHasStarted = useRef(false);
 
     const currentCard = deck[currentIndex];
 
@@ -1099,33 +1100,30 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 const startListening = useCallback(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        console.error("Speech recognition not supported in this browser.");
+        console.error("Speech recognition not supported.");
         return;
     }
-
     if (recognitionRef.current) {
         recognitionRef.current.stop();
     }
 
     const recognition = new SpeechRecognition();
-    recognition.continuous = true;
+    recognition.continuous = false; // More reliable on Safari
     recognition.interimResults = true;
     let finalTranscript = '';
 
     recognition.onstart = () => setIsListening(true);
-    recognition.onerror = (e) => console.error("Speech recognition error:", e);
-
-    // This event fires when the user stops talking for a moment.
-    recognition.onspeechend = () => {
-        recognition.stop();
+    recognition.onerror = (e) => {
+        console.error("Speech recognition error:", e);
+        setIsListening(false);
+        setGameState('scoring');
     };
-
-    // This event fires only after the recognition has fully stopped and processed.
+    
     recognition.onend = () => {
         setIsListening(false);
-        setGameState('scoring'); // We only move to scoring after everything is done.
+        setGameState(currentState => (currentState === 'listening' ? 'scoring' : currentState));
     };
-
+    
     recognition.onresult = (event) => {
         let interimTranscript = '';
         for (let i = event.resultIndex; i < event.results.length; ++i) {
@@ -1139,17 +1137,20 @@ const startListening = useCallback(() => {
     };
     
     recognitionRef.current = recognition;
-    recognition.start();
     setGameState('listening');
-}, []); 
+    recognition.start();
+}, []);
 
-    const askQuestion = useCallback(() => {
-        if (!currentCard) return;
-        setGameState('asking');
-        speak(`Question: ${currentCard.question}`, () => {
+const askQuestion = useCallback(() => {
+    if (!currentCard) return;
+    setGameState('asking');
+    speak(`Question: ${currentCard.question}`, () => {
+        // Only listen automatically on non-Safari browsers
+        if (!isSafari) {
             startListening();
-        });
-    }, [currentCard, speak, startListening]);
+        }
+    });
+}, [currentCard, isSafari, speak, startListening]);
 
     const stopAllAudio = () => {
         window.speechSynthesis.cancel();
@@ -1287,17 +1288,22 @@ const startListening = useCallback(() => {
                 return <EnterNameModal onClose={() => setGameState('landing')} onConfirm={(name) => { setPlayerName(name); setGameState('ready'); }} />;
             case 'ready':
                 const handleStartGame = () => {
-                    // This function now immediately speaks the first question to satisfy Safari's rules.
-                    if (!deck[0]) return; // Don't start if there are no cards
+                    if (!deck[0]) return;
+                    gameHasStarted.current = true;
         
-                    setGameState('asking'); // Go directly to the 'asking' state
+                    Tone.start();
+                    const utterance = new SpeechSynthesisUtterance(" ");
+                    utterance.volume = 0;
+                    window.speechSynthesis.speak(utterance);
         
-                    // We manually trigger the 'askQuestion' logic for the very first card.
-                    speak(`Question: ${deck[0].question}`, () => {
-                    startListening();
-                    });
+                    // Conditional logic for Safari vs. Desktop
+                    if (isSafari) {
+                        setGameState('asking');
+                        speak(`Question: ${deck[0].question}`);
+                    } else {
+                        setGameState('starting'); // Use the countdown for desktop
+                    }
                 };
-
                 return (
                     <div className="game-status-fullscreen">
                         <button className="game-start-button" onClick={handleStartGame}>START</button>
@@ -1306,7 +1312,23 @@ const startListening = useCallback(() => {
             case 'starting':
                 return <div className="game-status-fullscreen">Get Ready...</div>;
             case 'asking':
-                return <div className="game-status-fullscreen">Listen...</div>;
+                // Conditional rendering for Safari vs. Desktop
+                if (isSafari) {
+                // On Safari, show the two buttons for user control
+                    return (
+                        <div className="game-ask-container">
+                            <button className="game-action-btn" onClick={() => speak(`Question: ${currentCard.question}`)}>
+                                ▶️ Read Question
+                            </button>
+                            <button className="game-action-btn start-answering-btn" onClick={startListening}>
+                                🎤 Start Answering
+                            </button>
+                        </div>
+                    );
+                } else {
+                    // On desktop, it's automatic, so just show "Listen..."
+                    return <div className="game-status-fullscreen">Listen...</div>;
+                }
             case 'listening':
                 return (
                     <div className="game-listening-container">
@@ -3324,6 +3346,7 @@ const exportFolderToPDF = useCallback((folderId) => {
 
             {gameModeFolder && !showAnamnesisNemesisLanding && (
                 <GameViewer
+                    isSafari={isSafari}
                     key={gameModeFolder.id}
                     folder={gameModeFolder}
                     onClose={handleGameEnd}
