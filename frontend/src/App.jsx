@@ -2627,60 +2627,6 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
         }
     }, [updateFolderById]);
 
-            // --- REFACTOR FIX: NEW STATE HANDLERS FOR MainApp ---
-
-    const handleSelectedCardInExpandedFolder = (folderId, cardId) => {
-        setSelectedCardsInExpandedFolder(prev => {
-            const newFoldersSelection = JSON.parse(JSON.stringify(prev));
-            if (!newFoldersSelection[folderId]) {
-                newFoldersSelection[folderId] = {};
-            }
-            newFoldersSelection[folderId][cardId] = !newFoldersSelection[folderId][cardId];
-            return newFoldersSelection;
-        });
-    };
-
-    const handleMoveSelectedCardsFromExpandedFolder = (sourceFolderId, destFolderId) => {
-        if (!sourceFolderId || !destFolderId) return;
-
-        let cardsToMove = [];
-        const sourceFolder = findFolderById(folders, sourceFolderId);
-        
-        if (!sourceFolder || !selectedCardsInExpandedFolder[sourceFolderId]) return;
-
-        const selectedCardIds = Object.keys(selectedCardsInExpandedFolder[sourceFolderId]).filter(
-            cardId => selectedCardsInExpandedFolder[sourceFolderId][cardId]
-        );
-
-        if (selectedCardIds.length === 0) return;
-
-        cardsToMove = sourceFolder.cards.filter(card => selectedCardIds.includes(card.id.toString()));
-
-        setFolders(prev => {
-            let newFolders = { ...prev };
-            // Add cards to destination
-            newFolders = updateFolderById(newFolders, destFolderId, (folder) => ({
-                ...folder,
-                cards: [...folder.cards, ...cardsToMove]
-            }));
-            // Remove cards from source
-            newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
-                ...folder,
-                cards: folder.cards.filter(card => !selectedCardIds.includes(card.id.toString()))
-            }));
-            return newFolders;
-        });
-
-        // Clear the selection state for the source folder
-        setSelectedCardsInExpandedFolder(prev => {
-            const newSelection = { ...prev };
-            delete newSelection[sourceFolderId];
-            return newSelection;
-        });
-
-        setNotification(`${cardsToMove.length} card(s) moved.`);
-    };
-
     const handleCardInFolderDragStart = (e, cardId, folderId) => {
         e.dataTransfer.setData("cardId", cardId);
         e.dataTransfer.setData("sourceFolderId", folderId);
