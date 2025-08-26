@@ -1980,14 +1980,17 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
             throw new Error(data.error || 'Failed to generate flashcard.');
         }
 
+        // --- THIS IS THE FIX ---
+        // We check the AI's response. If it's a structured reaction,
+        // we wrap it so the 'answer' field contains the entire reaction object.
         let finalCardData = data;
         if (data.type === 'full_reaction') {
             finalCardData = {
                 question: data.question,
-                answer: data,
-                reactionSummary: data.reactionSummary // This is the new line
+                answer: data // The entire structured object is now the answer
             };
         }
+        // --- END OF FIX ---
         
         const newCard = { ...finalCardData, id: Date.now(), lastViewed: null, isFlagged: false };
         setGeneratedFlashcards(prev => [newCard, ...prev]);
@@ -2006,7 +2009,7 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
     } finally {
         setIsGenerating(false);
     }
-}, [isDevMode, setUsage, updateFolderById]); // Updated dependencies
+}, [isDevMode]); // Keep dependencies as they are in your file
 
     const handleLiveFlashIt = useCallback(async () => {
         if (!isDevMode && usage.count >= usage.limit) {
@@ -2616,6 +2619,60 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
             })));
         }
     }, [updateFolderById]);
+
+            // --- REFACTOR FIX: NEW STATE HANDLERS FOR MainApp ---
+
+    const handleSelectedCardInExpandedFolder = (folderId, cardId) => {
+        setSelectedCardsInExpandedFolder(prev => {
+            const newFoldersSelection = JSON.parse(JSON.stringify(prev));
+            if (!newFoldersSelection[folderId]) {
+                newFoldersSelection[folderId] = {};
+            }
+            newFoldersSelection[folderId][cardId] = !newFoldersSelection[folderId][cardId];
+            return newFoldersSelection;
+        });
+    };
+
+    const handleMoveSelectedCardsFromExpandedFolder = (sourceFolderId, destFolderId) => {
+        if (!sourceFolderId || !destFolderId) return;
+
+        let cardsToMove = [];
+        const sourceFolder = findFolderById(folders, sourceFolderId);
+        
+        if (!sourceFolder || !selectedCardsInExpandedFolder[sourceFolderId]) return;
+
+        const selectedCardIds = Object.keys(selectedCardsInExpandedFolder[sourceFolderId]).filter(
+            cardId => selectedCardsInExpandedFolder[sourceFolderId][cardId]
+        );
+
+        if (selectedCardIds.length === 0) return;
+
+        cardsToMove = sourceFolder.cards.filter(card => selectedCardIds.includes(card.id.toString()));
+
+        setFolders(prev => {
+            let newFolders = { ...prev };
+            // Add cards to destination
+            newFolders = updateFolderById(newFolders, destFolderId, (folder) => ({
+                ...folder,
+                cards: [...folder.cards, ...cardsToMove]
+            }));
+            // Remove cards from source
+            newFolders = updateFolderById(newFolders, sourceFolderId, (folder) => ({
+                ...folder,
+                cards: folder.cards.filter(card => !selectedCardIds.includes(card.id.toString()))
+            }));
+            return newFolders;
+        });
+
+        // Clear the selection state for the source folder
+        setSelectedCardsInExpandedFolder(prev => {
+            const newSelection = { ...prev };
+            delete newSelection[sourceFolderId];
+            return newSelection;
+        });
+
+        setNotification(`${cardsToMove.length} card(s) moved.`);
+    };
 
     const handleCardInFolderDragStart = (e, cardId, folderId) => {
         e.dataTransfer.setData("cardId", cardId);
