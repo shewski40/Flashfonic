@@ -2798,3 +2798,32 @@ input[type="range"]::-webkit-slider-thumb {
       font-size: 1.2rem; /* Make the in-game question text smaller */
   }
 }
+
+/* --- FIX for In-Game Header on Mobile --- */
+@media (max-width: 480px) {
+  .game-header {
+    padding: 0 0.5rem; /* Reduce side padding */
+    flex-wrap: wrap; /* Allow items to wrap to the next line if needed */
+    justify-content: center; /* Center the items */
+    gap: 0.5rem; /* Add some space between items */
+  }
+
+  .game-header h3 {
+    font-size: 1rem; /* Smaller title */
+    order: 1; /* Make title first item */
+    width: 100%; /* Allow title to take full width */
+    text-align: center;
+  }
+
+  .game-info {
+    font-size: 0.8rem; /* Smaller score text */
+    order: 2; /* Make score second */
+  }
+
+  .game-header .viewer-close-btn {
+    order: 3; /* Make close button third */
+    position: absolute; /* Position it absolutely to avoid disrupting flow */
+    top: 0;
+    right: 0.5rem;
+  }
+}
