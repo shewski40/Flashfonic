@@ -1096,57 +1096,52 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         }
     }, [userAnswer, currentCard, sounds, playMode, nextRound, speak]);
 
-    const startListening = useCallback(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.error("Speech recognition not supported in this browser.");
-            return;
-        }
+const startListening = useCallback(() => {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        console.error("Speech recognition not supported in this browser.");
+        return;
+    }
 
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
+    if (recognitionRef.current) {
+        recognitionRef.current.stop();
+    }
 
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        let finalTranscript = '';
+    const recognition = new SpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+    let finalTranscript = '';
 
-        recognitionRef.current.onstart = () => setIsListening(true);
-        recognitionRef.current.onend = () => setIsListening(false);
-        recognitionRef.current.onerror = (e) => console.error("Speech recognition error:", e);
+    recognition.onstart = () => setIsListening(true);
+    recognition.onerror = (e) => console.error("Speech recognition error:", e);
 
-        recognitionRef.current.onresult = (event) => {
-            clearTimeout(silenceTimerRef.current);
-            clearTimeout(speechEndTimerRef.current);
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
+    // This event fires when the user stops talking for a moment.
+    recognition.onspeechend = () => {
+        recognition.stop();
+    };
+
+    // This event fires only after the recognition has fully stopped and processed.
+    recognition.onend = () => {
+        setIsListening(false);
+        setGameState('scoring'); // We only move to scoring after everything is done.
+    };
+
+    recognition.onresult = (event) => {
+        let interimTranscript = '';
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+            if (event.results[i].isFinal) {
+                finalTranscript += event.results[i][0].transcript;
+            } else {
+                interimTranscript += event.results[i][0].transcript;
             }
-            setUserAnswer(finalTranscript + interimTranscript);
-
-            speechEndTimerRef.current = setTimeout(() => {
-                if (recognitionRef.current) {
-                    recognitionRef.current.stop();
-                    setGameState('scoring');
-                }
-            }, 1500);
-        };
-
-        recognitionRef.current.start();
-        setGameState('listening');
-
-        silenceTimerRef.current = setTimeout(() => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop();
-                setGameState('scoring');
-            }
-        }, 10000);
-    }, []);
+        }
+        setUserAnswer(finalTranscript + interimTranscript);
+    };
+    
+    recognitionRef.current = recognition;
+    recognition.start();
+    setGameState('listening');
+}, []); 
 
     const askQuestion = useCallback(() => {
         if (!currentCard) return;
@@ -1291,9 +1286,21 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'name_entry':
                 return <EnterNameModal onClose={() => setGameState('landing')} onConfirm={(name) => { setPlayerName(name); setGameState('ready'); }} />;
             case 'ready':
+                const handleStartGame = () => {
+                    // This function now immediately speaks the first question to satisfy Safari's rules.
+                    if (!deck[0]) return; // Don't start if there are no cards
+        
+                    setGameState('asking'); // Go directly to the 'asking' state
+        
+                    // We manually trigger the 'askQuestion' logic for the very first card.
+                    speak(`Question: ${deck[0].question}`, () => {
+                    startListening();
+                    });
+                };
+
                 return (
                     <div className="game-status-fullscreen">
-                        <button className="game-start-button" onClick={() => setGameState('starting')}>START</button>
+                        <button className="game-start-button" onClick={handleStartGame}>START</button>
                     </div>
                 );
             case 'starting':
