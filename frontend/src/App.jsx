@@ -1254,14 +1254,17 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'starting':
                 return <div className="game-status-fullscreen">Get Ready...</div>;
             case 'asking':
+                // For Safari, show a single, clear button to start listening.
                 if (isSafari) {
                     return (
                         <div className="game-ask-container">
-                           <button className="game-action-btn" onClick={() => speak(`Question: ${currentCard.question}`)}>▶️ Read Question</button>
-                           <button className="game-action-btn start-answering-btn" onClick={startListening}>🎤 Start Answering</button>
+                            <button className="game-action-btn start-answering-btn" onClick={startListening}>
+                                🎤 I'm Ready to Answer
+                            </button>
                         </div>
                     );
                 } else {
+                    // For desktop, it remains automatic.
                     return <div className="game-status-fullscreen">Listen...</div>;
                 }
             case 'listening':
