@@ -947,10 +947,6 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
 };
 
 const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy, mostRecentScore }) => {
-    // FIX 1: HYBRID SPEECH RECOGNITION
-    // Detect if the browser supports the native Web Speech API. We use useMemo for efficiency.
-    const isSpeechRecognitionSupported = useMemo(() => !!(window.SpeechRecognition || window.webkitSpeechRecognition), []);
-
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -969,14 +965,14 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
     const voiceDropdownRef = useRef(null);
 
-    // Refs for both recognition methods
-    const recognitionRef = useRef(null); // For native API (Chrome)
-    const mediaRecorderRef = useRef(null); // For AssemblyAI fallback (Safari)
+    // Refs for MediaRecorder-based audio capture
+    const mediaRecorderRef = useRef(null);
     const audioChunksRef = useRef([]);
     const recordingTimeoutRef = useRef(null);
 
     const currentCard = deck[currentIndex];
     
+    // This function primes the audio engine on iOS before starting the game
     const startGameSequence = () => {
         const primingUtterance = new SpeechSynthesisUtterance(' ');
         primingUtterance.volume = 0;
@@ -1011,30 +1007,26 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         };
     }, []);
 
-    const getMedal = useCallback((finalScore) => {
+    const getMedal = useCallback(() => {
         const totalPossible = deck.length * 100;
         if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
-        const percentage = (finalScore / totalPossible) * 100;
+        const percentage = (score / totalPossible) * 100;
 
         if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
         if (percentage >= 90) return { name: 'Synapse Slayer', animation: 'gold-medal-animation', icon: '🧠' };
         if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
         if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
         return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
-    }, [deck.length]);
+    }, [deck.length, score]);
 
-    // FIX 2: CORRECT SCORE CALCULATION
-    // nextRound now accepts the points from the round that just finished.
-    const nextRound = useCallback((pointsFromThisRound = 0) => {
+    const nextRound = useCallback(() => {
         setUserAnswer('');
         setLastScore(null);
         if (currentIndex < deck.length - 1) {
             setCurrentIndex(i => i + 1);
             setGameState('starting');
         } else {
-            const finalScore = score + pointsFromThisRound;
-            const finalMedal = getMedal(finalScore);
-            onClose(folder.id, finalScore, playerName, finalMedal.name); 
+            onClose(folder.id, score, playerName, getMedal().name); 
             setGameState('game_over');
         }
     }, [currentIndex, deck.length, onClose, folder.id, score, playerName, getMedal]);
@@ -1048,17 +1040,16 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         utterance.onend = onEndCallback;
         window.speechSynthesis.speak(utterance);
     }, [voices, selectedVoice]);
-    
-    const submitAnswer = useCallback(async (transcribedText) => {
-        const answerToScore = transcribedText !== undefined ? transcribedText : userAnswer;
-        setUserAnswer(answerToScore);
 
-        if (!answerToScore || !answerToScore.trim()) {
+    const submitAnswer = useCallback(async (transcribedText) => {
+        setUserAnswer(transcribedText);
+
+        if (!transcribedText || !transcribedText.trim()) {
             setLastScore(0);
             sounds.wrong();
             const feedbackText = "I didn't hear an answer. The correct answer was: " + currentCard.answer;
             speak(feedbackText, () => {
-                if (playMode === 'continuous') setTimeout(() => nextRound(0), 3000);
+                if (playMode === 'continuous') setTimeout(nextRound, 3000);
             });
             setGameState('round_result');
             return;
@@ -1068,8 +1059,9 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userAnswer: answerToScore, correctAnswer: currentCard.answer })
+                body: JSON.stringify({ userAnswer: transcribedText, correctAnswer: currentCard.answer })
             });
+            
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Scoring failed');
             
@@ -1089,7 +1081,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                 feedbackText = `Incorrect. The correct answer was: ${currentCard.answer}`;
                 sounds.wrong();
             }
-            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(() => nextRound(receivedScore), 3000); });
+            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(nextRound, 3000); });
             setGameState('round_result');
 
         } catch (error) {
@@ -1097,51 +1089,26 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             setLastScore(0);
             sounds.wrong();
             const feedbackText = "Error scoring. The correct answer was: " + currentCard.answer;
-            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(() => nextRound(0), 3000); });
+            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(nextRound, 3000); });
             setGameState('round_result');
         }
-    }, [currentCard, userAnswer, sounds, playMode, nextRound, speak]);
+    }, [currentCard, sounds, playMode, nextRound, speak]);
 
-    const startNativeListening = useCallback(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        
-        let finalTranscript = '';
-        recognitionRef.current.onresult = (event) => {
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
-                }
-            }
-            setUserAnswer(finalTranscript + interimTranscript);
-        };
-        
-        recognitionRef.current.onend = () => {
-            setIsRecording(false);
-            setGameState('scoring');
-        };
-
-        recognitionRef.current.start();
-        setIsRecording(true);
-        setGameState('listening');
-    }, []);
-
-    const startRecordingForAPI = useCallback(async () => {
+    const startRecording = useCallback(async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
             mediaRecorderRef.current = new MediaRecorder(stream);
             audioChunksRef.current = [];
-            mediaRecorderRef.current.ondataavailable = e => audioChunksRef.current.push(e.data);
+
+            mediaRecorderRef.current.ondataavailable = (event) => {
+                audioChunksRef.current.push(event.data);
+            };
 
             mediaRecorderRef.current.onstop = async () => {
                 setIsRecording(false);
-                stream.getTracks().forEach(track => track.stop());
-                setGameState('scoring');
+                stream.getTracks().forEach(track => track.stop()); // Clean up the stream
+                setGameState('scoring'); // Show "Judging..."
                 
                 const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
                 const reader = new FileReader();
@@ -1156,7 +1123,9 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                         });
                         const data = await res.json();
                         if (!res.ok) throw new Error(data.error || 'Transcription failed');
+                        
                         submitAnswer(data.transcript);
+
                     } catch (error) {
                         console.error("Transcription error:", error);
                         submitAnswer("[Error transcribing audio]");
@@ -1169,15 +1138,16 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             setGameState('listening');
 
             recordingTimeoutRef.current = setTimeout(() => {
-                if (mediaRecorderRef.current?.state === 'recording') {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
                     mediaRecorderRef.current.stop();
                 }
-            }, 7000);
+            }, 7000); // Stop recording after 7 seconds
 
         } catch (err) {
             console.error("Microphone access error:", err);
+            setGameState('round_result');
             speak("I couldn't access the microphone. Please check permissions.");
-            setTimeout(() => nextRound(0), 3000);
+            setTimeout(nextRound, 3000);
         }
     }, [submitAnswer, nextRound, speak]);
 
@@ -1185,22 +1155,14 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         if (!currentCard) return;
         setGameState('asking');
         speak(`Question: ${currentCard.question}`, () => {
-            if (isSpeechRecognitionSupported) {
-                startNativeListening();
-            } else {
-                startRecordingForAPI();
-            }
+            startRecording();
         });
-    }, [currentCard, speak, isSpeechRecognitionSupported, startNativeListening, startRecordingForAPI]);
+    }, [currentCard, speak, startRecording]);
 
     const stopAllAudio = () => {
         window.speechSynthesis.cancel();
         clearTimeout(recordingTimeoutRef.current);
-        if (recognitionRef.current) {
-            recognitionRef.current.onend = null; // Prevent onend from firing after manual stop
-            recognitionRef.current.stop();
-        }
-        if (mediaRecorderRef.current?.state === 'recording') {
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
             mediaRecorderRef.current.stop();
         }
     };
@@ -1232,27 +1194,25 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     useEffect(() => {
         const loadVoices = () => {
             const availableVoices = window.speechSynthesis.getVoices();
-            const englishVoices = availableVoices.filter(v => v.lang.startsWith('en'));
+            const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
             setVoices(englishVoices);
-            if (englishVoices.length > 0 && !selectedVoice) setSelectedVoice(englishVoices[0].name);
+            if (englishVoices.length > 0 && !selectedVoice) {
+                setSelectedVoice(englishVoices[0].name);
+            }
         };
         window.speechSynthesis.onvoiceschanged = loadVoices;
         loadVoices();
-        return () => { window.speechSynthesis.onvoiceschanged = null; };
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
     }, [selectedVoice]);
 
     useEffect(() => {
         if (gameState === 'starting') {
-            const timer = setTimeout(askQuestion, 3000);
+            const timer = setTimeout(() => askQuestion(), 3000);
             return () => clearTimeout(timer);
         }
     }, [gameState, askQuestion]);
-
-    useEffect(() => {
-        if (gameState === 'scoring' && isSpeechRecognitionSupported) {
-            submitAnswer();
-        }
-    }, [gameState, isSpeechRecognitionSupported, submitAnswer]);
     
     const playAgain = () => {
         setDeck([...folder.cards].sort(() => Math.random() - 0.5));
@@ -1339,9 +1299,11 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'listening':
                 return (
                     <div className="game-listening-container">
-                        <div className="mic-animation"><span className="mic-icon">🎤</span><div className="mic-wave"></div></div>
+                        <div className="mic-animation">
+                            <span className="mic-icon">🎤</span>
+                            <div className="mic-wave"></div>
+                        </div>
                         <p>Listening...</p>
-                        {isSpeechRecognitionSupported && <div className="game-user-answer-display">{userAnswer}</div>}
                     </div>
                 );
             case 'scoring':
@@ -1359,18 +1321,21 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                             <>
                                 <div className="score-feedback-animation incorrect-x">✕</div>
                                 <h2>Incorrect</h2>
-                                {userAnswer && <p className="correct-answer-reveal" style={{ fontStyle: 'italic', color: 'var(--text-soft)'}}>You said: "{userAnswer}"</p>}
                                 <p className="correct-answer-reveal">Correct Answer: <ContentRenderer content={currentCard.answer} /></p>
                             </>
                         )}
-                        {playMode === 'manual' && ( <button className="game-next-btn" onClick={() => nextRound(lastScore > 0 ? lastScore : 0)}>Next</button> )}
-                        {playMode === 'continuous' && ( <p className="continuous-play-notice">Next card coming up...</p> )}
+                        {playMode === 'manual' && (
+                            <button className="game-next-btn" onClick={nextRound}>Next</button>
+                        )}
+                        {playMode === 'continuous' && (
+                            <p className="continuous-play-notice">Next card coming up...</p>
+                        )}
                     </div>
                 );
             case 'game_over':
-                const finalScore = score;
-                const finalMedal = getMedal(finalScore);
-                
+                const totalPossibleScore = deck.length * 100;
+                const finalMedal = getMedal();
+
                 const currentLeaderboard = [...(folder.leaderboard || [])];
                 if (mostRecentScore && !currentLeaderboard.some(entry => entry.id === mostRecentScore.id)) {
                     currentLeaderboard.push(mostRecentScore);
@@ -1380,12 +1345,21 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                 return (
                     <div className="game-over-container">
                         <h2 className="game-over-title">{finalMedal.name}</h2>
-                        <div className={`medal-container ${finalMedal.animation}`}><span className="medal-icon">{finalMedal.icon}</span></div>
-                        <p className="final-score-display">Total Score: {finalScore} / {deck.length * 100}</p>
+                        <div className={`medal-container ${finalMedal.animation}`}>
+                            <span className="medal-icon">{finalMedal.icon}</span>
+                        </div>
+                        <p className="final-score-display">
+                            Total Score: {score} / {totalPossibleScore}
+                        </p>
                         <div className="leaderboard-container">
                             <h3>High Scores</h3>
                             <div className="leaderboard-list">
-                                <div><span>Rank</span><span>Name</span><span>Level</span><span style={{textAlign: 'right'}}>Score</span></div>
+                                <div>
+                                    <span>Rank</span>
+                                    <span>Name</span>
+                                    <span>Level</span>
+                                    <span style={{textAlign: 'right'}}>Score</span>
+                                </div>
                                 {sortedLeaderboard.length > 0 ? sortedLeaderboard.slice(0, 10).map((entry, index) => (
                                     <li key={entry.id || index} className={entry.id === mostRecentScore?.id ? 'recent-score' : ''}>
                                         <span>#{index + 1}</span>
@@ -1402,7 +1376,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                         </div>
                     </div>
                 );
-            default: return null;
+            default:
+                return null;
         }
     };
     
