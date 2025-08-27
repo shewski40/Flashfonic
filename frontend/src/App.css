@@ -2944,7 +2944,7 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
     gap: 1rem;
     width: 100%;
-    padding: 1rem;
+    padding: 0.8rem 1rem; /* <-- This value is reduced to make the box shorter */
     font-size: 1rem;
     text-align: left;
     background-color: var(--content-bg);
@@ -3029,7 +3029,7 @@ input[type="range"]::-webkit-slider-thumb {
     border: 1px solid var(--border-color);
     border-radius: 12px;
     text-align: left;
-    max-height: 25vh; /* Limit height and make it scrollable */
+    max-height: 45vh; /* <-- This value is increased from 40vh to make the box larger */
     overflow-y: auto;
     animation: fadeIn 0.5s ease;
 }

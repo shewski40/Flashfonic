@@ -1473,45 +1473,70 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
-const ExamViewer = ({ exam, onClose }) => {
+const ExamViewer = ({ exam, onClose, onExamComplete }) => {
+    const [gameState, setGameState] = useState('testing'); // 'testing', 'results', 'reviewing'
     const [currentIndex, setCurrentIndex] = useState(0);
     const [userAnswers, setUserAnswers] = useState({});
-    const [isAnswered, setIsAnswered] = useState(false);
     const [score, setScore] = useState(0);
     
     const currentQuestion = exam.questions[currentIndex];
 
     const handleAnswerSelect = (choiceKey) => {
-        if (isAnswered) return;
-        
+        if (gameState !== 'testing') return;
+
         const isCorrect = choiceKey === currentQuestion.correctAnswer;
-        
         setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: choiceKey, isCorrect } }));
 
         if (isCorrect) {
             setScore(prev => prev + 1);
         }
-
-        setIsAnswered(true);
     };
 
-    const handleNextQuestion = () => {
+    const handleNext = () => {
         if (currentIndex < exam.questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
-            setIsAnswered(false);
         } else {
-            // For now, we just close. Later we will show a results screen.
-            console.log(`Exam Finished! Final Score: ${score} / ${exam.questions.length}`);
-            onClose(); 
+            setGameState('results'); // Move to results screen
         }
     };
+
+    const handleReview = () => {
+        setCurrentIndex(0);
+        setGameState('reviewing');
+    };
     
+    // Derived state to check if the current question has an answer
+    const isAnswered = userAnswers[currentIndex] !== undefined;
     const choiceKeys = Object.keys(currentQuestion.choices);
+
+    if (gameState === 'results') {
+        const totalQuestions = exam.questions.length;
+        const percentage = Math.round((score / totalQuestions) * 100);
+
+        // Call the completion handler when results are first shown
+        useEffect(() => {
+            onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
+        }, []);
+
+        return (
+            <div className="viewer-overlay exam-viewer-overlay">
+                <div className="exam-results-container">
+                    <h2>Exam Complete!</h2>
+                    <p className="final-score-percent">{percentage}%</p>
+                    <p className="final-score-details">You answered {score} out of {totalQuestions} questions correctly.</p>
+                    <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+                        <button className="modal-cancel-btn" onClick={handleReview}>Review Answers</button>
+                        <button className="modal-create-btn" onClick={onClose}>Close</button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="viewer-overlay exam-viewer-overlay">
             <div className="exam-header">
-                <h2>Flash Exam</h2>
+                <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
                 <div className="exam-progress">Question {currentIndex + 1} of {exam.questions.length}</div>
                 <button onClick={onClose} className="viewer-close-btn">&times;</button>
             </div>
@@ -1522,17 +1547,13 @@ const ExamViewer = ({ exam, onClose }) => {
 
             <div className="answer-choices">
                 {choiceKeys.map(key => {
-                    // Determine the button's style after an answer is selected
                     const isCorrectChoice = key === currentQuestion.correctAnswer;
                     const isSelectedChoice = userAnswers[currentIndex]?.choice === key;
                     
                     let choiceStatus = '';
                     if (isAnswered) {
-                        if (isCorrectChoice) {
-                            choiceStatus = 'correct';
-                        } else if (isSelectedChoice) {
-                            choiceStatus = 'incorrect';
-                        }
+                        if (isCorrectChoice) choiceStatus = 'correct';
+                        else if (isSelectedChoice) choiceStatus = 'incorrect';
                     }
 
                     return (
@@ -1540,7 +1561,7 @@ const ExamViewer = ({ exam, onClose }) => {
                             key={key}
                             className={`choice-btn ${choiceStatus}`}
                             onClick={() => handleAnswerSelect(key)}
-                            disabled={isAnswered}
+                            disabled={isAnswered || gameState === 'reviewing'}
                         >
                             <span className="choice-letter">{key}</span>
                             <span className="choice-text">{currentQuestion.choices[key]}</span>
@@ -1549,7 +1570,7 @@ const ExamViewer = ({ exam, onClose }) => {
                 })}
             </div>
 
-            {isAnswered && exam.config.explanationMode === 'now' && (
+            {(isAnswered && exam.config.explanationMode === 'now') || gameState === 'reviewing' ? (
                 <div className="explanation-container">
                     <h3>Explanation</h3>
                     <p><strong>{currentQuestion.explanations.correct}</strong></p>
@@ -1561,12 +1582,12 @@ const ExamViewer = ({ exam, onClose }) => {
                         ))}
                     </ul>
                 </div>
-            )}
+            ) : null}
             
-            {isAnswered && (
+            {(isAnswered || gameState === 'reviewing') && (
                 <div className="exam-footer">
-                    <button className="exam-next-btn" onClick={handleNextQuestion}>
-                        {currentIndex < exam.questions.length - 1 ? 'Next Question' : 'Finish Exam'}
+                    <button className="exam-next-btn" onClick={handleNext}>
+                        {currentIndex < exam.questions.length - 1 ? 'Next Question' : (gameState === 'testing' ? 'Finish Exam' : 'Finish Review')}
                     </button>
                 </div>
             )}
@@ -2976,6 +2997,13 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         }
     };
 
+    const handleExamComplete = ({ score, totalQuestions, examTitle }) => {
+        const percentage = Math.round((score / totalQuestions) * 100);
+        console.log(`Exam complete! Score: ${score}/${totalQuestions} (${percentage}%)`);
+        setNotification(`Exam finished! You scored ${percentage}%.`);
+        // In a future step, we will save this score to a scoreboard state.
+    };
+
     const handleCancelExamWizard = () => {
         setExamWizardState(null);
         setExamSelectedFolderIds({});
@@ -3554,6 +3582,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                 <ExamViewer
                     exam={activeExam}
                     onClose={() => setActiveExam(null)}
+                    onExamComplete={handleExamComplete}
                 />
             )}
 
