@@ -953,7 +953,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [gameState, setGameState] = useState('landing');
     const [userAnswer, setUserAnswer] = useState('');
     const [lastScore, setLastScore] = useState(null);
-    const [isListening, setIsListening] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
     const [showHowToPlay, setShowHowToPlay] = useState(false);
     const [isPaused, setIsPaused] = useState(false);
     const [playerName, setPlayerName] = useState('');
@@ -965,23 +965,18 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
     const voiceDropdownRef = useRef(null);
 
-    const recognitionRef = useRef(null);
-    const silenceTimerRef = useRef(null);
-    const speechEndTimerRef = useRef(null);
+    // Refs for MediaRecorder-based audio capture
+    const mediaRecorderRef = useRef(null);
+    const audioChunksRef = useRef([]);
+    const recordingTimeoutRef = useRef(null);
 
     const currentCard = deck[currentIndex];
-
-    // --- FIX 1: PRIMING THE AUDIO ENGINE FOR IOS/SAFARI ---
-    // This function is now called directly by the START button's onClick.
-    // It plays a silent sound immediately to satisfy Safari's security rules,
-    // before setting the state and starting the timer.
+    
+    // This function primes the audio engine on iOS before starting the game
     const startGameSequence = () => {
-        // Prime the audio context by speaking a silent utterance.
         const primingUtterance = new SpeechSynthesisUtterance(' ');
         primingUtterance.volume = 0;
         window.speechSynthesis.speak(primingUtterance);
-        
-        // Now that audio is unlocked, proceed with the game start sequence.
         setGameState('starting');
     };
 
@@ -1031,7 +1026,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             setCurrentIndex(i => i + 1);
             setGameState('starting');
         } else {
-            // The onClose prop now handles updating the parent's state
             onClose(folder.id, score, playerName, getMedal().name); 
             setGameState('game_over');
         }
@@ -1047,15 +1041,15 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         window.speechSynthesis.speak(utterance);
     }, [voices, selectedVoice]);
 
-    const submitAnswer = useCallback(async () => {
-        if (!userAnswer.trim()) {
+    const submitAnswer = useCallback(async (transcribedText) => {
+        setUserAnswer(transcribedText);
+
+        if (!transcribedText || !transcribedText.trim()) {
             setLastScore(0);
             sounds.wrong();
-            const feedbackText = "Incorrect, 0 points. The correct answer was: " + currentCard.answer;
+            const feedbackText = "I didn't hear an answer. The correct answer was: " + currentCard.answer;
             speak(feedbackText, () => {
-                if (playMode === 'continuous') {
-                    setTimeout(nextRound, 3000);
-                }
+                if (playMode === 'continuous') setTimeout(nextRound, 3000);
             });
             setGameState('round_result');
             return;
@@ -1065,7 +1059,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
+                body: JSON.stringify({ userAnswer: transcribedText, correctAnswer: currentCard.answer })
             });
             
             const data = await response.json();
@@ -1077,8 +1071,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             let feedbackText = '';
             if (receivedScore >= 70) {
                 feedbackText = `Correct, for ${receivedScore} points.`;
-                if (receivedScore === 100) sounds.perfect();
-                else sounds.good();
+                if (receivedScore === 100) sounds.perfect(); else sounds.good();
                 setScore(s => s + receivedScore);
             } else if (receivedScore >= 30) {
                 feedbackText = `Partially correct, for ${receivedScore} points. The correct answer was: ${currentCard.answer}`;
@@ -1088,96 +1081,90 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                 feedbackText = `Incorrect. The correct answer was: ${currentCard.answer}`;
                 sounds.wrong();
             }
-
-            speak(feedbackText, () => {
-                if (playMode === 'continuous') {
-                    setTimeout(nextRound, 3000);
-                }
-            });
-            
+            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(nextRound, 3000); });
             setGameState('round_result');
 
         } catch (error) {
             console.error("Error scoring answer:", error);
             setLastScore(0);
             sounds.wrong();
-            const feedbackText = "There was an error scoring. The correct answer was: " + currentCard.answer;
-            speak(feedbackText, () => {
-                if (playMode === 'continuous') {
-                    setTimeout(nextRound, 3000);
-                }
-            });
+            const feedbackText = "Error scoring. The correct answer was: " + currentCard.answer;
+            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(nextRound, 3000); });
             setGameState('round_result');
         }
-    }, [userAnswer, currentCard, sounds, playMode, nextRound, speak]);
+    }, [currentCard, sounds, playMode, nextRound, speak]);
 
-    const startListening = useCallback(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.error("Speech recognition not supported in this browser.");
-            return;
-        }
+    const startRecording = useCallback(async () => {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            
+            mediaRecorderRef.current = new MediaRecorder(stream);
+            audioChunksRef.current = [];
 
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
+            mediaRecorderRef.current.ondataavailable = (event) => {
+                audioChunksRef.current.push(event.data);
+            };
 
-        recognitionRef.current = new SpeechRecognition();
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-        let finalTranscript = '';
+            mediaRecorderRef.current.onstop = async () => {
+                setIsRecording(false);
+                stream.getTracks().forEach(track => track.stop()); // Clean up the stream
+                setGameState('scoring'); // Show "Judging..."
+                
+                const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+                const reader = new FileReader();
+                reader.readAsDataURL(audioBlob);
+                reader.onloadend = async () => {
+                    const base64Audio = reader.result.split(',')[1];
+                    try {
+                        const res = await fetch('https://flashfonic-backend-shewski.replit.app/transcribe-answer', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ audio_data: base64Audio })
+                        });
+                        const data = await res.json();
+                        if (!res.ok) throw new Error(data.error || 'Transcription failed');
+                        
+                        submitAnswer(data.transcript);
 
-        recognitionRef.current.onstart = () => setIsListening(true);
-        recognitionRef.current.onend = () => setIsListening(false);
-        recognitionRef.current.onerror = (e) => console.error("Speech recognition error:", e);
+                    } catch (error) {
+                        console.error("Transcription error:", error);
+                        submitAnswer("[Error transcribing audio]");
+                    }
+                };
+            };
+            
+            mediaRecorderRef.current.start();
+            setIsRecording(true);
+            setGameState('listening');
 
-        recognitionRef.current.onresult = (event) => {
-            clearTimeout(silenceTimerRef.current);
-            clearTimeout(speechEndTimerRef.current);
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                    interimTranscript += event.results[i][0].transcript;
+            recordingTimeoutRef.current = setTimeout(() => {
+                if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+                    mediaRecorderRef.current.stop();
                 }
-            }
-            setUserAnswer(finalTranscript + interimTranscript);
+            }, 7000); // Stop recording after 7 seconds
 
-            speechEndTimerRef.current = setTimeout(() => {
-                if (recognitionRef.current) {
-                    recognitionRef.current.stop();
-                    setGameState('scoring');
-                }
-            }, 1500);
-        };
-
-        recognitionRef.current.start();
-        setGameState('listening');
-
-        silenceTimerRef.current = setTimeout(() => {
-            if (recognitionRef.current) {
-                recognitionRef.current.stop();
-                setGameState('scoring');
-            }
-        }, 10000);
-    }, []);
+        } catch (err) {
+            console.error("Microphone access error:", err);
+            setGameState('round_result');
+            speak("I couldn't access the microphone. Please check permissions.");
+            setTimeout(nextRound, 3000);
+        }
+    }, [submitAnswer, nextRound, speak]);
 
     const askQuestion = useCallback(() => {
         if (!currentCard) return;
         setGameState('asking');
         speak(`Question: ${currentCard.question}`, () => {
-            startListening();
+            startRecording();
         });
-    }, [currentCard, speak, startListening]);
+    }, [currentCard, speak, startRecording]);
 
     const stopAllAudio = () => {
         window.speechSynthesis.cancel();
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
+        clearTimeout(recordingTimeoutRef.current);
+        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+            mediaRecorderRef.current.stop();
         }
-        clearTimeout(silenceTimerRef.current);
-        clearTimeout(speechEndTimerRef.current);
     };
 
     const handleExit = () => {
@@ -1222,16 +1209,10 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
     useEffect(() => {
         if (gameState === 'starting') {
-            const timer = setTimeout(() => askQuestion(), 3000); // 3-second countdown
+            const timer = setTimeout(() => askQuestion(), 3000);
             return () => clearTimeout(timer);
         }
     }, [gameState, askQuestion]);
-
-    useEffect(() => {
-        if (gameState === 'scoring') {
-            submitAnswer();
-        }
-    }, [gameState, submitAnswer]);
     
     const playAgain = () => {
         setDeck([...folder.cards].sort(() => Math.random() - 0.5));
@@ -1308,7 +1289,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'ready':
                 return (
                     <div className="game-status-fullscreen">
-                        {/* --- FIX 1 (continued) --- The onClick now calls our new priming function */}
                         <button className="game-start-button" onClick={startGameSequence}>START</button>
                     </div>
                 );
@@ -1324,7 +1304,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                             <div className="mic-wave"></div>
                         </div>
                         <p>Listening...</p>
-                        <div className="game-user-answer-display">{userAnswer}</div>
                     </div>
                 );
             case 'scoring':
@@ -1357,9 +1336,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                 const totalPossibleScore = deck.length * 100;
                 const finalMedal = getMedal();
 
-                // --- FIX 2: INSTANT SCOREBOARD UPDATE ---
-                // We create a new, temporary leaderboard for immediate display.
-                // It combines the old leaderboard with the new score from `mostRecentScore`.
                 const currentLeaderboard = [...(folder.leaderboard || [])];
                 if (mostRecentScore && !currentLeaderboard.some(entry => entry.id === mostRecentScore.id)) {
                     currentLeaderboard.push(mostRecentScore);
@@ -1384,8 +1360,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                                     <span>Level</span>
                                     <span style={{textAlign: 'right'}}>Score</span>
                                 </div>
-                                {/* We now map over our new `sortedLeaderboard` instead of the old one */}
-                                {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
+                                {sortedLeaderboard.length > 0 ? sortedLeaderboard.slice(0, 10).map((entry, index) => (
                                     <li key={entry.id || index} className={entry.id === mostRecentScore?.id ? 'recent-score' : ''}>
                                         <span>#{index + 1}</span>
                                         <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
