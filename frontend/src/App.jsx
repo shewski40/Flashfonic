@@ -460,6 +460,90 @@ const GamesModal = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemesis })
     );
 };
 
+const ExamFolderSelectionModal = ({ allFolders, selectedFolderIds, onToggleFolder, onNext, onClose }) => {
+    const selectedCount = Object.values(selectedFolderIds).filter(Boolean).length;
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '500px' }}>
+                <h2>Select Folders for Exam</h2>
+                <p className="modal-message">Choose one or more folders to source questions from.</p>
+                <ul className="exam-folder-list">
+                    {allFolders.map(folder => (
+                        <li key={folder.id}>
+                            <label>
+                                <input
+                                    type="checkbox"
+                                    checked={!!selectedFolderIds[folder.id]}
+                                    onChange={() => onToggleFolder(folder.id)}
+                                />
+                                {folder.name}
+                            </label>
+                        </li>
+                    ))}
+                </ul>
+                <div className="modal-actions">
+                    <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="button" className="modal-create-btn" onClick={onNext} disabled={selectedCount === 0}>
+                        Next ({selectedCount})
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ExamConfigModal = ({ onConfirm, onClose }) => {
+    const [questionCount, setQuestionCount] = useState(10);
+    const [explanationMode, setExplanationMode] = useState('now'); // 'now' or 'later'
+
+    const questionCountOptions = [5, 10, 15, 20, 25, 30, 40, 50, 60, 70, 80, 90, 100];
+
+    const handleCreate = () => {
+        onConfirm({ questionCount, explanationMode });
+    };
+
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Configure Your Exam</h2>
+                <div className="exam-config-group">
+                    <label htmlFor="question-count">Number of Questions:</label>
+                    <select
+                        id="question-count"
+                        className="folder-select"
+                        value={questionCount}
+                        onChange={(e) => setQuestionCount(Number(e.target.value))}
+                    >
+                        {questionCountOptions.map(num => <option key={num} value={num}>{num}</option>)}
+                    </select>
+                </div>
+                <div className="exam-config-group">
+                    <label>Explanation Mode:</label>
+                    <div className="mode-selector" style={{padding: '5px'}}>
+                        <button
+                            className={explanationMode === 'now' ? 'active' : ''}
+                            onClick={() => setExplanationMode('now')}
+                        >
+                            Explanations Now
+                        </button>
+                        <button
+                            className={explanationMode === 'later' ? 'active' : ''}
+                            onClick={() => setExplanationMode('later')}
+                        >
+                            Explanations Later
+                        </button>
+                    </div>
+                </div>
+                <div className="modal-actions">
+                    <button type="button" className="modal-cancel-btn" onClick={onClose}>Cancel</button>
+                    <button type="button" className="modal-create-btn" onClick={handleCreate}>Create Exam</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
     return (
         <div className="viewer-overlay anamnesis-landing-page">
@@ -1624,6 +1708,7 @@ const FolderItem = ({
     handleDeleteFolder,
     findFolderById,
     folders,
+    onStartExam,
     draggedFolderId
 }) => {
     const [selectedFolderForMove, setSelectedFolderForMove] = useState('');
@@ -1698,6 +1783,7 @@ const FolderItem = ({
                             </button>
                             <button onClick={() => setFlashNotesActionModal(folder)} className="flash-notes-btn">Flash Notes</button>
                             <button onClick={() => setShowGamesModal(folder)} className="game-button-in-folder">Games</button>
+                            <button onClick={() => onStartExam(folder)} className="exam-button-in-folder">Flash Exam</button>
                         </div>
                         {/* REFORMATTING ACTIONS BUTTON: */}
                         <div className="folder-expanded-actions">
@@ -1811,7 +1897,8 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
     const [mostRecentScore, setMostRecentScore] = useState(null);
     const [isSafari, setIsSafari] = useState(false);
-    
+    const [examWizardState, setExamWizardState] = useState(null); // e.g., { stage: 'folder_selection' }
+    const [examSelectedFolderIds, setExamSelectedFolderIds] = useState({});
     const audioChunksRef = useRef([]);
     const headerChunkRef = useRef(null);
     const mediaRecorderRef = useRef(null);
@@ -2700,6 +2787,36 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
     }, []);
     const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
+    const handleStartExam = (sourceFolder) => {
+        // Pre-select the folder where the button was clicked
+        setExamSelectedFolderIds({ [sourceFolder.id]: true });
+        setExamWizardState({ stage: 'folder_selection' });
+    };
+
+    const handleExamFolderToggle = (folderId) => {
+        setExamSelectedFolderIds(prev => ({
+            ...prev,
+            [folderId]: !prev[folderId]
+        }));
+    };
+
+    const handleProceedToExamConfig = () => {
+        setExamWizardState({ stage: 'config_selection' });
+    };
+
+    const handleCreateExam = (config) => {
+        setExamWizardState(null); // Close modals
+        setNotification(`Creating a ${config.questionCount}-question exam with explanations ${config.explanationMode}...`);
+        // This is where we will eventually call the backend API. For now, it just shows a notification.
+        console.log("Creating exam with config:", config);
+        console.log("Selected folder IDs:", Object.keys(examSelectedFolderIds).filter(id => examSelectedFolderIds[id]));
+    };
+
+    const handleCancelExamWizard = () => {
+        setExamWizardState(null);
+        setExamSelectedFolderIds({});
+    };
+
     const handleGenerateNotes = async (folder, action, forceRegenerate = false) => {
         setFlashNotesActionModal(null);
         
@@ -3339,6 +3456,21 @@ const exportFolderToPDF = useCallback((folderId) => {
                     onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
                 />
             )}
+            {examWizardState?.stage === 'folder_selection' && (
+                <ExamFolderSelectionModal
+                    allFolders={getSortedFolders(folders)}
+                    selectedFolderIds={examSelectedFolderIds}
+                    onToggleFolder={handleExamFolderToggle}
+                    onNext={handleProceedToExamConfig}
+                    onClose={handleCancelExamWizard}
+                />
+            )}
+            {examWizardState?.stage === 'config_selection' && (
+                <ExamConfigModal
+                    onConfirm={handleCreateExam}
+                    onClose={handleCancelExamWizard}
+                />
+            )}
 
             {appMode === 'foto' ? (
                 <div className="flashfoto-header">
@@ -3664,6 +3796,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                             handleAddSubfolder={handleAddSubfolder}
                             handleRenameFolder={handleRenameFolder}
                             handleDeleteFolder={handleDeleteFolder}
+                            onStartExam={handleStartExam}
                             findFolderById={findFolderById}
                             folders={folders}
                             draggedFolderId={draggedFolderId}
