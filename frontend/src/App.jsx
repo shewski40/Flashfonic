@@ -1473,6 +1473,73 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
+const ExamViewer = ({ examData, onClose, onSaveAndExit }) => {
+    const [currentIndex, setCurrentIndex] = useState(0);
+    const [userAnswers, setUserAnswers] = useState({}); // Stores { questionIndex: 'selectedAnswer' }
+    const [isAnswered, setIsAnswered] = useState(false); // Tracks if the current question has been answered
+    
+    const currentQuestion = examData.questions[currentIndex];
+
+    const handleAnswerSelect = (choiceKey) => {
+        // For now, this just logs the answer. We will add scoring logic in the next step.
+        if (isAnswered) return;
+        
+        console.log(`Question ${currentIndex}: Chose ${choiceKey}`);
+        setUserAnswers(prev => ({ ...prev, [currentIndex]: choiceKey }));
+        setIsAnswered(true);
+    };
+
+    const handleNextQuestion = () => {
+        if (currentIndex < examData.questions.length - 1) {
+            setCurrentIndex(prev => prev + 1);
+            setIsAnswered(false); // Reset for the next question
+        } else {
+            // End of the exam
+            console.log("Exam Finished!");
+            onClose(userAnswers); // We will build the results screen later
+        }
+    };
+    
+    // Create an array of choice keys to map over, e.g., ['A', 'B', 'C', 'D', 'E']
+    const choiceKeys = Object.keys(currentQuestion.choices);
+
+    return (
+        <div className="viewer-overlay exam-viewer-overlay">
+            <div className="exam-header">
+                <h2>Flash Exam</h2>
+                <div className="exam-progress">Question {currentIndex + 1} of {examData.questions.length}</div>
+                <button onClick={() => onClose(userAnswers)} className="viewer-close-btn">&times;</button>
+            </div>
+
+            <div className="exam-question-container">
+                <p>{currentQuestion.questionText}</p>
+            </div>
+
+            <div className="answer-choices">
+                {choiceKeys.map(key => (
+                    <button
+                        key={key}
+                        className={`choice-btn`}
+                        onClick={() => handleAnswerSelect(key)}
+                        disabled={isAnswered}
+                    >
+                        <span className="choice-letter">{key}</span>
+                        <span className="choice-text">{currentQuestion.choices[key]}</span>
+                    </button>
+                ))}
+            </div>
+            
+            {isAnswered && (
+                <div className="exam-footer">
+                    <button className="exam-next-btn" onClick={handleNextQuestion}>
+                        {currentIndex < examData.questions.length - 1 ? 'Next Question' : 'Finish Exam'}
+                    </button>
+                </div>
+            )}
+        </div>
+    );
+};
+
 const ChemicalImage = ({ src, alt }) => {
     const [isLoading, setIsLoading] = useState(true);
 
@@ -1899,6 +1966,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [isSafari, setIsSafari] = useState(false);
     const [examWizardState, setExamWizardState] = useState(null); // e.g., { stage: 'folder_selection' }
     const [examSelectedFolderIds, setExamSelectedFolderIds] = useState({});
+    const [activeExam, setActiveExam] = useState(null);
     const audioChunksRef = useRef([]);
     const headerChunkRef = useRef(null);
     const mediaRecorderRef = useRef(null);
@@ -2837,9 +2905,6 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         }
 
         const allCards = getAllCardsFromFolders(selectedIds, folders);
-        
-        // --- THIS CHECK IS UPDATED ---
-        // It now only checks if there are zero cards, instead of requiring at least 5.
         if (allCards.length === 0) {
              setNotification("There are no flashcards in the selected folders to create an exam from.");
              return;
@@ -2860,12 +2925,11 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
                 throw new Error(errData.error || 'Failed to create exam.');
             }
 
-            const examData = await response.json();
-            console.log("✅ Exam successfully generated:", examData);
-            setNotification(`Your ${examData.exam.questions.length}-question exam is ready!`);
+            const data = await response.json();
+            console.log("✅ Exam successfully generated:", data.exam);
+            setNotification(`Your ${data.exam.questions.length}-question exam is ready!`);
 
-            // NEXT STEP: We will use this data to launch the ExamViewer component.
-            // For now, we log it to the console to confirm everything works.
+            setActiveExam(data.exam);
 
         } catch (error) {
             console.error("Error creating exam:", error);
@@ -3450,6 +3514,13 @@ const exportFolderToPDF = useCallback((folderId) => {
                 />
             )}
 
+            {activeExam && (
+                <ExamViewer
+                    examData={activeExam}
+                    onClose={() => setActiveExam(null)}
+                />
+            )}
+            
             {showAnamnesisNemesisLanding && gameModeFolder && (
                 <AnamnesisNemesisLandingPage
                     onClose={() => {setShowAnamnesisNemesisLanding(false); setShowGamesModal(gameModeFolder);}}
