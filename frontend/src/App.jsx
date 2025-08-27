@@ -1026,36 +1026,45 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         if (recognitionRef.current) {
             recognitionRef.current.stop();
         }
+
         const recognition = new SpeechRecognition();
-        recognition.continuous = false; // Important for iOS reliability
+        recognition.continuous = false;
         recognition.interimResults = true;
         let finalTranscript = '';
 
         recognition.onstart = () => setIsListening(true);
+
         recognition.onerror = (e) => {
             console.error("Speech recognition error:", e);
             setIsListening(false);
             setGameState('scoring');
         };
+
+        recognition.onspeechend = () => {
+            recognition.stop();
+        };
+
         recognition.onend = () => {
             setIsListening(false);
             setGameState(currentState => (currentState === 'listening' ? 'scoring' : currentState));
         };
+
         recognition.onresult = (event) => {
             let interimTranscript = '';
             for (let i = event.resultIndex; i < event.results.length; ++i) {
                 if (event.results[i].isFinal) {
                     finalTranscript += event.results[i][0].transcript;
                 } else {
-                    interimTranscript += event.results[i][0].transcript;
+                interimTranscript += event.results[i][0].transcript;
                 }
             }
             setUserAnswer(finalTranscript + interimTranscript);
         };
-        recognitionRef.current = recognition;
-        setGameState('listening');
-        recognition.start();
-    }, []);
+
+    recognitionRef.current = recognition;
+    setGameState('listening');
+    recognition.start();
+}, []);
 
     const askQuestion = useCallback(() => {
         if (!currentCard) return;
