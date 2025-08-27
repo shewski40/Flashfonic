@@ -946,7 +946,7 @@ const FlashcardViewer = ({ folder, onClose, onLaunchGame, onLaunchAnamnesisNemes
     );
 };
 
-const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy, mostRecentScore, isSafari }) => {
+const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy, mostRecentScore }) => {
     const [deck, setDeck] = useState([...folder.cards].sort(() => Math.random() - 0.5));
     const [currentIndex, setCurrentIndex] = useState(0);
     const [score, setScore] = useState(0);
@@ -959,14 +959,15 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     const [playerName, setPlayerName] = useState('');
     const [showLeaderboard, setShowLeaderboard] = useState(false);
     const [playMode, setPlayMode] = useState('continuous');
-
+    
     const [voices, setVoices] = useState([]);
     const [selectedVoice, setSelectedVoice] = useState('');
     const [isVoiceDropdownOpen, setIsVoiceDropdownOpen] = useState(false);
     const voiceDropdownRef = useRef(null);
 
     const recognitionRef = useRef(null);
-    const gameHasStarted = useRef(false); // FIX: Flag to manage game flow
+    const silenceTimerRef = useRef(null);
+    const speechEndTimerRef = useRef(null);
 
     const currentCard = deck[currentIndex];
 
@@ -975,6 +976,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             oscillator: { type: oscillatorType },
             envelope: { attack: 0.01, decay: 0.2, sustain: 0.1, release: 0.2 }
         }).toDestination();
+
         return {
             perfect: () => {
                 const synth = createSynth('sine');
@@ -1000,81 +1002,13 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         const totalPossible = deck.length * 100;
         if (totalPossible === 0) return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
         const percentage = (score / totalPossible) * 100;
+
         if (percentage === 100) return { name: 'Verbatim Master', animation: 'gold-medal-animation', icon: '🏆' };
         if (percentage >= 90) return { name: 'Synapse Slayer', animation: 'gold-medal-animation', icon: '🧠' };
         if (percentage >= 80) return { name: 'Recall Assassin', animation: 'silver-medal-animation', icon: '🗡️' };
         if (percentage >= 70) return { name: 'Mind Sniper', animation: 'bronze-medal-animation', icon: '🎯' };
         return { name: 'Mnemonic Casualty', animation: 'casualty-animation', icon: '🩹' };
     }, [deck.length, score]);
-
-    const speak = useCallback((text, onEndCallback) => {
-        window.speechSynthesis.cancel();
-        const utterance = new SpeechSynthesisUtterance(text);
-        const voice = voices.find(v => v.name === selectedVoice);
-        if (voice) utterance.voice = voice;
-        utterance.rate = 1;
-        utterance.onend = onEndCallback;
-        window.speechSynthesis.speak(utterance);
-    }, [voices, selectedVoice]);
-
-    const startListening = useCallback(() => {
-        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-        if (!SpeechRecognition) {
-            console.error("Speech recognition not supported.");
-            return;
-        }
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-
-        const recognition = new SpeechRecognition();
-        recognition.continuous = false;
-        recognition.interimResults = true;
-        let finalTranscript = '';
-
-        recognition.onstart = () => setIsListening(true);
-
-        recognition.onerror = (e) => {
-            console.error("Speech recognition error:", e);
-            setIsListening(false);
-            setGameState('scoring');
-        };
-
-        recognition.onspeechend = () => {
-            recognition.stop();
-        };
-
-        recognition.onend = () => {
-            setIsListening(false);
-            setGameState(currentState => (currentState === 'listening' ? 'scoring' : currentState));
-        };
-
-        recognition.onresult = (event) => {
-            let interimTranscript = '';
-            for (let i = event.resultIndex; i < event.results.length; ++i) {
-                if (event.results[i].isFinal) {
-                    finalTranscript += event.results[i][0].transcript;
-                } else {
-                interimTranscript += event.results[i][0].transcript;
-                }
-            }
-            setUserAnswer(finalTranscript + interimTranscript);
-        };
-
-    recognitionRef.current = recognition;
-    setGameState('listening');
-    recognition.start();
-}, []);
-
-    const askQuestion = useCallback(() => {
-        if (!currentCard) return;
-        setGameState('asking');
-        speak(`Question: ${currentCard.question}`, () => {
-            if (!isSafari) {
-                startListening();
-            }
-        });
-    }, [currentCard, isSafari, speak, startListening]);
 
     const nextRound = useCallback(() => {
         setUserAnswer('');
@@ -1088,55 +1022,192 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         }
     }, [currentIndex, deck.length, onClose, folder.id, score, playerName, getMedal]);
 
+    const speak = useCallback((text, onEndCallback) => {
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        const voice = voices.find(v => v.name === selectedVoice);
+        if (voice) utterance.voice = voice;
+        utterance.rate = 1;
+        utterance.onend = onEndCallback;
+        window.speechSynthesis.speak(utterance);
+    }, [voices, selectedVoice]);
+
     const submitAnswer = useCallback(async () => {
         if (!userAnswer.trim()) {
             setLastScore(0);
             sounds.wrong();
-            const feedbackText = "Incorrect. The correct answer was: " + currentCard.answer;
+            const feedbackText = "Incorrect, 0 points. The correct answer was: " + currentCard.answer;
             speak(feedbackText, () => {
-                if (playMode === 'continuous') setTimeout(nextRound, 3000);
+                if (playMode === 'continuous') {
+                    setTimeout(nextRound, 3000);
+                }
             });
             setGameState('round_result');
             return;
         }
+
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/score-answer', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ userAnswer, correctAnswer: currentCard.answer })
             });
+            
             const data = await response.json();
             if (!response.ok) throw new Error(data.error || 'Scoring failed');
+            
             const receivedScore = data.score;
             setLastScore(receivedScore);
+
             let feedbackText = '';
             if (receivedScore >= 70) {
-                feedbackText = `Correct for ${receivedScore} points.`;
-                if (receivedScore === 100) sounds.perfect(); else sounds.good();
+                feedbackText = `Correct, for ${receivedScore} points.`;
+                if (receivedScore === 100) sounds.perfect();
+                else sounds.good();
                 setScore(s => s + receivedScore);
             } else if (receivedScore >= 30) {
-                feedbackText = `Partially correct. The correct answer was: ${currentCard.answer}`;
+                feedbackText = `Partially correct, for ${receivedScore} points. The correct answer was: ${currentCard.answer}`;
                 sounds.ok();
                 setScore(s => s + receivedScore);
             } else {
                 feedbackText = `Incorrect. The correct answer was: ${currentCard.answer}`;
                 sounds.wrong();
             }
-            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(nextRound, 3000); });
+
+            speak(feedbackText, () => {
+                if (playMode === 'continuous') {
+                    setTimeout(nextRound, 3000);
+                }
+            });
+            
             setGameState('round_result');
+
         } catch (error) {
             console.error("Error scoring answer:", error);
             setLastScore(0);
             sounds.wrong();
             const feedbackText = "There was an error scoring. The correct answer was: " + currentCard.answer;
-            speak(feedbackText, () => { if (playMode === 'continuous') setTimeout(nextRound, 3000); });
+            speak(feedbackText, () => {
+                if (playMode === 'continuous') {
+                    setTimeout(nextRound, 3000);
+                }
+            });
             setGameState('round_result');
         }
     }, [userAnswer, currentCard, sounds, playMode, nextRound, speak]);
 
+    const startListening = useCallback(() => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            console.error("Speech recognition not supported in this browser.");
+            return;
+        }
+
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        let finalTranscript = '';
+
+        recognitionRef.current.onstart = () => setIsListening(true);
+        recognitionRef.current.onend = () => setIsListening(false);
+        recognitionRef.current.onerror = (e) => console.error("Speech recognition error:", e);
+
+        recognitionRef.current.onresult = (event) => {
+            clearTimeout(silenceTimerRef.current);
+            clearTimeout(speechEndTimerRef.current);
+            let interimTranscript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    finalTranscript += event.results[i][0].transcript;
+                } else {
+                    interimTranscript += event.results[i][0].transcript;
+                }
+            }
+            setUserAnswer(finalTranscript + interimTranscript);
+
+            speechEndTimerRef.current = setTimeout(() => {
+                if (recognitionRef.current) {
+                    recognitionRef.current.stop();
+                    setGameState('scoring');
+                }
+            }, 1500);
+        };
+
+        recognitionRef.current.start();
+        setGameState('listening');
+
+        silenceTimerRef.current = setTimeout(() => {
+            if (recognitionRef.current) {
+                recognitionRef.current.stop();
+                setGameState('scoring');
+            }
+        }, 10000);
+    }, []);
+
+    const askQuestion = useCallback(() => {
+        if (!currentCard) return;
+        setGameState('asking');
+        speak(`Question: ${currentCard.question}`, () => {
+            startListening();
+        });
+    }, [currentCard, speak, startListening]);
+
+    const stopAllAudio = () => {
+        window.speechSynthesis.cancel();
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+        }
+        clearTimeout(silenceTimerRef.current);
+        clearTimeout(speechEndTimerRef.current);
+    };
+
+    const handleExit = () => {
+        stopAllAudio();
+        onExitGame();
+    };
+
+    const handleBackButton = () => {
+        stopAllAudio();
+        if (cameFromStudy) {
+            onBackToStudy(folder);
+        } else {
+            onExitGame();
+        }
+    };
+
+    const handlePause = () => {
+        stopAllAudio();
+        setIsPaused(true);
+    };
+
+    const handleResume = () => {
+        setIsPaused(false);
+        askQuestion();
+    };
+
     useEffect(() => {
-        if (gameState === 'starting' && gameHasStarted.current) {
-            const timer = setTimeout(() => askQuestion(), 3000);
+        const loadVoices = () => {
+            const availableVoices = window.speechSynthesis.getVoices();
+            const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
+            setVoices(englishVoices);
+            if (englishVoices.length > 0 && !selectedVoice) {
+                setSelectedVoice(englishVoices[0].name);
+            }
+        };
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+        loadVoices();
+        return () => {
+            window.speechSynthesis.onvoiceschanged = null;
+        };
+    }, [selectedVoice]);
+
+    useEffect(() => {
+        if (gameState === 'starting') {
+            const timer = setTimeout(() => askQuestion(), 3000); // 3-second countdown
             return () => clearTimeout(timer);
         }
     }, [gameState, askQuestion]);
@@ -1146,45 +1217,14 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             submitAnswer();
         }
     }, [gameState, submitAnswer]);
-
-    const stopAllAudio = () => {
-        window.speechSynthesis.cancel();
-        if (recognitionRef.current) {
-            recognitionRef.current.stop();
-        }
-    };
-    const handleExit = () => { stopAllAudio(); onExitGame(); };
-    const handleBackButton = () => {
-        stopAllAudio();
-        if (cameFromStudy) { onBackToStudy(folder); } else { onExitGame(); }
-    };
-    const handlePause = () => { stopAllAudio(); setIsPaused(true); };
-    const handleResume = () => { setIsPaused(false); askQuestion(); };
-
-    useEffect(() => {
-        const loadVoices = () => {
-            const availableVoices = window.speechSynthesis.getVoices();
-            if (availableVoices.length > 0) {
-                const englishVoices = availableVoices.filter(voice => voice.lang.startsWith('en'));
-                setVoices(englishVoices);
-                if (englishVoices.length > 0 && !selectedVoice) {
-                    setSelectedVoice(englishVoices[0].name);
-                }
-            }
-        };
-        window.speechSynthesis.onvoiceschanged = loadVoices;
-        loadVoices();
-        return () => { window.speechSynthesis.onvoiceschanged = null; };
-    }, [selectedVoice]);
-
+    
     const playAgain = () => {
-        gameHasStarted.current = false;
         setDeck([...folder.cards].sort(() => Math.random() - 0.5));
         setCurrentIndex(0);
         setScore(0);
         setUserAnswer('');
         setLastScore(null);
-        setGameState('name_entry');
+        setGameState(playerName ? 'ready' : 'name_entry');
     };
 
     const renderVoiceSelector = () => (
@@ -1206,22 +1246,6 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
         </div>
     );
 
-    const handleStartGame = () => {
-        if (!deck[0]) return;
-        gameHasStarted.current = true;
-        Tone.start();
-        const utterance = new SpeechSynthesisUtterance(" ");
-        utterance.volume = 0;
-        window.speechSynthesis.speak(utterance);
-        
-        if (isSafari) {
-            setGameState('asking');
-            speak(`Question: ${deck[0].question}`);
-        } else {
-            setGameState('starting');
-        }
-    };
-    
     const renderGameState = () => {
         if (isPaused) {
             return (
@@ -1245,10 +1269,22 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                             <button className="game-action-btn" onClick={() => setShowLeaderboard(true)}>Leaderboard</button>
                         </div>
                         <div className="game-play-mode-selector">
-                            <button className={`game-mode-btn ${playMode === 'manual' ? 'active' : ''}`} onClick={() => setPlayMode('manual')}>Manual Play</button>
-                            <button className={`game-mode-btn ${playMode === 'continuous' ? 'active' : ''}`} onClick={() => setPlayMode('continuous')}>Continuous Play</button>
+                            <button
+                                className={`game-mode-btn ${playMode === 'manual' ? 'active' : ''}`}
+                                onClick={() => setPlayMode('manual')}
+                            >
+                                Manual Play
+                            </button>
+                            <button
+                                className={`game-mode-btn ${playMode === 'continuous' ? 'active' : ''}`}
+                                onClick={() => setPlayMode('continuous')}
+                            >
+                                Continuous Play
+                            </button>
                         </div>
-                        <div className="game-landing-voice-selector">{renderVoiceSelector()}</div>
+                        <div className="game-landing-voice-selector">
+                            {renderVoiceSelector()}
+                        </div>
                         <button className="game-action-btn" onClick={handleBackButton}>Back</button>
                     </div>
                 );
@@ -1257,29 +1293,20 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'ready':
                 return (
                     <div className="game-status-fullscreen">
-                        <button className="game-start-button" onClick={handleStartGame}>START</button>
+                        <button className="game-start-button" onClick={() => setGameState('starting')}>START</button>
                     </div>
                 );
             case 'starting':
                 return <div className="game-status-fullscreen">Get Ready...</div>;
             case 'asking':
-                // For Safari, show a single, clear button to start listening.
-                if (isSafari) {
-                    return (
-                        <div className="game-ask-container">
-                            <button className="game-action-btn start-answering-btn" onClick={startListening}>
-                                🎤 I'm Ready to Answer
-                            </button>
-                        </div>
-                    );
-                } else {
-                    // For desktop, it remains automatic.
-                    return <div className="game-status-fullscreen">Listen...</div>;
-                }
+                return <div className="game-status-fullscreen">Listen...</div>;
             case 'listening':
                 return (
                     <div className="game-listening-container">
-                        <div className="mic-animation"><span className="mic-icon">🎤</span><div className="mic-wave"></div></div>
+                        <div className="mic-animation">
+                            <span className="mic-icon">🎤</span>
+                            <div className="mic-wave"></div>
+                        </div>
                         <p>Listening...</p>
                         <div className="game-user-answer-display">{userAnswer}</div>
                     </div>
@@ -1287,33 +1314,58 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'scoring':
                 return <div className="game-status-fullscreen">Judging...</div>;
             case 'round_result':
-                const isCorrect = lastScore >= 70;
+                const isCorrect = lastScore >= 30;
                 return (
                     <div className={`game-result-fullscreen ${isCorrect ? 'correct' : 'incorrect'}`}>
-                        {isCorrect ? ( <> <div className="score-feedback-animation">+{lastScore}</div> <h2>Nice!</h2> </> ) 
-                        : ( <> <div className="score-feedback-animation incorrect-x">✕</div> <h2>Incorrect</h2> <p className="correct-answer-reveal">Correct Answer: <ContentRenderer content={currentCard.answer} /></p> </> )}
-                        {playMode === 'manual' && (<button className="game-next-btn" onClick={nextRound}>Next</button>)}
-                        {playMode === 'continuous' && (<p className="continuous-play-notice">Next card coming up...</p>)}
+                        {isCorrect ? (
+                            <>
+                                <div className="score-feedback-animation">+{lastScore}</div>
+                                <h2>Nice!</h2>
+                            </>
+                        ) : (
+                            <>
+                                <div className="score-feedback-animation incorrect-x">✕</div>
+                                <h2>Incorrect</h2>
+                                <p className="correct-answer-reveal">Correct Answer: <ContentRenderer content={currentCard.answer} /></p>
+                            </>
+                        )}
+                        {playMode === 'manual' && (
+                            <button className="game-next-btn" onClick={nextRound}>Next</button>
+                        )}
+                        {playMode === 'continuous' && (
+                            <p className="continuous-play-notice">Next card coming up...</p>
+                        )}
                     </div>
                 );
             case 'game_over':
                 const totalPossibleScore = deck.length * 100;
                 const finalMedal = getMedal();
-                const sortedLeaderboard = folder.leaderboard ? [...folder.leaderboard].sort((a,b) => b.score - a.score) : [];
+                const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
+
                 return (
                     <div className="game-over-container">
                         <h2 className="game-over-title">{finalMedal.name}</h2>
-                        <div className={`medal-container ${finalMedal.animation}`}><span className="medal-icon">{finalMedal.icon}</span></div>
-                        <p className="final-score-display">Total Score: {score} / {totalPossibleScore}</p>
+                        <div className={`medal-container ${finalMedal.animation}`}>
+                            <span className="medal-icon">{finalMedal.icon}</span>
+                        </div>
+                        <p className="final-score-display">
+                            Total Score: {score} / {totalPossibleScore}
+                        </p>
                         <div className="leaderboard-container">
                             <h3>High Scores</h3>
                             <div className="leaderboard-list">
                                 <div>
-                                    <span>Rank</span><span>Name</span><span>Level</span><span style={{textAlign: 'right'}}>Score</span>
+                                    <span>Rank</span>
+                                    <span>Name</span>
+                                    <span>Level</span>
+                                    <span style={{textAlign: 'right'}}>Score</span>
                                 </div>
                                 {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
                                     <li key={entry.id || index} className={entry.id === mostRecentScore?.id ? 'recent-score' : ''}>
-                                        <span>#{index + 1}</span><span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span><span>{entry.level}</span><span>{entry.score}</span>
+                                        <span>#{index + 1}</span>
+                                        <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
+                                        <span>{entry.level}</span>
+                                        <span>{entry.score}</span>
                                     </li>
                                 )) : <li><p>No scores yet. Be the first!</p></li>}
                             </div>
@@ -1330,18 +1382,24 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     };
     
     if (showLeaderboard) {
-        const sortedLeaderboard = folder.leaderboard ? [...folder.leaderboard].sort((a,b) => b.score - a.score) : [];
+        const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
         return (
             <div className="viewer-overlay game-mode">
                 <div className="leaderboard-container full-page">
                     <h2>Leaderboard: {folder.name}</h2>
                     <div className="leaderboard-list">
                         <div>
-                            <span>Rank</span><span>Name</span><span>Level</span><span style={{textAlign: 'right'}}>Score</span>
+                            <span>Rank</span>
+                            <span>Name</span>
+                            <span>Level</span>
+                            <span style={{textAlign: 'right'}}>Score</span>
                         </div>
                        {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
                             <li key={entry.id || index}>
-                                <span>#{index + 1}</span><span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span><span>{entry.level}</span><span>{entry.score}</span>
+                                <span>#{index + 1}</span>
+                                <span>{(entry.name || 'ANONYMOUS').toUpperCase()}</span>
+                                <span>{entry.level}</span>
+                                <span>{entry.score}</span>
                             </li>
                         )) : <li><p>No scores yet. Be the first!</p></li>}
                     </div>
@@ -1367,7 +1425,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                         </div>
                         <button onClick={handleExit} className="viewer-close-btn">&times;</button>
                     </div>
-                    {(gameState === 'asking' || gameState === 'listening' || gameState === 'scoring' || gameState === 'round_result') && (
+                    {gameState !== 'ready' && (
                         <div className="game-card-area">
                             <div className="game-card">
                                 <p className="game-question"><strong>Q:</strong> <ContentRenderer content={currentCard?.question} /></p>
