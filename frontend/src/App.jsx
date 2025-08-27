@@ -1473,42 +1473,47 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
-const ExamViewer = ({ examData, onClose, onSaveAndExit }) => {
+const ExamViewer = ({ exam, onClose }) => {
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [userAnswers, setUserAnswers] = useState({}); // Stores { questionIndex: 'selectedAnswer' }
-    const [isAnswered, setIsAnswered] = useState(false); // Tracks if the current question has been answered
+    const [userAnswers, setUserAnswers] = useState({});
+    const [isAnswered, setIsAnswered] = useState(false);
+    const [score, setScore] = useState(0);
     
-    const currentQuestion = examData.questions[currentIndex];
+    const currentQuestion = exam.questions[currentIndex];
 
     const handleAnswerSelect = (choiceKey) => {
-        // For now, this just logs the answer. We will add scoring logic in the next step.
         if (isAnswered) return;
         
-        console.log(`Question ${currentIndex}: Chose ${choiceKey}`);
-        setUserAnswers(prev => ({ ...prev, [currentIndex]: choiceKey }));
+        const isCorrect = choiceKey === currentQuestion.correctAnswer;
+        
+        setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: choiceKey, isCorrect } }));
+
+        if (isCorrect) {
+            setScore(prev => prev + 1);
+        }
+
         setIsAnswered(true);
     };
 
     const handleNextQuestion = () => {
-        if (currentIndex < examData.questions.length - 1) {
+        if (currentIndex < exam.questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
-            setIsAnswered(false); // Reset for the next question
+            setIsAnswered(false);
         } else {
-            // End of the exam
-            console.log("Exam Finished!");
-            onClose(userAnswers); // We will build the results screen later
+            // For now, we just close. Later we will show a results screen.
+            console.log(`Exam Finished! Final Score: ${score} / ${exam.questions.length}`);
+            onClose(); 
         }
     };
     
-    // Create an array of choice keys to map over, e.g., ['A', 'B', 'C', 'D', 'E']
     const choiceKeys = Object.keys(currentQuestion.choices);
 
     return (
         <div className="viewer-overlay exam-viewer-overlay">
             <div className="exam-header">
                 <h2>Flash Exam</h2>
-                <div className="exam-progress">Question {currentIndex + 1} of {examData.questions.length}</div>
-                <button onClick={() => onClose(userAnswers)} className="viewer-close-btn">&times;</button>
+                <div className="exam-progress">Question {currentIndex + 1} of {exam.questions.length}</div>
+                <button onClick={onClose} className="viewer-close-btn">&times;</button>
             </div>
 
             <div className="exam-question-container">
@@ -1516,23 +1521,52 @@ const ExamViewer = ({ examData, onClose, onSaveAndExit }) => {
             </div>
 
             <div className="answer-choices">
-                {choiceKeys.map(key => (
-                    <button
-                        key={key}
-                        className={`choice-btn`}
-                        onClick={() => handleAnswerSelect(key)}
-                        disabled={isAnswered}
-                    >
-                        <span className="choice-letter">{key}</span>
-                        <span className="choice-text">{currentQuestion.choices[key]}</span>
-                    </button>
-                ))}
+                {choiceKeys.map(key => {
+                    // Determine the button's style after an answer is selected
+                    const isCorrectChoice = key === currentQuestion.correctAnswer;
+                    const isSelectedChoice = userAnswers[currentIndex]?.choice === key;
+                    
+                    let choiceStatus = '';
+                    if (isAnswered) {
+                        if (isCorrectChoice) {
+                            choiceStatus = 'correct';
+                        } else if (isSelectedChoice) {
+                            choiceStatus = 'incorrect';
+                        }
+                    }
+
+                    return (
+                        <button
+                            key={key}
+                            className={`choice-btn ${choiceStatus}`}
+                            onClick={() => handleAnswerSelect(key)}
+                            disabled={isAnswered}
+                        >
+                            <span className="choice-letter">{key}</span>
+                            <span className="choice-text">{currentQuestion.choices[key]}</span>
+                        </button>
+                    );
+                })}
             </div>
+
+            {isAnswered && exam.config.explanationMode === 'now' && (
+                <div className="explanation-container">
+                    <h3>Explanation</h3>
+                    <p><strong>{currentQuestion.explanations.correct}</strong></p>
+                    <ul>
+                        {choiceKeys.map(key => (
+                           <li key={key}>
+                               <strong>{key}:</strong> {currentQuestion.explanations[key]}
+                           </li> 
+                        ))}
+                    </ul>
+                </div>
+            )}
             
             {isAnswered && (
                 <div className="exam-footer">
                     <button className="exam-next-btn" onClick={handleNextQuestion}>
-                        {currentIndex < examData.questions.length - 1 ? 'Next Question' : 'Finish Exam'}
+                        {currentIndex < exam.questions.length - 1 ? 'Next Question' : 'Finish Exam'}
                     </button>
                 </div>
             )}
@@ -2929,7 +2963,9 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
             console.log("✅ Exam successfully generated:", data.exam);
             setNotification(`Your ${data.exam.questions.length}-question exam is ready!`);
 
-            setActiveExam(data.exam);
+            // --- THIS IS THE CHANGE ---
+            // We now save the exam questions AND the config together.
+            setActiveExam({ ...data.exam, config: config });
 
         } catch (error) {
             console.error("Error creating exam:", error);
@@ -3516,11 +3552,11 @@ const exportFolderToPDF = useCallback((folderId) => {
 
             {activeExam && (
                 <ExamViewer
-                    examData={activeExam}
+                    exam={activeExam}
                     onClose={() => setActiveExam(null)}
                 />
             )}
-            
+
             {showAnamnesisNemesisLanding && gameModeFolder && (
                 <AnamnesisNemesisLandingPage
                     onClose={() => {setShowAnamnesisNemesisLanding(false); setShowGamesModal(gameModeFolder);}}
