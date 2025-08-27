@@ -1479,6 +1479,17 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
     
+    // --- THIS IS THE FIX ---
+    // The useEffect hook is now at the top level, following React's rules.
+    // The condition is placed *inside* the hook.
+    useEffect(() => {
+        // This effect runs only when the gameState changes to 'results'.
+        if (gameState === 'results') {
+            const totalQuestions = exam.questions.length;
+            onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
+        }
+    }, [gameState]); // Dependency array ensures it runs when gameState changes
+
     const currentQuestion = exam.questions[currentIndex];
 
     const handleAnswerSelect = (choiceKey) => {
@@ -1496,7 +1507,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
         if (currentIndex < exam.questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
-            setGameState('results'); // Move to results screen
+            setGameState('results');
         }
     };
 
@@ -1505,7 +1516,6 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
         setGameState('reviewing');
     };
     
-    // Derived state to check if the current question has an answer
     const isAnswered = userAnswers[currentIndex] !== undefined;
     const choiceKeys = Object.keys(currentQuestion.choices);
 
@@ -1513,10 +1523,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
         const totalQuestions = exam.questions.length;
         const percentage = Math.round((score / totalQuestions) * 100);
 
-        // Call the completion handler when results are first shown
-        useEffect(() => {
-            onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
-        }, []);
+        // The faulty useEffect that was here has been REMOVED and moved to the top.
 
         return (
             <div className="viewer-overlay exam-viewer-overlay">
