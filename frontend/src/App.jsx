@@ -2826,53 +2826,55 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         setExamWizardState({ stage: 'config_selection' });
     };
 
-    // --- REPLACE the old handleCreateExam with this new version ---
-const handleCreateExam = async (config) => {
-    setExamWizardState(null);
-    setNotification('Gathering materials for your exam...');
+    const handleCreateExam = async (config) => {
+        setExamWizardState(null);
+        setNotification('Gathering materials for your exam...');
 
-    const selectedIds = Object.keys(examSelectedFolderIds).filter(id => examSelectedFolderIds[id]);
-    if (selectedIds.length === 0) {
-        setNotification("Error: No folders were selected.");
-        return;
-    }
-
-    const allCards = getAllCardsFromFolders(selectedIds, folders);
-    if (allCards.length < 5) { // A minimum number of cards to make a good test
-         setNotification("You need at least 5 flashcards in the selected folders to create an exam.");
-         return;
-    }
-
-    setNotification('Generating your Flash Exam with AI... This may take a moment.');
-    setIsGenerating(true);
-
-    try {
-        const response = await fetch('https://flashfonic-backend-shewski.replit.app/create-exam', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ cards: allCards, config })
-        });
-
-        if (!response.ok) {
-            const errData = await response.json();
-            throw new Error(errData.error || 'Failed to create exam.');
+        const selectedIds = Object.keys(examSelectedFolderIds).filter(id => examSelectedFolderIds[id]);
+        if (selectedIds.length === 0) {
+            setNotification("Error: No folders were selected.");
+            return;
         }
 
-        const examData = await response.json();
-        console.log("✅ Exam successfully generated:", examData);
-        setNotification(`Your ${examData.exam.questions.length}-question exam is ready!`);
+        const allCards = getAllCardsFromFolders(selectedIds, folders);
+        
+        // --- THIS CHECK IS UPDATED ---
+        // It now only checks if there are zero cards, instead of requiring at least 5.
+        if (allCards.length === 0) {
+             setNotification("There are no flashcards in the selected folders to create an exam from.");
+             return;
+        }
 
-        // NEXT STEP: We will use this data to launch the ExamViewer component.
-        // For now, we log it to the console to confirm everything works.
+        setNotification('Generating your Flash Exam with AI... This may take a moment.');
+        setIsGenerating(true);
 
-    } catch (error) {
-        console.error("Error creating exam:", error);
-        setNotification(`Error: ${error.message}`);
-    } finally {
-        setIsGenerating(false);
-        setExamSelectedFolderIds({});
-    }
-};
+        try {
+            const response = await fetch('https://flashfonic-backend-shewski.replit.app/create-exam', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ cards: allCards, config })
+            });
+
+            if (!response.ok) {
+                const errData = await response.json();
+                throw new Error(errData.error || 'Failed to create exam.');
+            }
+
+            const examData = await response.json();
+            console.log("✅ Exam successfully generated:", examData);
+            setNotification(`Your ${examData.exam.questions.length}-question exam is ready!`);
+
+            // NEXT STEP: We will use this data to launch the ExamViewer component.
+            // For now, we log it to the console to confirm everything works.
+
+        } catch (error) {
+            console.error("Error creating exam:", error);
+            setNotification(`Error: ${error.message}`);
+        } finally {
+            setIsGenerating(false);
+            setExamSelectedFolderIds({});
+        }
+    };
 
     const handleCancelExamWizard = () => {
         setExamWizardState(null);
