@@ -971,6 +971,20 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 
     const currentCard = deck[currentIndex];
 
+    // --- FIX 1: PRIMING THE AUDIO ENGINE FOR IOS/SAFARI ---
+    // This function is now called directly by the START button's onClick.
+    // It plays a silent sound immediately to satisfy Safari's security rules,
+    // before setting the state and starting the timer.
+    const startGameSequence = () => {
+        // Prime the audio context by speaking a silent utterance.
+        const primingUtterance = new SpeechSynthesisUtterance(' ');
+        primingUtterance.volume = 0;
+        window.speechSynthesis.speak(primingUtterance);
+        
+        // Now that audio is unlocked, proceed with the game start sequence.
+        setGameState('starting');
+    };
+
     const sounds = useMemo(() => {
         const createSynth = (oscillatorType) => new Tone.Synth({
             oscillator: { type: oscillatorType },
@@ -1017,7 +1031,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             setCurrentIndex(i => i + 1);
             setGameState('starting');
         } else {
-            onClose(folder.id, score, playerName, getMedal().name);
+            // The onClose prop now handles updating the parent's state
+            onClose(folder.id, score, playerName, getMedal().name); 
             setGameState('game_over');
         }
     }, [currentIndex, deck.length, onClose, folder.id, score, playerName, getMedal]);
@@ -1293,7 +1308,8 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'ready':
                 return (
                     <div className="game-status-fullscreen">
-                        <button className="game-start-button" onClick={() => setGameState('starting')}>START</button>
+                        {/* --- FIX 1 (continued) --- The onClick now calls our new priming function */}
+                        <button className="game-start-button" onClick={startGameSequence}>START</button>
                     </div>
                 );
             case 'starting':
@@ -1340,7 +1356,15 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
             case 'game_over':
                 const totalPossibleScore = deck.length * 100;
                 const finalMedal = getMedal();
-                const sortedLeaderboard = [...(folder.leaderboard || [])].sort((a,b) => b.score - a.score);
+
+                // --- FIX 2: INSTANT SCOREBOARD UPDATE ---
+                // We create a new, temporary leaderboard for immediate display.
+                // It combines the old leaderboard with the new score from `mostRecentScore`.
+                const currentLeaderboard = [...(folder.leaderboard || [])];
+                if (mostRecentScore && !currentLeaderboard.some(entry => entry.id === mostRecentScore.id)) {
+                    currentLeaderboard.push(mostRecentScore);
+                }
+                const sortedLeaderboard = currentLeaderboard.sort((a, b) => b.score - a.score);
 
                 return (
                     <div className="game-over-container">
@@ -1360,6 +1384,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                                     <span>Level</span>
                                     <span style={{textAlign: 'right'}}>Score</span>
                                 </div>
+                                {/* We now map over our new `sortedLeaderboard` instead of the old one */}
                                 {sortedLeaderboard.length > 0 ? sortedLeaderboard.map((entry, index) => (
                                     <li key={entry.id || index} className={entry.id === mostRecentScore?.id ? 'recent-score' : ''}>
                                         <span>#{index + 1}</span>
@@ -1401,7 +1426,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
                                 <span>{entry.level}</span>
                                 <span>{entry.score}</span>
                             </li>
-                        )) : <li><p>No scores yet. Be the first!</p></li>}
+                       )) : <li><p>No scores yet. Be the first!</p></li>}
                     </div>
                     <div className="game-end-actions">
                         <button className="game-action-btn" onClick={() => setShowLeaderboard(false)}>Back to Game</button>
