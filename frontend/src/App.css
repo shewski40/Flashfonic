@@ -3058,3 +3058,37 @@ input[type="range"]::-webkit-slider-thumb {
 .explanation-container li {
     margin-bottom: 0.5rem;
 }
+
+/* --- Styles for Exam Results Screen --- */
+.exam-results-container {
+    background-color: var(--content-bg);
+    padding: 2rem 3rem;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4);
+    width: 100%;
+    max-width: 500px;
+    text-align: center;
+    margin: auto; /* Center it in the overlay */
+}
+
+.exam-results-container h2 {
+    font-size: 2rem;
+    margin-top: 0;
+    color: var(--text-light);
+}
+
+.final-score-percent {
+    font-size: 4.5rem;
+    font-weight: 700;
+    color: transparent;
+    background-clip: text;
+    -webkit-background-clip: text;
+    background-image: var(--brand-gradient);
+    margin: 1rem 0;
+}
+
+.final-score-details {
+    font-size: 1.2rem;
+    color: var(--text-soft);
+    margin-bottom: 2rem;
+}
