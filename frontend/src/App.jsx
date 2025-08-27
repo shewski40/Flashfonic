@@ -2787,6 +2787,28 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
     }, []);
     const allFoldersForMoveDropdown = getAllFoldersFlat(folders);
 
+    // --- ADD THIS HELPER FUNCTION ---
+const getAllCardsFromFolders = (folderIds, allFolders) => {
+    let cards = [];
+    const foldersToSearch = [...folderIds];
+    const searchedIds = new Set();
+
+    while (foldersToSearch.length > 0) {
+        const currentId = foldersToSearch.shift();
+        if (searchedIds.has(currentId)) continue;
+
+        const folder = findFolderById(allFolders, currentId);
+        if (folder) {
+            cards.push(...folder.cards);
+            searchedIds.add(currentId);
+            // Add subfolders to the search queue
+            const subfolderIds = Object.keys(folder.subfolders);
+            foldersToSearch.push(...subfolderIds);
+        }
+    }
+    return cards;
+};
+
     const handleStartExam = (sourceFolder) => {
         // Pre-select the folder where the button was clicked
         setExamSelectedFolderIds({ [sourceFolder.id]: true });
@@ -2804,13 +2826,53 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
         setExamWizardState({ stage: 'config_selection' });
     };
 
-    const handleCreateExam = (config) => {
-        setExamWizardState(null); // Close modals
-        setNotification(`Creating a ${config.questionCount}-question exam with explanations ${config.explanationMode}...`);
-        // This is where we will eventually call the backend API. For now, it just shows a notification.
-        console.log("Creating exam with config:", config);
-        console.log("Selected folder IDs:", Object.keys(examSelectedFolderIds).filter(id => examSelectedFolderIds[id]));
-    };
+    // --- REPLACE the old handleCreateExam with this new version ---
+const handleCreateExam = async (config) => {
+    setExamWizardState(null);
+    setNotification('Gathering materials for your exam...');
+
+    const selectedIds = Object.keys(examSelectedFolderIds).filter(id => examSelectedFolderIds[id]);
+    if (selectedIds.length === 0) {
+        setNotification("Error: No folders were selected.");
+        return;
+    }
+
+    const allCards = getAllCardsFromFolders(selectedIds, folders);
+    if (allCards.length < 5) { // A minimum number of cards to make a good test
+         setNotification("You need at least 5 flashcards in the selected folders to create an exam.");
+         return;
+    }
+
+    setNotification('Generating your Flash Exam with AI... This may take a moment.');
+    setIsGenerating(true);
+
+    try {
+        const response = await fetch('https://flashfonic-backend-shewski.replit.app/create-exam', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ cards: allCards, config })
+        });
+
+        if (!response.ok) {
+            const errData = await response.json();
+            throw new Error(errData.error || 'Failed to create exam.');
+        }
+
+        const examData = await response.json();
+        console.log("✅ Exam successfully generated:", examData);
+        setNotification(`Your ${examData.exam.questions.length}-question exam is ready!`);
+
+        // NEXT STEP: We will use this data to launch the ExamViewer component.
+        // For now, we log it to the console to confirm everything works.
+
+    } catch (error) {
+        console.error("Error creating exam:", error);
+        setNotification(`Error: ${error.message}`);
+    } finally {
+        setIsGenerating(false);
+        setExamSelectedFolderIds({});
+    }
+};
 
     const handleCancelExamWizard = () => {
         setExamWizardState(null);
