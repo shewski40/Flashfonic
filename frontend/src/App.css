@@ -1062,6 +1062,25 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--secondary-pink);
 }
 
+/* --- Styles for Exam Flag Button --- */
+.exam-header .flag-btn {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--text-dark);
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 0.4em 0.8em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.exam-header .flag-btn.active {
+    color: white;
+    background-color: var(--secondary-pink);
+    border-color: var(--secondary-pink);
+}
+
 .viewer-empty {
   width: 100%;
   max-width: 600px;

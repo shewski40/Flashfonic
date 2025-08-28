@@ -1473,31 +1473,34 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
-const ExamViewer = ({ exam, onClose, onExamComplete }) => {
+const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) => {
     const [gameState, setGameState] = useState('testing'); // 'testing', 'results', 'reviewing'
     const [currentIndex, setCurrentIndex] = useState(0);
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
-    
-    // --- THIS IS THE FIX ---
-    // The useEffect hook is now at the top level, following React's rules.
-    // The condition is placed *inside* the hook.
+    // --- ADD THIS NEW STATE ---
+    const [flaggedQuestions, setFlaggedQuestions] = useState({}); // Tracks { index: true }
+
     useEffect(() => {
-        // This effect runs only when the gameState changes to 'results'.
         if (gameState === 'results') {
             const totalQuestions = exam.questions.length;
             onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
         }
-    }, [gameState]); // Dependency array ensures it runs when gameState changes
+    }, [gameState]); 
 
     const currentQuestion = exam.questions[currentIndex];
 
+    const handleToggleFlag = () => {
+        setFlaggedQuestions(prev => ({
+            ...prev,
+            [currentIndex]: !prev[currentIndex]
+        }));
+    };
+
     const handleAnswerSelect = (choiceKey) => {
         if (gameState !== 'testing') return;
-
         const isCorrect = choiceKey === currentQuestion.correctAnswer;
         setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: choiceKey, isCorrect } }));
-
         if (isCorrect) {
             setScore(prev => prev + 1);
         }
@@ -1518,12 +1521,11 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
     
     const isAnswered = userAnswers[currentIndex] !== undefined;
     const choiceKeys = Object.keys(currentQuestion.choices);
+    const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
 
     if (gameState === 'results') {
         const totalQuestions = exam.questions.length;
         const percentage = Math.round((score / totalQuestions) * 100);
-
-        // The faulty useEffect that was here has been REMOVED and moved to the top.
 
         return (
             <div className="viewer-overlay exam-viewer-overlay">
@@ -1531,8 +1533,18 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
                     <h2>Exam Complete!</h2>
                     <p className="final-score-percent">{percentage}%</p>
                     <p className="final-score-details">You answered {score} out of {totalQuestions} questions correctly.</p>
-                    <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
+                    {flaggedCount > 0 && <p className="final-score-details">{flaggedCount} questions flagged for review.</p>}
+                    <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
                         <button className="modal-cancel-btn" onClick={handleReview}>Review Answers</button>
+                        {/* --- THIS BUTTON IS NEW --- */}
+                        <button 
+                            className="modal-create-btn" 
+                            onClick={() => onCreateFlaggedFolder(exam, flaggedQuestions)}
+                            disabled={flaggedCount === 0}
+                            style={{backgroundColor: 'var(--gold)', color: 'var(--dark-bg)'}}
+                        >
+                            Create Folder from Flagged ({flaggedCount})
+                        </button>
                         <button className="modal-create-btn" onClick={onClose}>Close</button>
                     </div>
                 </div>
@@ -1545,6 +1557,10 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
             <div className="exam-header">
                 <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
                 <div className="exam-progress">Question {currentIndex + 1} of {exam.questions.length}</div>
+                {/* --- THIS BUTTON IS NEW --- */}
+                <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
+                    &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
+                </button>
                 <button onClick={onClose} className="viewer-close-btn">&times;</button>
             </div>
 
@@ -1556,13 +1572,11 @@ const ExamViewer = ({ exam, onClose, onExamComplete }) => {
                 {choiceKeys.map(key => {
                     const isCorrectChoice = key === currentQuestion.correctAnswer;
                     const isSelectedChoice = userAnswers[currentIndex]?.choice === key;
-                    
                     let choiceStatus = '';
                     if (isAnswered) {
                         if (isCorrectChoice) choiceStatus = 'correct';
                         else if (isSelectedChoice) choiceStatus = 'incorrect';
                     }
-
                     return (
                         <button
                             key={key}
@@ -3011,6 +3025,53 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         // In a future step, we will save this score to a scoreboard state.
     };
 
+    const handleCreateFlaggedFolder = (exam, flaggedQuestions) => {
+        // 1. Collect all the unique source card IDs from the flagged questions
+        const flaggedIndices = Object.keys(flaggedQuestions).filter(key => flaggedQuestions[key]);
+        const sourceCardIds = new Set();
+        
+        flaggedIndices.forEach(index => {
+            const question = exam.questions[index];
+            if (question.sourceCardIds) {
+                question.sourceCardIds.forEach(id => sourceCardIds.add(id));
+            }
+        });
+
+        // 2. Find the full card objects for these IDs
+        const allCardsInFolders = getAllCardsFromFolders(Object.keys(folders), folders);
+        const flaggedCards = allCardsInFolders.filter(card => sourceCardIds.has(String(card.id)));
+
+        if (flaggedCards.length === 0) {
+            setNotification("No source cards found for the flagged questions.");
+            return;
+        }
+
+        // 3. Use the existing "Create Folder" modal to get a name
+        setModalConfig({
+            type: 'createFolder',
+            title: `Create Folder for Flagged Items (${flaggedCards.length})`,
+            onConfirm: (folderName) => {
+                const newFolderId = generateUUID();
+                setFolders(prev => ({
+                    ...prev,
+                    [newFolderId]: {
+                        id: newFolderId,
+                        name: folderName,
+                        cards: flaggedCards,
+                        subfolders: {},
+                        createdAt: Date.now(),
+                        lastViewed: Date.now(),
+                        flashNotes: null,
+                        leaderboard: []
+                    }
+                }));
+                setModalConfig(null);
+                setActiveExam(null); // Close the exam viewer after creating the folder
+                setNotification(`Successfully created folder "${folderName}" with ${flaggedCards.length} cards.`);
+            }
+        });
+    };
+
     const handleCancelExamWizard = () => {
         setExamWizardState(null);
         setExamSelectedFolderIds({});
@@ -3590,6 +3651,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                     exam={activeExam}
                     onClose={() => setActiveExam(null)}
                     onExamComplete={handleExamComplete}
+                    onCreateFlaggedFolder={handleCreateFlaggedFolder} 
                 />
             )}
 
