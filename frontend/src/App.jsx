@@ -1504,52 +1504,65 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 };
 
 const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) => {
-    const [shuffledExam, setShuffledExam] = useState(null);
     const [gameState, setGameState] = useState('testing'); // 'testing', 'results', 'reviewing'
     const [currentIndex, setCurrentIndex] = useState(0);
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
     const [flaggedQuestions, setFlaggedQuestions] = useState({});
+    // --- ADD THIS NEW STATE ---
     const [showExplanationModal, setShowExplanationModal] = useState(false);
-
-    useEffect(() => {
-        const shuffleOptions = (question) => {
-            const newOptions = [...question.options];
-            for (let i = newOptions.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [newOptions[i], newOptions[j]] = [newOptions[j], newOptions[i]];
-            }
-            return { ...question, options: newOptions };
-        };
-        const newShuffledQuestions = exam.questions.map(shuffleOptions);
-        setShuffledExam({ ...exam, questions: newShuffledQuestions });
-    }, [exam]);
 
     useEffect(() => {
         if (gameState === 'results' && shuffledExam) {
             const totalQuestions = shuffledExam.questions.length;
             onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
         }
-    }, [gameState, shuffledExam, score, onExamComplete, exam.name]);
+    }, [gameState]);
+
+    const [shuffledExam, setShuffledExam] = useState(null);
+    useEffect(() => {
+        const shuffleChoices = (question) => {
+            const choicesArray = Object.entries(question.choices);
+            const originalCorrectText = question.choices[question.correctAnswer];
+            for (let i = choicesArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [choicesArray[i], choicesArray[j]] = [choicesArray[j], choicesArray[i]];
+            }
+            const newChoices = {};
+            let newCorrectAnswer = '';
+            const newKeys = ['A', 'B', 'C', 'D', 'E'];
+            choicesArray.forEach((choice, index) => {
+                const newKey = newKeys[index];
+                const choiceText = choice[1];
+                newChoices[newKey] = choiceText;
+                if (choiceText === originalCorrectText) {
+                    newCorrectAnswer = newKey;
+                }
+            });
+            return { ...question, choices: newChoices, correctAnswer: newCorrectAnswer };
+        };
+        const newShuffledQuestions = exam.questions.map(shuffleChoices);
+        setShuffledExam({ ...exam, questions: newShuffledQuestions });
+    }, [exam]);
 
     if (!shuffledExam) {
-        return <div className="viewer-overlay">Preparing Exam...</div>;
+        return <div className="viewer-overlay">Shuffling Questions...</div>;
     }
 
     const currentQuestion = shuffledExam.questions[currentIndex];
-    
     const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
 
-    const handleAnswerSelect = (selectedOption) => {
+    const handleAnswerSelect = (choiceKey) => {
         if (gameState !== 'testing' || userAnswers[currentIndex]) return;
-        
-        const isCorrect = selectedOption.isCorrect;
-        setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: selectedOption.text, isCorrect } }));
 
+        const isCorrect = choiceKey === currentQuestion.correctAnswer;
+        setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: choiceKey, isCorrect } }));
         if (isCorrect) {
             setScore(prev => prev + 1);
         }
 
+        // --- THIS IS THE KEY LOGIC CHANGE ---
+        // Only show the explanation modal if the mode is 'now'.
         if (exam.config.explanationMode === 'now') {
             setShowExplanationModal(true);
         }
@@ -1562,22 +1575,22 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             setGameState('results');
         }
     };
-
-    const handleReview = () => {
-        setCurrentIndex(0);
-        setGameState('reviewing');
-    };
     
+    // --- ADD THESE NEW HANDLERS FOR THE MODAL ---
     const handleCloseExplanation = () => setShowExplanationModal(false);
     const handleAdvanceFromExplanation = () => {
         setShowExplanationModal(false);
         handleNext();
     };
 
+    const handleReview = () => {
+        setCurrentIndex(0);
+        setGameState('reviewing');
+    };
+    
     const isAnswered = userAnswers[currentIndex] !== undefined;
+    const choiceKeys = Object.keys(currentQuestion.choices);
     const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
-
-    // REMOVED: The buggy 'choiceKeys' variable that was here has been deleted.
 
     if (gameState === 'results') {
         const totalQuestions = shuffledExam.questions.length;
@@ -1624,28 +1637,31 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             </div>
 
             <div className="answer-choices">
-                {currentQuestion.options.map((option, index) => {
-                    const choiceLetter = String.fromCharCode(65 + index);
-                    const isSelectedChoice = userAnswers[currentIndex]?.choice === option.text;
+                {choiceKeys.map(key => {
+                    const isCorrectChoice = key === currentQuestion.correctAnswer;
+                    const isSelectedChoice = userAnswers[currentIndex]?.choice === key;
                     let choiceStatus = '';
                     if (isAnswered) {
-                        if (option.isCorrect) choiceStatus = 'correct';
+                        if (isCorrectChoice) choiceStatus = 'correct';
                         else if (isSelectedChoice) choiceStatus = 'incorrect';
                     }
                     return (
                         <button
-                            key={index}
+                            key={key}
                             className={`choice-btn ${choiceStatus}`}
-                            onClick={() => handleAnswerSelect(option)}
+                            onClick={() => handleAnswerSelect(key)}
                             disabled={isAnswered || gameState === 'reviewing'}
                         >
-                            <span className="choice-letter">{choiceLetter}</span>
-                            <span className="choice-text">{option.text}</span>
+                            <span className="choice-letter">{key}</span>
+                            <span className="choice-text">{currentQuestion.choices[key]}</span>
                         </button>
                     );
                 })}
             </div>
             
+            {/* The old explanation box is removed from here */}
+            
+            {/* The Next button now only appears if an answer is selected in 'later' mode, or during review */}
             {(isAnswered && exam.config.explanationMode === 'later') || gameState === 'reviewing' ? (
                 <div className="exam-footer">
                     <button className="exam-next-btn" onClick={handleNext}>
@@ -1654,6 +1670,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                 </div>
             ) : null}
             
+            {/* This renders our new modal when it's time */}
             {showExplanationModal && (
                 <ExplanationModal
                     question={currentQuestion}
