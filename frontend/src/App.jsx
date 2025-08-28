@@ -545,8 +545,6 @@ const ExamConfigModal = ({ onConfirm, onClose }) => {
 };
 
 const ExplanationModal = ({ question, userAnswer, onClose, onNext, isLastQuestion }) => {
-    // REMOVED: The buggy 'choiceKeys' variable that was here has been deleted.
-
     return (
         <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '600px', textAlign: 'left' }}>
@@ -554,7 +552,9 @@ const ExplanationModal = ({ question, userAnswer, onClose, onNext, isLastQuestio
                     {userAnswer.isCorrect ? 'Correct!' : 'Incorrect'}
                 </h2>
                 <div className="explanation-modal-content">
-                    <p><strong>{question.options.find(opt => opt.isCorrect)?.explanation}</strong></p>
+                    {/* --- THIS LINE IS UPDATED --- */}
+                    {/* It now finds the explanation for the user's selected answer. */}
+                    <p><strong>{question.options.find(opt => opt.text === userAnswer.choice)?.explanation}</strong></p>
                     <ul>
                         {question.options.map((option, index) => (
                            <li key={index} className={option.isCorrect ? 'correct-explanation' : ''}>
