@@ -3146,7 +3146,7 @@ input[type="range"]::-webkit-slider-thumb {
     left: 75%; /* Adjust this percentage to fine-tune */
     transform: translateX(-50%);
     
-    font-size: 0.8em;
+    font-size: 1.0em;
     font-weight: bold;
     color: var(--text-dark);
     background-color: var(--content-bg);
@@ -3159,6 +3159,7 @@ input[type="range"]::-webkit-slider-thumb {
     display: inline-flex;
     align-items: center;
     gap: 0.3em;
+    justify-content: center;
 }
 
 .exam-header .flag-btn.active {
