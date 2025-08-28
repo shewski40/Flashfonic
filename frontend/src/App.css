@@ -3121,3 +3121,31 @@ input[type="range"]::-webkit-slider-thumb {
     left: 50%;
     transform: translateX(-50%);
 }
+
+.explanation-modal-content {
+    padding: 1rem;
+    background-color: var(--dark-bg);
+    border-radius: 8px;
+    margin: 1.5rem 0;
+    max-height: 50vh; /* Generous height for scrolling */
+    overflow-y: auto;
+    text-align: left;
+    border: 1px solid var(--border-color);
+}
+
+.explanation-modal-content p {
+    line-height: 1.6;
+}
+
+.explanation-modal-content ul {
+    list-style: none;
+    padding-left: 0;
+    margin-top: 1rem;
+    color: var(--text-soft);
+}
+
+.explanation-modal-content li {
+    margin-bottom: 0.75rem;
+    padding-left: 0.5rem;
+    border-left: 2px solid var(--border-color);
+}
