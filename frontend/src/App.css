@@ -3144,8 +3144,27 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-soft);
 }
 
+.exam-progress-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    /* This group should not be positioned absolutely */
+}
+
 .explanation-modal-content li {
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem; /* Increased for more space */
+    padding-bottom: 1rem; /* Added for more space */
+    border-bottom: 1px solid var(--border-color); /* Added a separator line */
     padding-left: 0.5rem;
     border-left: 2px solid var(--border-color);
+}
+.explanation-modal-content li:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+/* Add this new rule to highlight the correct answer's letter */
+.explanation-modal-content li.correct-explanation strong {
+    color: var(--success-green);
 }

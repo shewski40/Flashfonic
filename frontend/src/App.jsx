@@ -555,7 +555,9 @@ const ExplanationModal = ({ question, onClose, onNext, isLastQuestion }) => {
                     <p><strong>{question.explanations.correct}</strong></p>
                     <ul>
                         {choiceKeys.map(key => (
-                           <li key={key}>
+                           // --- THIS LINE IS UPDATED ---
+                           // It adds a class to the correct answer's list item
+                           <li key={key} className={key === question.correctAnswer ? 'correct-explanation' : ''}>
                                <strong>{key} ({question.choices[key]}):</strong> {question.explanations[key]}
                            </li> 
                         ))}
@@ -1657,8 +1659,14 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                 })}
             </div>
             
-            {/* The old explanation box is removed from here */}
-            
+            {(isAnswered || gameState === 'reviewing') && (
+                <div className="exam-footer">
+                    <button className="exam-next-btn" onClick={handleNext}>
+                        {currentIndex < shuffledExam.questions.length - 1 ? 'Next Question' : (gameState === 'testing' ? 'Finish Exam' : 'Finish Review')}
+                    </button>
+                </div>
+            )}
+
             {/* The Next button now only appears if an answer is selected in 'later' mode, or during review */}
             {(isAnswered && exam.config.explanationMode === 'later') || gameState === 'reviewing' ? (
                 <div className="exam-footer">
