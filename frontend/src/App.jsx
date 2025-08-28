@@ -1611,7 +1611,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
                 {/* The flag button is now on its own for independent positioning */}
                 <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
-                    &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
+                    &#9873;
                 </button>
 
                 <button onClick={onClose} className="viewer-close-btn">&times;</button>
