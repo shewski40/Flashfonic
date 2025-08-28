@@ -574,6 +574,77 @@ const ExplanationModal = ({ question, userAnswer, onClose, onNext, isLastQuestio
     );
 };
 
+const ExamHubModal = ({ onSelect }) => {
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content">
+                <h2>Flash Exam</h2>
+                <p className="modal-message">What would you like to do?</p>
+                <div className="modal-actions" style={{ flexDirection: 'column', gap: '1rem', marginTop: '1.5rem' }}>
+                    <button onClick={() => onSelect('create')} className="modal-create-btn">Create New Exam</button>
+                    <button onClick={() => onSelect('retake')} className="modal-create-btn">Retake Saved Exam</button>
+                    <button onClick={() => onSelect('history')} className="modal-create-btn">View Exam History</button>
+                    <button onClick={() => onSelect('close')} className="modal-cancel-btn">Back</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const RetakeExamModal = ({ savedExams, onRetake, onClose }) => {
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '500px' }}>
+                <h2>Retake Saved Exam</h2>
+                <ul className="exam-folder-list">
+                    {savedExams.length > 0 ? (
+                        savedExams.map(exam => (
+                            <li key={exam.id} className="retake-exam-item" onClick={() => onRetake(exam.id)}>
+                                {exam.title}
+                            </li>
+                        ))
+                    ) : (
+                        <p className="subtle-text">You have no saved exams.</p>
+                    )}
+                </ul>
+                <div className="modal-actions">
+                    <button type="button" className="modal-cancel-btn" onClick={onClose}>Back</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+const ExamHistoryModal = ({ examHistory, onClose }) => {
+    return (
+        <div className="modal-overlay">
+            <div className="modal-content" style={{ maxWidth: '600px' }}>
+                <h2>Exam History</h2>
+                <ul className="exam-history-list">
+                    {examHistory.length > 0 ? (
+                        examHistory.map(entry => (
+                            <li key={entry.id}>
+                                <span className="history-score">{entry.score}%</span>
+                                <div className="history-details">
+                                    <span className="history-title">{entry.title}</span>
+                                    <span className="history-date">
+                                        {new Date(entry.date).toLocaleString()}
+                                    </span>
+                                </div>
+                            </li>
+                        ))
+                    ) : (
+                        <p className="subtle-text">No exam history yet.</p>
+                    )}
+                </ul>
+                <div className="modal-actions">
+                    <button type="button" className="modal-cancel-btn" onClick={onClose}>Back</button>
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const AnamnesisNemesisLandingPage = ({ onClose, onStartGame }) => {
     return (
         <div className="viewer-overlay anamnesis-landing-page">
@@ -2104,10 +2175,11 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [showAnamnesisNemesisLanding, setShowAnamnesisNemesisLanding] = useState(false);
     const [mostRecentScore, setMostRecentScore] = useState(null);
     const [isSafari, setIsSafari] = useState(false);
-    const [examWizardState, setExamWizardState] = useState(null); // e.g., { stage: 'folder_selection' }
+    const [examWizardState, setExamWizardState] = useState(null);
     const [examSelectedFolderIds, setExamSelectedFolderIds] = useState({});
     const [activeExam, setActiveExam] = useState(null);
-    const [examHistory, setExamHistory] = useState([])
+    const [savedExams, setSavedExams] = useState([]);
+    const [examHistory, setExamHistory] = useState([]);
     const audioChunksRef = useRef([]);
     const headerChunkRef = useRef(null);
     const mediaRecorderRef = useRef(null);
@@ -2160,22 +2232,6 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
 
     useEffect(() => {
         try {
-            const storedHistory = localStorage.getItem('flashfonic-exam-history');
-            if (storedHistory) {
-                setExamHistory(JSON.parse(storedHistory));
-            }
-        } catch (error) {
-            console.error("Could not load exam history:", error);
-            setExamHistory([]);
-        }
-    }, []);
-
-    useEffect(() => {
-        localStorage.setItem('flashfonic-exam-history', JSON.stringify(examHistory));
-    }, [examHistory]);
-
-    useEffect(() => {
-        try {
             const storedFolders = localStorage.getItem('flashfonic-folders');
             if (storedFolders) {
                 const parsedFolders = JSON.parse(storedFolders);
@@ -2215,6 +2271,25 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         localStorage.setItem('flashfonic-folders', JSON.stringify(folders));
     }, [folders]);
 
+    useEffect(() => {
+        try {
+            const storedExams = localStorage.getItem('flashfonic-saved-exams');
+            if (storedExams) setSavedExams(JSON.parse(storedExams));
+            const storedHistory = localStorage.getItem('flashfonic-exam-history');
+            if (storedHistory) setExamHistory(JSON.parse(storedHistory));
+        } catch (error) {
+            console.error("Could not load exam data:", error);
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('flashfonic-saved-exams', JSON.stringify(savedExams));
+    }, [savedExams]);
+
+    useEffect(() => {
+        localStorage.setItem('flashfonic-exam-history', JSON.stringify(examHistory));
+    }, [examHistory]);
+
 const generateFlashcardRequest = useCallback(async (requestBody) => {
     setIsGenerating(true);
     setNotification('Generating flashcard...');
@@ -2230,9 +2305,6 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
             throw new Error(data.error || 'Failed to generate flashcard.');
         }
 
-        // --- THIS IS THE FIX ---
-        // We check the AI's response. If it's a structured reaction,
-        // we wrap it so the 'answer' field contains the entire reaction object.
         let finalCardData = data;
         if (data.type === 'full_reaction') {
             finalCardData = {
@@ -2240,7 +2312,6 @@ const generateFlashcardRequest = useCallback(async (requestBody) => {
                 answer: data // The entire structured object is now the answer
             };
         }
-        // --- END OF FIX ---
         
         const newCard = { ...finalCardData, id: Date.now(), lastViewed: null, isFlagged: false };
         setGeneratedFlashcards(prev => [newCard, ...prev]);
@@ -3034,10 +3105,28 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
     return cards;
 };
 
-    const handleStartExam = (sourceFolder) => {
-        // Pre-select the folder where the button was clicked
-        setExamSelectedFolderIds({ [sourceFolder.id]: true });
-        setExamWizardState({ stage: 'folder_selection' });
+    const handleStartExam = () => {
+        setExamWizardState({ stage: 'hub' });
+    };
+
+    const handleExamHubSelection = (selection) => {
+        if (selection === 'create') {
+            setExamWizardState({ stage: 'folder_selection' });
+        } else if (selection === 'retake') {
+            setExamWizardState({ stage: 'retake_selection' });
+        } else if (selection === 'history') {
+            setExamWizardState({ stage: 'history_view' });
+        } else {
+            setExamWizardState(null);
+        }
+    };
+
+    const handleRetakeExam = (examId) => {
+        const examToRetake = savedExams.find(e => e.id === examId);
+        if (examToRetake) {
+            setActiveExam(examToRetake);
+            setExamWizardState(null);
+        }
     };
 
     const handleExamFolderToggle = (folderId) => {
@@ -3053,21 +3142,16 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
 
     const handleCreateExam = async (config) => {
         setExamWizardState(null);
-        setNotification('Gathering materials for your exam...');
-
         const selectedIds = Object.keys(examSelectedFolderIds).filter(id => examSelectedFolderIds[id]);
-        if (selectedIds.length === 0) {
-            setNotification("Error: No folders were selected.");
-            return;
-        }
+        if (selectedIds.length === 0) return;
 
         const allCards = getAllCardsFromFolders(selectedIds, folders);
         if (allCards.length === 0) {
-             setNotification("There are no flashcards in the selected folders to create an exam from.");
-             return;
+            setNotification("There are no flashcards in the selected folders.");
+            return;
         }
 
-        setNotification('Generating your Flash Exam with AI... This may take a moment.');
+        setNotification('Generating your Flash Exam with AI...');
         setIsGenerating(true);
 
         try {
@@ -3076,22 +3160,17 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ cards: allCards, config })
             });
-
             if (!response.ok) {
                 const errData = await response.json();
                 throw new Error(errData.error || 'Failed to create exam.');
             }
-
             const data = await response.json();
-            console.log("✅ Exam successfully generated:", data.exam);
-            setNotification(`Your ${data.exam.questions.length}-question exam is ready!`);
-
-            // --- THIS IS THE CHANGE ---
-            // We now save the exam questions AND the config together.
-            setActiveExam({ ...data.exam, config: config });
-
+            
+            const newExam = { ...data.exam, id: Date.now(), config };
+            setSavedExams(prev => [newExam, ...prev]);
+            setActiveExam(newExam);
+            setNotification(`Exam "${newExam.title}" created!`);
         } catch (error) {
-            console.error("Error creating exam:", error);
             setNotification(`Error: ${error.message}`);
         } finally {
             setIsGenerating(false);
@@ -3103,15 +3182,12 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         const percentage = Math.round((score / totalQuestions) * 100);
         const newEntry = {
             id: Date.now(),
-            title: examTitle || "Untitled Exam",
+            title: examTitle,
             score: percentage,
             date: new Date().toISOString(),
         };
-
-        setExamHistory(prevHistory => [newEntry, ...prevHistory].sort((a, b) => b.score - a.score));
-        
-        setNotification(`Exam finished! You scored ${percentage}%.`);
-        setActiveExam(null); // Close the exam viewer
+        setExamHistory(prev => [newEntry, ...prev].sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date)));
+        // We no longer call setActiveExam(null) here, so the results screen stays open.
     };
 
     const handleCreateFlaggedFolder = (exam, flaggedQuestions) => {
@@ -3814,19 +3890,36 @@ const exportFolderToPDF = useCallback((folderId) => {
                     onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
                 />
             )}
+            {/* --- PASTE THE NEW MODAL RENDER LOGIC HERE --- */}
+            {examWizardState?.stage === 'hub' && (
+                <ExamHubModal onSelect={handleExamHubSelection} />
+            )}
             {examWizardState?.stage === 'folder_selection' && (
                 <ExamFolderSelectionModal
                     allFolders={getSortedFolders(folders)}
                     selectedFolderIds={examSelectedFolderIds}
                     onToggleFolder={handleExamFolderToggle}
                     onNext={handleProceedToExamConfig}
-                    onClose={handleCancelExamWizard}
+                    onClose={() => setExamWizardState({ stage: 'hub' })}
                 />
             )}
             {examWizardState?.stage === 'config_selection' && (
                 <ExamConfigModal
                     onConfirm={handleCreateExam}
-                    onClose={handleCancelExamWizard}
+                    onClose={() => setExamWizardState({ stage: 'folder_selection' })}
+                />
+            )}
+            {examWizardState?.stage === 'retake_selection' && (
+                <RetakeExamModal
+                    savedExams={savedExams}
+                    onRetake={handleRetakeExam}
+                    onClose={() => setExamWizardState({ stage: 'hub' })}
+                />
+            )}
+            {examWizardState?.stage === 'history_view' && (
+                <ExamHistoryModal
+                    examHistory={examHistory}
+                    onClose={() => setExamWizardState({ stage: 'hub' })}
                 />
             )}
 
@@ -4162,28 +4255,6 @@ const exportFolderToPDF = useCallback((folderId) => {
                         />
                     )) : <p className="subtle-text">No folders created yet.</p>}
                 </div>
-            </div>
-            <div className="card exam-history-container">
-                <div className="folders-header">
-                    <h2 className="section-heading-left">Exam History</h2>
-                </div>
-                <ul className="exam-history-list">
-                    {examHistory.length > 0 ? (
-                        examHistory.map(entry => (
-                            <li key={entry.id}>
-                                <span className="history-score">{entry.score}%</span>
-                                <div className="history-details">
-                                    <span className="history-title">{entry.title}</span>
-                                    <span className="history-date">
-                                        {new Date(entry.date).toLocaleDateString()}
-                                    </span>
-                                </div>
-                            </li>
-                        ))
-                    ) : (
-                        <p className="subtle-text">No exam history yet. Take an exam to see your scores!</p>
-                    )}
-                </ul>
             </div>
             <div className="app-footer">
                 <button className="feedback-btn" onClick={() => {
