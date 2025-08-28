@@ -3132,7 +3132,7 @@ input[type="range"]::-webkit-slider-thumb {
 /* This new container will hold the centered items */
 .exam-header-center-content {
     position: absolute;
-    left: 50%;
+    left: 75%;
     transform: translateX(-50%);
     display: flex;
     flex-direction: column;
