@@ -3173,3 +3173,52 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0;
     line-height: 1;
 }
+
+/* --- Styles for Exam History Scoreboard --- */
+.exam-history-container {
+    margin-top: 2rem;
+}
+
+.exam-history-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.exam-history-list li {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.exam-history-list li:last-child {
+    border-bottom: none;
+}
+
+.history-score {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--gold);
+    flex-basis: 60px; /* Gives it a fixed width */
+    text-align: right;
+}
+
+.history-details {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.history-title {
+    font-weight: 500;
+    color: var(--text-light);
+}
+
+.history-date {
+    font-size: 0.8em;
+    color: var(--text-dark);
+}

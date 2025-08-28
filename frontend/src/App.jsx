@@ -2107,6 +2107,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const [examWizardState, setExamWizardState] = useState(null); // e.g., { stage: 'folder_selection' }
     const [examSelectedFolderIds, setExamSelectedFolderIds] = useState({});
     const [activeExam, setActiveExam] = useState(null);
+    const [examHistory, setExamHistory] = useState([])
     const audioChunksRef = useRef([]);
     const headerChunkRef = useRef(null);
     const mediaRecorderRef = useRef(null);
@@ -2156,6 +2157,22 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
         setUsage(currentUsage);
         localStorage.setItem('flashfonic-usage', JSON.stringify(currentUsage));
     }, []);
+
+    useEffect(() => {
+        try {
+            const storedHistory = localStorage.getItem('flashfonic-exam-history');
+            if (storedHistory) {
+                setExamHistory(JSON.parse(storedHistory));
+            }
+        } catch (error) {
+            console.error("Could not load exam history:", error);
+            setExamHistory([]);
+        }
+    }, []);
+
+    useEffect(() => {
+        localStorage.setItem('flashfonic-exam-history', JSON.stringify(examHistory));
+    }, [examHistory]);
 
     useEffect(() => {
         try {
@@ -3084,9 +3101,17 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
 
     const handleExamComplete = ({ score, totalQuestions, examTitle }) => {
         const percentage = Math.round((score / totalQuestions) * 100);
-        console.log(`Exam complete! Score: ${score}/${totalQuestions} (${percentage}%)`);
+        const newEntry = {
+            id: Date.now(),
+            title: examTitle || "Untitled Exam",
+            score: percentage,
+            date: new Date().toISOString(),
+        };
+
+        setExamHistory(prevHistory => [newEntry, ...prevHistory].sort((a, b) => b.score - a.score));
+        
         setNotification(`Exam finished! You scored ${percentage}%.`);
-        // In a future step, we will save this score to a scoreboard state.
+        setActiveExam(null); // Close the exam viewer
     };
 
     const handleCreateFlaggedFolder = (exam, flaggedQuestions) => {
@@ -4088,6 +4113,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                         setIsFeedbackModalOpen(false);
                     }} className="create-folder-btn">Create New Folder</button>
                 </div>
+
                 <div className="folder-sort-controls">
                     <label htmlFor="folder-sort">Sort by:</label>
                     <select id="folder-sort" className="folder-select" value={folderSortBy} onChange={(e) => setFolderSortBy(e.target.value)}>
@@ -4136,6 +4162,28 @@ const exportFolderToPDF = useCallback((folderId) => {
                         />
                     )) : <p className="subtle-text">No folders created yet.</p>}
                 </div>
+            </div>
+            <div className="card exam-history-container">
+                <div className="folders-header">
+                    <h2 className="section-heading-left">Exam History</h2>
+                </div>
+                <ul className="exam-history-list">
+                    {examHistory.length > 0 ? (
+                        examHistory.map(entry => (
+                            <li key={entry.id}>
+                                <span className="history-score">{entry.score}%</span>
+                                <div className="history-details">
+                                    <span className="history-title">{entry.title}</span>
+                                    <span className="history-date">
+                                        {new Date(entry.date).toLocaleDateString()}
+                                    </span>
+                                </div>
+                            </li>
+                        ))
+                    ) : (
+                        <p className="subtle-text">No exam history yet. Take an exam to see your scores!</p>
+                    )}
+                </ul>
             </div>
             <div className="app-footer">
                 <button className="feedback-btn" onClick={() => {
