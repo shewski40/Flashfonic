@@ -545,18 +545,15 @@ const ExamConfigModal = ({ onConfirm, onClose }) => {
 };
 
 const ExplanationModal = ({ question, userAnswer, onClose, onNext, isLastQuestion }) => {
-    const choiceKeys = Object.keys(question.choices);
-    const selectedOption = question.options.find(opt => opt.text === userAnswer.choice);
+    // REMOVED: The buggy 'choiceKeys' variable that was here has been deleted.
 
     return (
         <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '600px', textAlign: 'left' }}>
-                {/* This title is now dynamic */}
                 <h2 style={{ textAlign: 'center', color: userAnswer.isCorrect ? 'var(--success-green)' : 'var(--danger-red)' }}>
                     {userAnswer.isCorrect ? 'Correct!' : 'Incorrect'}
                 </h2>
                 <div className="explanation-modal-content">
-                    {/* It still shows the main explanation */}
                     <p><strong>{question.options.find(opt => opt.isCorrect)?.explanation}</strong></p>
                     <ul>
                         {question.options.map((option, index) => (
