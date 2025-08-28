@@ -1062,31 +1062,6 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--secondary-pink);
 }
 
-/* --- Styles for Exam Flag Button --- */
-
-.exam-header .flag-btn {
-    font-size: 0.8em; /* Keeping this small for overall size */
-    font-weight: bold;
-    color: var(--text-dark);
-    background-color: var(--content-bg);
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 0.2em 0.4em; /* Slightly less horizontal padding */
-    cursor: pointer;
-    transition: all 0.2s ease;
-    /* REMOVE: white-space: nowrap; */ /* <-- THIS IS THE KEY CHANGE! */
-    display: inline-flex; /* Use flexbox to align icon and text neatly */
-    align-items: center;
-    gap: 0.3em; /* Small gap between icon and text */
-}
-
-.exam-header .flag-btn.active {
-    color: white;
-    background-color: var(--secondary-pink);
-    border-color: var(--secondary-pink);
-}
-
-
 .viewer-empty {
   width: 100%;
   max-width: 600px;
@@ -3093,16 +3068,6 @@ input[type="range"]::-webkit-slider-thumb {
     margin-bottom: 2rem;
 }
 
-.exam-progress-group {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    /* This will keep this group from being pushed to the edges */
-    position: absolute;
-    left: 70%;
-    transform: translateX(-50%);
-}
-
 .explanation-modal-content {
     padding: 1rem;
     background-color: var(--dark-bg);
@@ -3125,13 +3090,6 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-soft);
 }
 
-.exam-progress-group {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    /* This group should not be positioned absolutely */
-}
-
 .explanation-modal-content li {
     margin-bottom: 1rem; /* Increased for more space */
     padding-bottom: 1rem; /* Added for more space */
@@ -3151,6 +3109,7 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* --- Styles for Exam Header Layout --- */
+/* --- Styles for Exam Header Layout (FIXED) --- */
 .exam-header {
     width: 100%;
     max-width: 800px;
@@ -3159,7 +3118,6 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
     margin-bottom: 2rem;
     color: var(--text-light);
-    position: relative; /* This is crucial for positioning children */
 }
 
 .exam-header h2 {
@@ -3169,35 +3127,46 @@ input[type="range"]::-webkit-slider-thumb {
     color: transparent;
     font-size: 1.5rem;
     margin: 0;
+    text-align: left;
+    flex: 1; /* Allows the title to take up space */
+}
+
+.exam-progress-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0; /* Prevents this group from shrinking */
 }
 
 .exam-progress {
     font-size: 1rem;
     font-weight: 500;
     color: var(--text-dark);
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+    white-space: nowrap; /* Prevents text from wrapping */
 }
 
 .exam-header .flag-btn {
-    font-size: 0.9em;
+    font-size: 0.8em; /* Makes the button text smaller */
     font-weight: bold;
     color: var(--text-dark);
     background-color: var(--content-bg);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 0.4em 0.8em;
+    padding: 0.3em 0.7em; /* Makes the button padding smaller */
     cursor: pointer;
     transition: all 0.2s ease;
-    /* New positioning */
-    position: absolute;
-    left: 65%;
-    transform: translateX(-50%);
+    white-space: nowrap; /* Prevents text from wrapping */
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3em;
 }
 
 .exam-header .flag-btn.active {
     color: white;
     background-color: var(--secondary-pink);
     border-color: var(--secondary-pink);
+}
+
+.exam-header .viewer-close-btn {
+    text-align: right;
 }
