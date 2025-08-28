@@ -3214,8 +3214,7 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
                     score: percentage,
                     date: new Date().toISOString(),
                 };
-                // This now simply adds the new entry to the top of the list
-                setExamHistory(prev => [newHistoryEntry, ...prev]);
+                setExamHistory(prev => [newHistoryEntry, ...prev].sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date)));
                 
                 setNotification(`Exam "${examName}" saved!`);
                 setModalConfig(null);
