@@ -1537,6 +1537,8 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     }
 
     const currentQuestion = shuffledExam.questions[currentIndex];
+    
+    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
 
     const handleAnswerSelect = (selectedOption) => {
         if (gameState !== 'testing' || userAnswers[currentIndex]) return;
@@ -1560,9 +1562,12 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             setGameState('results');
         }
     };
+
+    const handleReview = () => {
+        setCurrentIndex(0);
+        setGameState('reviewing');
+    };
     
-    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
-    const handleReview = () => { setCurrentIndex(0); setGameState('reviewing'); };
     const handleCloseExplanation = () => setShowExplanationModal(false);
     const handleAdvanceFromExplanation = () => {
         setShowExplanationModal(false);
@@ -1601,20 +1606,25 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
     return (
         <div className="viewer-overlay exam-viewer-overlay">
+            {/* --- THIS IS THE CORRECTED HEADER STRUCTURE --- */}
             <div className="exam-header">
-                <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
+                <h2 className="exam-header-item exam-header-title">
+                    {gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}
+                </h2>
                 
-                {/* The progress text is now on its own for centering */}
-                <div className="exam-progress">
+                <div className="exam-header-item exam-header-progress">
                     Question {currentIndex + 1} of {shuffledExam.questions.length}
                 </div>
 
-                {/* The flag button is now on its own for independent positioning */}
-                <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
-                    &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
-                </button>
+                <div className="exam-header-item exam-header-flag">
+                    <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
+                        &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
+                    </button>
+                </div>
 
-                <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                <div className="exam-header-item exam-header-close">
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
             </div>
 
             <div className="exam-question-container">
@@ -1644,10 +1654,9 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                 })}
             </div>
             
-            {(isAnswered || gameState === 'reviewing') && (
+            {(isAnswered && (exam.config.explanationMode === 'later' || !showExplanationModal)) || gameState === 'reviewing' ? (
                 <div className="exam-footer">
-                    {/* This button only shows up during the 'reviewing' state */}
-                    {gameState === 'reviewing' && (
+                     {gameState === 'reviewing' && (
                         <button 
                             className="exam-next-btn" 
                             style={{backgroundColor: 'var(--primary-purple)'}}
@@ -1660,14 +1669,14 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                         {currentIndex < shuffledExam.questions.length - 1 ? 'Next Question' : (gameState === 'testing' ? 'Finish Exam' : 'Finish Review')}
                     </button>
                 </div>
-            )}
+            ) : null}
             
             {showExplanationModal && (
                 <ExplanationModal
                     question={currentQuestion}
                     userAnswer={userAnswers[currentIndex]}
-                    onClose={handleCloseExplanation}
-                    onNext={handleAdvanceFromExplanation}
+                    onClose={() => setShowExplanationModal(false)}
+                    onNext={() => { setShowExplanationModal(false); handleNext(); }}
                     isLastQuestion={currentIndex === shuffledExam.questions.length - 1}
                 />
             )}
