@@ -1513,7 +1513,6 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     const [showExplanationModal, setShowExplanationModal] = useState(false);
 
     useEffect(() => {
-        // This effect runs once to shuffle the choices for every question in the exam
         const shuffleOptions = (question) => {
             const newOptions = [...question.options];
             for (let i = newOptions.length - 1; i > 0; i--) {
@@ -1531,20 +1530,24 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             const totalQuestions = shuffledExam.questions.length;
             onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
         }
-    }, [gameState]);
+    }, [gameState, shuffledExam, score, onExamComplete, exam.name]);
 
     if (!shuffledExam) {
         return <div className="viewer-overlay">Preparing Exam...</div>;
     }
 
     const currentQuestion = shuffledExam.questions[currentIndex];
+    
+    // --- THIS LOGIC IS NOW COMPLETE AND CORRECT ---
+    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
 
     const handleAnswerSelect = (selectedOption) => {
         if (gameState !== 'testing' || userAnswers[currentIndex]) return;
         
-        setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: selectedOption.text } }));
+        const isCorrect = selectedOption.isCorrect;
+        setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: selectedOption.text, isCorrect } }));
 
-        if (selectedOption.isCorrect) {
+        if (isCorrect) {
             setScore(prev => prev + 1);
         }
 
@@ -1561,12 +1564,19 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
         }
     };
 
-    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
-    const handleReview = () => { setCurrentIndex(0); setGameState('reviewing'); };
+    const handleReview = () => {
+        setCurrentIndex(0);
+        setGameState('reviewing');
+    };
+    
     const handleCloseExplanation = () => setShowExplanationModal(false);
-    const handleAdvanceFromExplanation = () => { setShowExplanationModal(false); handleNext(); };
+    const handleAdvanceFromExplanation = () => {
+        setShowExplanationModal(false);
+        handleNext();
+    };
 
     const isAnswered = userAnswers[currentIndex] !== undefined;
+    const choiceKeys = Object.keys(currentQuestion.choices);
     const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
 
     if (gameState === 'results') {
@@ -1615,7 +1625,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
             <div className="answer-choices">
                 {currentQuestion.options.map((option, index) => {
-                    const choiceLetter = String.fromCharCode(65 + index); // A, B, C...
+                    const choiceLetter = String.fromCharCode(65 + index);
                     const isSelectedChoice = userAnswers[currentIndex]?.choice === option.text;
                     let choiceStatus = '';
                     if (isAnswered) {

@@ -3118,7 +3118,7 @@ input[type="range"]::-webkit-slider-thumb {
     gap: 1rem;
     /* This will keep this group from being pushed to the edges */
     position: absolute;
-    left: 50%;
+    left: 70%;
     transform: translateX(-50%);
 }
 
