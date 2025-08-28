@@ -3120,13 +3120,14 @@ input[type="range"]::-webkit-slider-thumb {
     position: relative; /* This is the key for centering */
 }
 
-.exam-header-title h2 {
+.exam-header h2 {
     background-image: var(--brand-gradient);
     background-clip: text;
     -webkit-background-clip: text;
     color: transparent;
-    font-size: 1.5rem;
+    font-size: 1.8rem; /* Increased from 1.5rem */
     margin: 0;
+    font-weight: 700; /* Added for a bolder look */
 }
 
 /* This centers the "Question X of X" text */
