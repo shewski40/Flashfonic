@@ -1608,9 +1608,9 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
         <div className="viewer-overlay exam-viewer-overlay">
             {/* --- THIS IS THE CORRECTED HEADER STRUCTURE --- */}
             <div className="exam-header">
-                <h2 className="exam-header-item exam-header-title">
-                    {gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}
-                </h2>
+                <div className="exam-header-item exam-header-title">
+                    <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
+                </div>
                 
                 <div className="exam-header-item exam-header-progress">
                     Question {currentIndex + 1} of {shuffledExam.questions.length}

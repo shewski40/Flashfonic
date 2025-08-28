@@ -3116,28 +3116,18 @@ input[type="range"]::-webkit-slider-thumb {
     margin-bottom: 2rem;
 }
 
-/* This new class makes each of the 4 items take up equal space */
+/* This new class makes each of the 4 items take up a specific space */
 .exam-header-item {
-    flex: 1; /* This is the key: it divides the space equally */
+    display: flex;
+    align-items: center;
 }
 
-/* Align the content within each of the 4 columns */
+/* Column 1: Title (takes up all remaining space on the left) */
 .exam-header-title {
-    text-align: left;
+    justify-content: flex-start;
+    flex-grow: 1;
 }
-.exam-header-progress {
-    text-align: center;
-    color: var(--text-dark);
-    font-weight: 500;
-}
-.exam-header-flag {
-    text-align: center;
-}
-.exam-header-close {
-    text-align: right;
-}
-
-.exam-header h2 {
+.exam-header-title h2 {
     background-image: var(--brand-gradient);
     background-clip: text;
     -webkit-background-clip: text;
@@ -3146,6 +3136,19 @@ input[type="range"]::-webkit-slider-thumb {
     margin: 0;
 }
 
+/* Column 2: Progress Text */
+.exam-header-progress {
+    justify-content: center;
+    color: var(--text-dark);
+    font-weight: 500;
+    white-space: nowrap;
+    padding: 0 1rem; /* Adds space around the text */
+}
+
+/* Column 3: Flag Button */
+.exam-header-flag {
+    justify-content: center;
+}
 .exam-header .flag-btn {
     font-size: 0.8em;
     font-weight: bold;
@@ -3156,19 +3159,22 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0.4em 0.8em;
     cursor: pointer;
     transition: all 0.2s ease;
+    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 0.3em;
 }
-
 .exam-header .flag-btn.active {
     color: white;
     background-color: var(--secondary-pink);
     border-color: var(--secondary-pink);
 }
 
+/* Column 4: Close Button */
+.exam-header-close {
+    justify-content: flex-end;
+}
 .exam-header .viewer-close-btn {
-    /* Resetting default button styles */
     padding: 0;
     line-height: 1;
 }
