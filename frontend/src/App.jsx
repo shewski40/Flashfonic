@@ -9,223 +9,354 @@ import './App.css';
 
 
 // --- EULA and Privacy Policy Content (Embedded as String Constants) ---
+// NOTE: The 'eulaContent' constant now holds the Terms and Conditions.
 const eulaContent = `
-# FlashFonic End-User License Agreement (EULA)
+# Terms and Conditions
 
-**Last Updated:** August 6, 2025
+**Last updated:** August 27, 2025
 
----
+Please read these terms and conditions carefully before using Our Service.
 
-This End-User License Agreement ("Agreement") is a binding legal agreement between you ("User" or "You") and FlashFonic ("Company," "We," "Us," or "Our") governing your use of the FlashFonic application and its associated services (collectively, the "Application").
+## Interpretation and Definitions
 
-**BY ACCESSING, DOWNLOADING, INSTALLING, OR USING THE APPLICATION, YOU AGREE TO BE BOUND BY THE TERMS AND CONDITIONS OF THIS AGREEMENT. IF YOU DO NOT AGREE TO THESE TERMS, DO NOT ACCESS, DOWNLOAD, INSTALL, OR USE THE APPLICATION.**
+### Interpretation
+The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.
 
----
+### Definitions
+For the purposes of these Terms and Conditions:
 
-### 1. Grant of License
+* **Application** means the software program provided by the Company downloaded by You on any electronic device, named FLASHFONIC.
+* **Application Store** means the digital distribution service operated and developed by Apple Inc. (Apple App Store) or Google Inc. (Google Play Store) in which the Application has been downloaded.
+* **Affiliate** means an entity that controls, is controlled by or is under common control with a party, where "control" means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.
+* **Account** means a unique account created for You to access our Service or parts of our Service.
+* **Country** refers to: Vermont, United States
+* **Company** (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Trifecta Pro LLC, PO Box 265, Bennington VT 05201.
+* **Content** refers to content such as text, images, or other information that can be posted, uploaded, linked to or otherwise made available by You, regardless of the form of that content.
+* **Device** means any device that can access the Service such as a computer, a cellphone or a digital tablet.
+* **Feedback** means feedback, innovations or suggestions sent by You regarding the attributes, performance or features of our Service.
+* **Free Trial** refers to a limited period of time that may be free when purchasing a Subscription.
+* **Promotions** refer to contests, sweepstakes or other promotions offered through the Service.
+* **Service** refers to the Application or the Website or both.
+* **Subscriptions** refer to the services or access to the Service offered on a subscription basis by the Company to You.
+* **Terms and Conditions** (also referred as "Terms") mean these Terms and Conditions that form the entire agreement between You and the Company regarding the use of the Service.
+* **Third-party Social Media Service** means any services or content (including data, information, products or services) provided by a third-party that may be displayed, included or made available by the Service.
+* **Website** refers to FLASHFONIC, accessible from www.flashfonic.com
+* **You** means the individual accessing or using the Service, or the company, or other legal entity on behalf of which such individual is accessing or using the Service, as applicable.
 
-Subject to the terms and conditions of this Agreement, FlashFonic grants You a limited, non-exclusive, non-transferable, revocable license to use the Application for your personal, non-commercial study and learning purposes.
+## Acknowledgment
+These are the Terms and Conditions governing the use of this Service and the agreement that operates between You and the Company. These Terms and Conditions set out the rights and obligations of all users regarding the use of the Service.
+Your access to and use of the Service is conditioned on Your acceptance of and compliance with these Terms and Conditions. These Terms and Conditions apply to all visitors, users and others who access or use the Service.
+By accessing or using the Service You agree to be bound by these Terms and Conditions. If You disagree with any part of these Terms and Conditions then You may not access the Service.
+You represent that you are over the age of 18. The Company does not permit those under 18 to use the Service.
+Your access to and use of the Service is also conditioned on Your acceptance of and compliance with the Privacy Policy of the Company. Our Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your personal information when You use the Application or the Website and tells You about Your privacy rights and how the law protects You. Please read Our Privacy Policy carefully before using Our Service.
 
----
+## Subscriptions
 
-### 2. User Data and Privacy (Camera, Microphone, and AI Use)
+### Subscription period
+The Service or some parts of the Service are available only with a paid Subscription. You will be billed in advance on a recurring and periodic basis (such as daily, weekly, monthly or annually), depending on the type of Subscription plan you select when purchasing the Subscription.
+At the end of each period, Your Subscription will automatically renew under the exact same conditions unless You cancel it or the Company cancels it.
 
-FlashFonic is designed to enhance your learning experience through the use of your device's microphone and camera, and advanced Artificial Intelligence (AI).
+### Subscription cancellations
+You may cancel Your Subscription renewal either through Your Account settings page or by contacting the Company. You will not receive a refund for the fees You already paid for Your current Subscription period and You will be able to access the Service until the end of Your current Subscription period.
 
-* **Microphone Use (FlashFonic Mode):** When you activate features such as "Start Listening," "Voice Activate," or "Auto-Flash," the Application accesses your device's microphone to capture audio input. This audio is transmitted to our AI backend for real-time transcription and the generation of flashcards and summary notes. **Raw audio recordings are processed transiently and are not stored long-term on our servers.**
-* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed transiently and is not stored long-term on our servers.**
-* **Consent:** Your use of the microphone and camera features within the Application constitutes your express consent for FlashFonic to access and process your audio and image data solely for the purposes described herein. You may manage or revoke these permissions at any time through your device's operating system settings.
-* **AI Processing:** The AI models utilized by FlashFonic process your input (transcribed audio, extracted text from images) to generate new content (flashcards, notes). While we strive for accuracy, AI-generated content may contain **inaccuracies, errors, or unintended biases**. FlashFonic is a supplementary study tool, and **You are solely responsible for verifying the correctness and completeness of all AI-generated content.**
-* **Data Privacy:** We are committed to protecting your privacy. All data collected and processed by FlashFonic, including audio, image, and text inputs, is handled in accordance with our Privacy Policy. Data is used exclusively for the operation and improvement of the Application's core functionalities and is not shared with third parties for marketing or other unrelated purposes.
+### Billing
+You shall provide the Company with accurate and complete billing information including full name, address, state, zip code, telephone number, and a valid payment method information.
+Should automatic billing fail to occur for any reason, the Company will issue an electronic invoice indicating that you must proceed manually, within a certain deadline date, with the full payment corresponding to the billing period as indicated on the invoice.
 
----
+### Fee Changes
+The Company, in its sole discretion and at any time, may modify the Subscription fees. Any Subscription fee change will become effective at the end of the then-current Subscription period.
+The Company will provide You with reasonable prior notice of any change in Subscription fees to give You an opportunity to terminate Your Subscription before such change becomes effective.
+Your continued use of the Service after the Subscription fee change comes into effect constitutes Your agreement to pay the modified Subscription fee amount.
 
-### 3. Restrictions on Use
+### Refunds
+Except when required by law, paid Subscription fees are non-refundable.
+Certain refund requests for Subscriptions may be considered by the Company on a case-by-case basis and granted at the sole discretion of the Company.
 
-You agree not to, and will not permit others to:
-* Use the Application for any purpose other than personal, non-commercial study and learning.
-* Copy, modify, adapt, translate, or otherwise create derivative works of the Application.
-* Decompile, reverse engineer, disassemble, or attempt to derive the source code of the Application.
-* Distribute, license, lease, sell, resell, transfer, or otherwise commercially exploit the Application.
-* Remove, alter, or obscure any copyright, trademark, or other proprietary notices on the Application.
-* Use the Application in any manner that could damage, disable, overburden, or impair our servers or networks.
-* Use the Application to generate, store, or transmit any content that is unlawful, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, libelous, invasive of another's privacy, hateful, or racially, ethnically, or otherwise objectionable.
+### Free Trial
+The Company may, at its sole discretion, offer a Subscription with a Free Trial for a limited period of time.
+You may be required to enter Your billing information in order to sign up for the Free Trial.
+If You do enter Your billing information when signing up for a Free Trial, You will not be charged by the Company until the Free Trial has expired. On the last day of the Free Trial period, unless You canceled Your Subscription, You will be automatically charged the applicable Subscription fees for the type of Subscription You have selected.
+At any time and without notice, the Company reserves the right to (i) modify the terms and conditions of the Free Trial offer, or (ii) cancel such Free Trial offer.
 
----
+## Promotions
+Any Promotions made available through the Service may be governed by rules that are separate from these Terms.
+If You participate in any Promotions, please review the applicable rules as well as our Privacy policy. If the rules for a Promotion conflict with these Terms, the Promotion rules will apply.
 
-### 4. Intellectual Property
+## User Accounts
+When You create an account with Us, You must provide Us information that is accurate, complete, and current at all times. Failure to do so constitutes a breach of the Terms, which may result in immediate termination of Your account on Our Service.
+You are responsible for safeguarding the password that You use to access the Service and for any activities or actions under Your password, whether Your password is with Our Service or a Third-Party Social Media Service.
+You agree not to disclose Your password to any third party. You must notify Us immediately upon becoming aware of any breach of security or unauthorized use of Your account.
+You may not use as a username the name of another person or entity or that is not lawfully available for use, a name or trademark that is subject to any rights of another person or entity other than You without appropriate authorization, or a name that is otherwise offensive, vulgar or obscene.
 
-* **FlashFonic Ownership:** The Application, including all its content, features, and functionality (including but not limited to all information, software, text, displays, images, video, and audio, and the design, selection, and arrangement thereof), are owned by FlashFonic, its licensors, or other providers of such material and are protected by copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.
-* **User Content:** You retain all rights to the original content you input into the Application. However, by submitting content, you grant FlashFonic a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, adapt, publish, translate, create derivative works from, distribute, and display such content solely for the purpose of operating and improving the Application and its services.
-* **AI Originality:** While AI generates new content, it does so based on patterns learned from vast datasets. It is possible for AI-generated text to inadvertently resemble existing copyrighted material. **You are solely responsible for ensuring that any content you create or disseminate using the Application does not infringe upon third-party copyrights, trademarks, or other intellectual property rights.**
+## Content
 
----
+### Your Right to Post Content
+Our Service allows You to post Content. You are responsible for the Content that You post to the Service, including its legality, reliability, and appropriateness.
+By posting Content to the Service, You grant Us the right and license to use, modify, publicly perform, publicly display, reproduce, and distribute such Content on and through the Service. You retain any and all of Your rights to any Content You submit, post or display on or through the Service and You are responsible for protecting those rights. You agree that this license includes the right for Us to make Your Content available to other users of the Service, who may also use Your Content subject to these Terms.
+You represent and warrant that: (i) the Content is Yours (You own it) or You have the right to use it and grant Us the rights and license as provided in these Terms, and (ii) the posting of Your Content on or through the Service does not violate the privacy rights, publicity rights, copyrights, contract rights or any other rights of any person.
 
-### 5. Reporting Unauthorized Use or Plagiarism
+### Content Restrictions
+The Company is not responsible for the content of the Service's users. You expressly understand and agree that You are solely responsible for the Content and for all activity that occurs under Your account, whether done so by You or any third person using Your account.
+You may not transmit any Content that is unlawful, offensive, upsetting, intended to disgust, threatening, libelous, defamatory, obscene or otherwise objectionable. Examples of such objectionable Content include, but are not limited to, the following:
 
-FlashFonic is committed to respecting intellectual property rights and promoting academic integrity.
+* Unlawful or promoting unlawful activity.
+* Defamatory, discriminatory, or mean-spirited content, including references or commentary about religion, race, sexual orientation, gender, national/ethnic origin, or other targeted groups.
+* Spam, machine – or randomly – generated, constituting unauthorized or unsolicited advertising, chain letters, any other form of unauthorized solicitation, or any form of lottery or gambling.
+* Containing or installing any viruses, worms, malware, trojan horses, or other content that is designed or intended to disrupt, damage, or limit the functioning of any software, hardware or telecommunications equipment or to damage or obtain unauthorized access to any data or other information of a third person.
+* Infringing on any proprietary rights of any party, including patent, trademark, trade secret, copyright, right of publicity or other rights.
+* Impersonating any person or entity including the Company and its employees or representatives.
+* Violating the privacy of any third person.
+* False information and features.
 
-* **Reporting Procedure:** If you believe that content generated by FlashFonic, or content used by another user within the Application, constitutes **unauthorized use of copyrighted material or accidental plagiarism**, please report it immediately.
-    * You can use the **"Send Feedback" button** within the Application.
-    * Alternatively, you may send an email directly to **feedbackflashfonic@gmail.com**.
-* **Required Information:** To facilitate a prompt investigation, please provide as much detail as possible, including:
-    * A clear description of the alleged infringement or plagiarism.
-    * Identification of the specific content within FlashFonic in question.
-    * Identification of the copyrighted work or original source material that you believe has been infringed or plagiarized.
-    * Any supporting evidence (e.g., links to original material, screenshots).
-    * Your contact information.
-* **Our Action:** Upon receiving a valid report, FlashFonic will investigate the claim promptly. Appropriate action may include, but is not limited to, removing the infringing content, issuing warnings, or, in severe or repeated cases, suspending or terminating the account of the offending user.
+The Company reserves the right, but not the obligation, to, in its sole discretion, determine whether or not any Content is appropriate and complies with these Terms, refuse or remove this Content. The Company further reserves the right to make formatting and edits and change the manner of any Content. The Company can also limit or revoke the use of the Service if You post such objectionable Content. As the Company cannot control all content posted by users and/or third parties on the Service, you agree to use the Service at your own risk. You understand that by using the Service You may be exposed to content that You may find offensive, indecent, incorrect or objectionable, and You agree that under no circumstances will the Company be liable in any way for any content, including any errors or omissions in any content, or any loss or damage of any kind incurred as a result of your use of any content.
 
----
+### Content Backups
+Although regular backups of Content are performed, the Company does not guarantee there will be no loss or corruption of data.
+Corrupt or invalid backup points may be caused by, without limitation, Content that is corrupted prior to being backed up or that changes during the time a backup is performed.
+The Company will provide support and attempt to troubleshoot any known or discovered issues that may affect the backups of Content. But You acknowledge that the Company has no liability related to the integrity of Content or the failure to successfully restore Content to a usable state.
+You agree to maintain a complete and accurate copy of any Content in a location independent of the Service.
 
-### 6. Disclaimer of Warranties
+## Copyright Policy
 
-THE APPLICATION IS PROVIDED TO YOU "AS IS" AND "AS AVAILABLE," WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, FLASHFONIC, ON ITS OWN BEHALF AND ON BEHALF OF ITS AFFILIATES AND THEIR RESPECTIVE LICENSORS AND SERVICE PROVIDERS, EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO THE APPLICATION, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT, AND WARRANTIES THAT MAY ARISE OUT OF COURSE OF DEALING, COURSE OF PERFORMANCE, USAGE, OR TRADE PRACTICE. WITHOUT LIMITATION TO THE FOREGOING, FLASHFONIC PROVIDES NO WARRANTY OR UNDERTAKING, AND MAKES NO REPRESENTATION OF ANY KIND THAT THE APPLICATION WILL MEET YOUR REQUIREMENTS, ACHIEVE ANY INTENDED RESULTS, BE COMPATIBLE OR WORK WITH ANY OTHER SOFTWARE, APPLICATIONS, SYSTEMS, OR SERVICES, OPERATE WITHOUT INTERRUPTION, MEET ANY PERFORMANCE OR RELIABILITY STANDARDS, BE ERROR-FREE, OR THAT ANY ERRORS OR DEFECTS CAN OR WILL BE CORRECTED.
+### Intellectual Property Infringement
+We respect the intellectual property rights of others. It is Our policy to respond to any claim that Content posted on the Service infringes a copyright or other intellectual property infringement of any person.
+If You are a copyright owner, or authorized on behalf of one, and You believe that the copyrighted work has been copied in a way that constitutes copyright infringement that is taking place through the Service, You must submit Your notice in writing to the attention of our copyright agent via email at dmca@flashfonic.com and include in Your notice a detailed description of the alleged infringement.
+You may be held accountable for damages (including costs and attorneys' fees) for misrepresenting that any Content is infringing Your copyright.
 
----
+### DMCA Notice and DMCA Procedure for Copyright Infringement Claims
+You may submit a notification pursuant to the Digital Millennium Copyright Act (DMCA) by providing our Copyright Agent with the following information in writing (see 17 U.S.C 512(c)(3) for further detail):
 
-### 7. Limitation of Liability
+* An electronic or physical signature of the person authorized to act on behalf of the owner of the copyright's interest.
+* A description of the copyrighted work that You claim has been infringed, including the URL (i.e., web page address) of the location where the copyrighted work exists or a copy of the copyrighted work.
+* Identification of the URL or other specific location on the Service where the material that You claim is infringing is located.
+* Your address, telephone number, and email address.
+* A statement by You that You have a good faith belief that the disputed use is not authorized by the copyright owner, its agent, or the law.
+* A statement by You, made under penalty of perjury, that the above information in Your notice is accurate and that You are the copyright owner or authorized to act on the copyright owner's behalf.
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL FLASHFONIC OR ITS AFFILIATES, LICENSORS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO, LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM (I) YOUR ACCESS TO OR USE OF OR INABILITY TO ACCESS OR USE THE APPLICATION; (II) ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE APPLICATION; (III) ANY CONTENT OBTAINED FROM THE APPLICATION; AND (IV) UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR CONTENT, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, WHETHER OR NOT WE HAVE BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE, AND EVEN IF A REMEDY SET FORTH HEREIN IS FOUND TO HAVE FAILED OF ITS ESSENTIAL PURPOSE.
+You can contact our copyright agent via email at admin@trifectapro.com. Upon receipt of a notification, the Company will take whatever action, in its sole discretion, it deems appropriate, including removal of the challenged content from the Service.
 
----
+## Intellectual Property
+The Service and its original content (excluding Content provided by You or other users), features and functionality are and will remain the exclusive property of the Company and its licensors.
+The Service is protected by copyright, trademark, and other laws of both the Country and foreign countries.
+Our trademarks and trade dress may not be used in connection with any product or service without the prior written consent of the Company.
 
-### 8. Indemnification
+## Your Feedback to Us
+You assign all rights, title and interest in any Feedback You provide the Company. If for any reason such assignment is ineffective, You agree to grant the Company a non-exclusive, perpetual, irrevocable, royalty free, worldwide right and license to use, reproduce, disclose, sub-license, distribute, modify and exploit such Feedback without restriction.
 
-You agree to indemnify, defend, and hold harmless Trifecta Pro LLC, FlashFonic, its affiliates, licensors, and service providers, Application Programming Interface (API) providers, and its and their respective officers, directors, employees, contractors, agents, licensors, suppliers, successors, and assigns from and against any claims, liabilities, damages, judgments, awards, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising out of or relating to your violation of this Agreement or your use of the Application, including, but not limited to, your User Content, any use of the Application's content, services, and products other than as expressly authorized in this Agreement, or your use of any information obtained from the Application.
+## Links to Other Websites
+Our Service may contain links to third-party web sites or services that are not owned or controlled by the Company.
+The Company has no control over, and assumes no responsibility for, the content, privacy policies, or practices of any third party web sites or services. You further acknowledge and agree that the Company shall not be responsible or liable, directly or indirectly, for any damage or loss caused or alleged to be caused by or in connection with the use of or reliance on any such content, goods or services available on or through any such web sites or services.
+We strongly advise You to read the terms and conditions and privacy policies of any third-party web sites or services that You visit.
 
----
+## Termination
+We may terminate or suspend Your Account immediately, without prior notice or liability, for any reason whatsoever, including without limitation if You breach these Terms and Conditions.
+Upon termination, Your right to use the Service will cease immediately. If You wish to terminate Your Account, You may simply discontinue using the Service.
 
-### 9. Governing Law
+## Limitation of Liability
+Notwithstanding any damages that You might incur, the entire liability of the Company and any of its suppliers under any provision of this Terms and Your exclusive remedy for all of the foregoing shall be limited to the amount actually paid by You through the Service or 100 USD if You haven't purchased anything through the Service.
+To the maximum extent permitted by applicable law, in no event shall the Company or its suppliers be liable for any special, incidental, indirect, or consequential damages whatsoever (including, but not limited to, damages for loss of profits, loss of data or other information, for business interruption, for personal injury, loss of privacy arising out of or in any way related to the use of or inability to use the Service, third-party software and/or third-party hardware used with the Service, or otherwise in connection with any provision of this Terms), even if the Company or any supplier has been advised of the possibility of such damages and even if the remedy fails of its essential purpose.
+Some states do not allow the exclusion of implied warranties or limitation of liability for incidental or consequential damages, which means that some of the above limitations may not apply. In these states, each party's liability will be limited to the greatest extent permitted by law.
 
-This Agreement and your use of the Application shall be governed by and construed in accordance with the laws of the State of Vermont, United States, without regard to its conflict of law principles.
+## "AS IS" and "AS AVAILABLE" Disclaimer
+The Service is provided to You "AS IS" and "AS AVAILABLE" and with all faults and defects without warranty of any kind. To the maximum extent permitted under applicable law, the Company, on its own behalf and on behalf of its Affiliates and its and their respective licensors and service providers, expressly disclaims all warranties, whether express, implied, statutory or otherwise, with respect to the Service, including all implied warranties of merchantability, fitness for a particular purpose, title and non-infringement, and warranties that may arise out of course of dealing, course of performance, usage or trade practice. Without limitation to the foregoing, the Company provides no warranty or undertaking, and makes no representation of any kind that the Service will meet Your requirements, achieve any intended results, be compatible or work with any other software, applications, systems or services, operate without interruption, meet any performance or reliability standards or be error free or that any errors or defects can or will be corrected.
+Without limiting the foregoing, neither the Company nor any of the company's provider makes any representation or warranty of any kind, express or implied: (i) as to the operation or availability of the Service, or the information, content, and materials or products included thereon; (ii) that the Service will be uninterrupted or error-free; (iii) as to the accuracy, reliability, or currency of any information or content provided through the Service; or (iv) that the Service, its servers, the content, or e-mails sent from or on behalf of the Company are free of viruses, scripts, trojan horses, worms, malware, timebombs or other harmful components.
+Some jurisdictions do not allow the exclusion of certain types of warranties or limitations on applicable statutory rights of a consumer, so some or all of the above exclusions and limitations may not apply to You. But in such a case the exclusions and limitations set forth in this section shall be applied to the greatest extent enforceable under applicable law.
 
----
+## Governing Law
+The laws of the Country, excluding its conflicts of law rules, shall govern this Terms and Your use of the Service. Your use of the Application may also be subject to other local, state, national, or international laws.
 
-### 10. Changes to This Agreement
+## Disputes Resolution
+If You have any concern or dispute about the Service, You agree to first try to resolve the dispute informally by contacting the Company.
 
-We reserve the right, at our sole discretion, to modify or replace this Agreement at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion. By continuing to access or use our Application after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, you are no longer authorized to use the Application.
+### For European Union (EU) Users
+If You are a European Union consumer, you will benefit from any mandatory provisions of the law of the country in which you are resident.
 
----
+### United States Federal Government End Use Provisions
+If You are a U.S. federal government end user, our Service is a "Commercial Item" as that term is defined at 48 C.F.R. §2.101.
 
-### 11. Contact Information
+### United States Legal Compliance
+You represent and warrant that (i) You are not located in a country that is subject to the United States government embargo, or that has been designated by the United States government as a "terrorist supporting" country, and (ii) You are not listed on any United States government list of prohibited or restricted parties.
 
-For any questions regarding this Agreement, or to report any issues as described in Section 5, please contact us at:
+## Severability and Waiver
 
-**Email:** feedbackflashfonic@gmail.com
+### Severability
+If any provision of these Terms is held to be unenforceable or invalid, such provision will be changed and interpreted to accomplish the objectives of such provision to the greatest extent possible under applicable law and the remaining provisions will continue in full force and effect.
 
----
+### Waiver
+Except as provided herein, the failure to exercise a right or to require performance of an obligation under these Terms shall not affect a party's ability to exercise such right or require such performance at any time thereafter nor shall the waiver of a breach constitute a waiver of any subsequent breach.
 
-Thank you for choosing FlashFonic. We hope you find it a valuable tool for your learning journey.
+## Translation Interpretation
+These Terms and Conditions may have been translated if We have made them available to You on our Service. You agree that the original English text shall prevail in the case of a dispute.
+
+## Changes to These Terms and Conditions
+We reserve the right, at Our sole discretion, to modify or replace these Terms at any time. If a revision is material We will make reasonable efforts to provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at Our sole discretion.
+By continuing to access or use Our Service after those revisions become effective, You agree to be bound by the revised terms. If You do not agree to the new terms, in whole or in part, please stop using the website and the Service.
+
+## Contact Us
+If you have any questions about these Terms and Conditions, You can contact us:
+
+* By email: feedbackflashfonic@gmail.com
 `;
 
+
+// ... (eulaContent constant should be above this)
+
 const privacyPolicyContent = `
-# FlashFonic Privacy Policy
+# Privacy Policy
 
-**Last Updated:** August 6, 2025
+**Last updated:** August 27, 2025
 
----
+This Privacy Policy describes Our policies and procedures on the collection, use and disclosure of Your information when You use the Service and tells You about Your privacy rights and how the law protects You.
+We use Your Personal data to provide and improve the Service. By using the Service, You agree to the collection and use of information in accordance with this Privacy Policy.
 
-This Privacy Policy describes how FlashFonic ("Company," "We," "Us," or "Our") collects, uses, and discloses information about you when you access and use the FlashFonic application and its associated services (collectively, the "Application").
+## Interpretation and Definitions
 
-**BY USING THE APPLICATION, YOU AGREE TO THE COLLECTION AND USE OF INFORMATION IN ACCORDANCE WITH THIS PRIVACY POLICY.**
+### Interpretation
+The words of which the initial letter is capitalized have meanings defined under the following conditions. The following definitions shall have the same meaning regardless of whether they appear in singular or in plural.
 
----
+### Definitions
+For the purposes of this Privacy Policy:
 
-### 1. Information We Collect
+* **Account** means a unique account created for You to access our Service or parts of our Service.
+* **Affiliate** means an entity that controls, is controlled by or is under common control with a party, where "control" means ownership of 50% or more of the shares, equity interest or other securities entitled to vote for election of directors or other managing authority.
+* **Application** refers to FLASHFONIC, the software program provided by the Company.
+* **Business**, for the purpose of CCPA/CPRA, refers to the Company as the legal entity that collects Consumers' personal information and determines the purposes and means of the processing of Consumers' personal information...
+* **CCPA and/or CPRA** refers to the California Consumer Privacy Act (the "CCPA") as amended by the California Privacy Rights Act of 2020 (the "CPRA").
+* **Company** (referred to as either "the Company", "We", "Us" or "Our" in this Agreement) refers to Trifecta Pro LLC, PO Box 265, Bennington VT 05201. For the purpose of the GDPR, the Company is the Data Controller.
+* **Consumer**, for the purpose of the CCPA/CPRA, means a natural person who is a California resident...
+* **Cookies** are small files that are placed on Your computer, mobile device or any other device by a website...
+* **Country** refers to: Vermont, United States
+* **Data Controller**, for the purposes of the GDPR, refers to the Company as the legal person which alone or jointly with others determines the purposes and means of the processing of Personal Data.
+* **Device** means any device that can access the Service such as a computer, a cellphone or a digital tablet.
+* **GDPR** refers to EU General Data Protection Regulation.
+* **Personal Data** is any information that relates to an identified or identifiable individual.
+* **Service** refers to the Application or the Website or both.
+* **Service Provider** means any natural or legal person who processes the data on behalf of the Company...
+* **Usage Data** refers to data collected automatically, either generated by the use of the Service or from the Service infrastructure itself.
+* **Website** refers to FLASHFONIC, accessible from www.flashfonic.com
+* **You** means the individual accessing or using the Service... Under GDPR, You can be referred to as the Data Subject or as the User.
 
-We collect various types of information to provide and improve our Application and services.
+## Collecting and Using Your Personal Data
 
-* **1.1. Information You Directly Provide:**
-    * **Contact Information:** If you choose to provide feedback or contact us directly (e.g., via the "Send Feedback" button or email), you may provide your email address and any information you choose to include in your message.
-    * **User-Generated Content (Saved):** Any flashcards, folders, or notes that you explicitly save within the Application are stored locally on your device. This data is not automatically transmitted to our servers unless you explicitly use a feature that requires server-side processing (e.g., AI generation, as detailed below).
+### Types of Data Collected
 
-* **1.2. Information Automatically Collected During Use:**
-    * **Audio Data (FlashFonic Mode):** When you enable microphone features ("Start Listening," "Voice Activate," "Auto-Flash"), audio input from your device's microphone is captured and **transiently transmitted** to our third-party AI service providers (e.g., AssemblyAI) for real-time transcription. **Raw audio recordings are processed solely for transcription and are not stored long-term on our servers or by our primary AI service providers.**
-* **Camera Use (FlashFoto Mode):** When you utilize the FlashFoto feature, the Application accesses your device's camera to capture images. These images are transmitted to our AI backend for text extraction (Optical Character Recognition) and subsequent flashcard generation. **Raw image data is processed transiently and is not stored long-term on our servers.**
-* **Consent:** Your use of the microphone and camera features within the Application constitutes your express consent for FlashFonic to access and process your audio and image data solely for the purposes described herein. You may manage or revoke these permissions at any time through your device's operating system settings.
-* **AI Processing:** The AI models utilized by FlashFonic process your input (transcribed audio, extracted text from images) to generate new content (flashcards, notes). While we strive for accuracy, AI-generated content may contain **inaccuracies, errors, or unintended biases**. FlashFonic is a supplementary study tool, and **You are solely responsible for verifying the correctness and completeness of all AI-generated content.**
-* **Data Privacy:** We are committed to protecting your privacy. All data collected and processed by FlashFonic, including audio, image, and text inputs, is handled in accordance with our Privacy Policy. Data is used exclusively for the operation and improvement of the Application's core functionalities and is not shared with third parties for marketing or other unrelated purposes.
+#### Personal Data
+While using Our Service, We may ask You to provide Us with certain personally identifiable information that can be used to contact or identify You. Personally identifiable information may include, but is not limited to:
+* Email address
+* First name and last name
+* Address, State, Province, ZIP/Postal code, City
+* Usage Data
 
----
+#### Usage Data
+Usage Data is collected automatically when using the Service. It may include information such as Your Device's IP address, browser type, browser version, the pages of our Service that You visit, the time and date of Your visit, and other diagnostic data.
 
-### 3. Restrictions on Use
+### Tracking Technologies and Cookies
+We use Cookies and similar tracking technologies to track the activity on Our Service and store certain information. These technologies may include:
 
-You agree not to, and will not permit others to:
-* Use the Application for any purpose other than personal, non-commercial study and learning.
-* Copy, modify, adapt, translate, or otherwise create derivative works of the Application.
-* Decompile, reverse engineer, disassemble, or attempt to derive the source code of the Application.
-* Distribute, license, lease, sell, resell, transfer, or otherwise commercially exploit the Application.
-* Remove, alter, or obscure any copyright, trademark, or other proprietary notices on the Application.
-* Use the Application in any manner that could damage, disable, overburden, or impair our servers or networks.
-* Use the Application to generate, store, or transmit any content that is unlawful, harmful, threatening, abusive, harassing, defamatory, vulgar, obscene, libelous, invasive of another's privacy, hateful, or racially, ethnically, or otherwise objectionable.
+* **Cookies or Browser Cookies:** A small file placed on Your Device. You can instruct Your browser to refuse all Cookies.
+* **Web Beacons:** Small electronic files known as web beacons that permit the Company to count users who have visited pages or opened an email.
 
----
+We use both Session and Persistent Cookies for purposes such as:
+* **Necessary / Essential Cookies (Session)**: To authenticate users and prevent fraudulent use.
+* **Cookies Policy / Notice Acceptance Cookies (Persistent)**: To identify if users have accepted the use of cookies.
+* **Functionality Cookies (Persistent)**: To remember choices You make, such as login details or language preference.
+* **Tracking and Performance Cookies (Persistent)**: To track information about traffic and how users use the Website.
 
-### 4. Intellectual Property
+### Use of Your Personal Data
+The Company may use Personal Data for the following purposes:
+* To provide and maintain our Service.
+* To manage Your Account.
+* For the performance of a contract.
+* To contact You with updates or informative communications.
+* To provide You with news, special offers, and general information.
+* To manage Your requests.
+* To deliver targeted advertising to You.
+* For business transfers, such as a merger or acquisition.
+* For other purposes, such as data analysis and improving our Service.
 
-* **FlashFonic Ownership:** The Application, including all its content, features, and functionality (including but not limited to all information, software, text, displays, images, video, and audio, and the design, selection, and arrangement thereof), are owned by FlashFonic, its licensors, or other providers of such material and are protected by copyright, trademark, patent, trade secret, and other intellectual property or proprietary rights laws.
-* **User Content:** You retain all rights to the original content you input into the Application. However, by submitting content, you grant FlashFonic a worldwide, non-exclusive, royalty-free license to use, reproduce, modify, adapt, publish, translate, create derivative works from, distribute, and display such content solely for the purpose of operating and improving the Application and its services.
-* **AI Originality:** While AI generates new content, it does so based on patterns learned from vast datasets. It is possible for AI-generated text to inadvertently resemble existing copyrighted material. **You are solely responsible for ensuring that any content you create or disseminate using the Application does not infringe upon third-party copyrights, trademarks, or other intellectual property rights.**
+We may share Your personal information in the following situations:
+* With Service Providers to monitor and analyze the use of our Service.
+* For business transfers.
+* With Our affiliates.
+* With business partners.
+* With other users when you interact in public areas.
+* With Your consent.
 
----
+### Retention of Your Personal Data
+The Company will retain Your Personal Data only for as long as is necessary for the purposes set out in this Privacy Policy.
 
-### 5. Reporting Unauthorized Use or Plagiarism
+### Transfer of Your Personal Data
+Your information, including Personal Data, is processed at the Company's operating offices. Your consent to this Privacy Policy followed by Your submission of such information represents Your agreement to that transfer.
 
-FlashFonic is committed to respecting intellectual property rights and promoting academic integrity.
+### Delete Your Personal Data
+You have the right to delete or request that We assist in deleting the Personal Data that We have collected about You. You may update, amend, or delete Your information at any time by signing in to Your Account.
 
-* **Reporting Procedure:** If you believe that content generated by FlashFonic, or content used by another user within the Application, constitutes **unauthorized use of copyrighted material or accidental plagiarism**, please report it immediately.
-    * You can use the **"Send Feedback" button** within the Application.
-    * Alternatively, you may send an email directly to **feedbackflashfonic@gmail.com**.
-* **Required Information:** To facilitate a prompt investigation, please provide as much detail as possible, including:
-    * A clear description of the alleged infringement or plagiarism.
-    * Identification of the specific content within FlashFonic in question.
-    * Identification of the copyrighted work or original source material that you believe has been infringed or plagiarized.
-    * Any supporting evidence (e.g., links to original material, screenshots).
-    * Your contact information.
-* **Our Action:** Upon receiving a valid report, FlashFonic will investigate the claim promptly. Appropriate action may include, but is not limited to, removing the infringing content, issuing warnings, or, in severe or repeated cases, suspending or terminating the account of the offending user.
+### Disclosure of Your Personal Data
+Your Personal Data may be disclosed for Business Transactions, in response to Law Enforcement requests, or to comply with other legal requirements.
 
----
+### Security of Your Personal Data
+The security of Your Personal Data is important to Us, but remember that no method of transmission over the Internet, or method of electronic storage is 100% secure.
 
-### 6. Disclaimer of Warranties
+## Detailed Information on the Processing of Your Personal Data
+The Service Providers We use may have access to Your Personal Data.
 
-THE APPLICATION IS PROVIDED TO YOU "AS IS" AND "AS AVAILABLE," WITH ALL FAULTS AND WITHOUT WARRANTY OF ANY KIND. TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, FLASHFONIC, ON ITS OWN BEHALF AND ON BEHALF OF ITS AFFILIATES AND THEIR RESPECTIVE LICENSORS AND SERVICE PROVIDERS, EXPRESSLY DISCLAIMS ALL WARRANTIES, WHETHER EXPRESS, IMPLIED, STATUTORY, OR OTHERWISE, WITH RESPECT TO THE APPLICATION, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, TITLE, AND NON-INFRINGEMENT, AND WARRANTIES THAT MAY ARISE OUT OF COURSE OF DEALING, COURSE OF PERFORMANCE, USAGE, OR TRADE PRACTICE. WITHOUT LIMITATION TO THE FOREGOING, FLASHFONIC PROVIDES NO WARRANTY OR UNDERTAKING, AND MAKES NO REPRESENTATION OF ANY KIND THAT THE APPLICATION WILL MEET YOUR REQUIREMENTS, ACHIEVE ANY INTENDED RESULTS, BE COMPATIBLE OR WORK WITH ANY OTHER SOFTWARE, APPLICATIONS, SYSTEMS, OR SERVICES, OPERATE WITHOUT INTERRUPTION, MEET ANY PERFORMANCE OR RELIABILITY STANDARDS, BE ERROR-FREE, OR THAT ANY ERRORS OR DEFECTS CAN OR WILL BE CORRECTED.
+* **Analytics:** We may use third-party Service providers like Google Analytics and Firebase.
+* **Email Marketing:** We may use Email Marketing Service Providers like Mailchimp.
+* **Payments:** We may use third-party payment processors like Stripe, Apple Store In-App Payments, and Google Play In-App Payments.
+* **Behavioral Remarketing:** The Company uses remarketing services (e.g., Google Ads, Bing Ads, Twitter, Facebook) to advertise to You after You visit our Service.
 
----
+## GDPR Privacy
+### Legal Basis for Processing Personal Data under GDPR
+We may process Personal Data under conditions such as Consent, Performance of a contract, Legal obligations, Vital interests, Public interests, and Legitimate interests.
 
-### 7. Limitation of Liability
+### Your Rights under the GDPR
+If You are within the EU, you have the right to:
+* Request access to Your Personal Data.
+* Request correction of Your Personal Data.
+* Object to processing of Your Personal Data.
+* Request erasure of Your Personal Data.
+* Request the transfer of Your Personal Data.
+* Withdraw Your consent.
 
-TO THE MAXIMUM EXTENT PERMITTED BY APPLICABLE LAW, IN NO EVENT SHALL FLASHFONIC OR ITS AFFILIATES, LICENSORS, OR SERVICE PROVIDERS BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING BUT NOT LIMITED TO, LOSS OF PROFITS, DATA, USE, GOODWILL, OR OTHER INTANGIBLE LOSSES, RESULTING FROM (I) YOUR ACCESS TO OR USE OF OR INABILITY TO ACCESS OR USE THE APPLICATION; (II) ANY CONDUCT OR CONTENT OF ANY THIRD PARTY ON THE APPLICATION; (III) ANY CONTENT OBTAINED FROM THE APPLICATION; AND (IV) UNAUTHORIZED ACCESS, USE, OR ALTERATION OF YOUR TRANSMISSIONS OR CONTENT, WHETHER BASED ON WARRANTY, CONTRACT, TORT (INCLUDING NEGLIGENCE), OR ANY OTHER LEGAL THEORY, WHETHER OR NOT WE HAVE BEEN INFORMED OF THE POSSIBILITY OF SUCH DAMAGE, AND EVEN IF A REMEDY SET FORTH HEREIN IS FOUND TO HAVE FAILED OF ITS ESSENTIAL PURPOSE.
+### Exercising of Your GDPR Data Protection Rights
+You may exercise Your rights by contacting Us. You also have the right to complain to a Data Protection Authority.
 
----
+## CCPA/CPRA Privacy Notice (California Privacy Rights)
+This section supplements the information in Our Privacy Policy and applies solely to California residents.
 
-### 8. Indemnification
+### Categories of Personal Information Collected
+We may have collected the following categories of personal information within the last twelve (12) months:
+* **Category A:** Identifiers. (Collected: Yes)
+* **Category B:** Personal information categories listed in the California Customer Records statute. (Collected: Yes)
+* **Category C:** Protected classification characteristics under California or federal law. (Collected: No)
+* **Category D:** Commercial information. (Collected: Yes)
+* **Category E:** Biometric information. (Collected: No)
+* **Category F:** Internet or other similar network activity. (Collected: Yes)
+* **Category G:** Geolocation data. (Collected: No)
+* **Category H:** Sensory data. (Collected: No)
+* **Category I:** Professional or employment-related information. (Collected: No)
+* **Category J:** Non-public education information. (Collected: No)
+* **Category K:** Inferences drawn from other personal information. (Collected: No)
+* **Category L:** Sensitive personal information. (Collected: Yes)
 
-You agree to indemnify, defend, and hold harmless Trifecta Pro LLC, FlashFonic, its affiliates, licensors, and service providers, Application Programming Interface (API) providers, and its and their respective officers, directors, employees, contractors, agents, licensors, suppliers, successors, and assigns from and against any claims, liabilities, damages, judgments, awards, losses, costs, expenses, or fees (including reasonable attorneys' fees) arising out of or relating to your violation of this Agreement or your use of the Application, including, but not limited to, your User Content, any use of the Application's content, services, and products other than as expressly authorized in this Agreement, or your use of any information obtained from the Application.
+### Your Rights under the CCPA/CPRA
+If You are a resident of California, You have the right to notice, the right to know/access, the right to say no to the sale or sharing of Personal Data (opt-out), the right to correct, the right to limit use of sensitive Personal Data, the right to delete, and the right not to be discriminated against. To exercise any of these rights, please contact Us.
 
----
+### Do Not Sell My Personal Information
+You have the right to opt-out of the sale of Your personal information. To exercise Your right to opt-out, please contact Us or follow the instructions on our Service.
 
-### 9. Governing Law
+## Children's Privacy
+Our Service does not address anyone under the age of 13. We do not knowingly collect personally identifiable information from anyone under the age of 13.
 
-This Agreement and your use of the Application shall be governed by and construed in accordance with the laws of the State of Vermont, United States, without regard to its conflict of law principles.
+## Links to Other Websites
+Our Service may contain links to other websites. We have no control over and assume no responsibility for the content, privacy policies or practices of any third party sites or services.
 
----
+## Changes to this Privacy Policy
+We may update Our Privacy Policy from time to time. We will notify You of any changes by posting the new Privacy Policy on this page and updating the "Last updated" date.
 
-### 10. Changes to This Agreement
-
-We reserve the right, at our sole discretion, to modify or replace this Agreement at any time. If a revision is material, we will provide at least 30 days' notice prior to any new terms taking effect. What constitutes a material change will be determined at our sole discretion. By continuing to access or use our Application after those revisions become effective, you agree to be bound by the revised terms. If you do not agree to the new terms, you are no longer authorized to use the Application.
-
----
-
-### 11. Contact Information
-
-For any questions regarding this Agreement, or to report any issues as described in Section 5, please contact us at:
-
-**Email:** feedbackflashfonic@gmail.com
-
----
-
-Thank you for choosing FlashFonic. We hope you find it a valuable tool for your learning journey.
+## Contact Us
+If you have any questions about this Privacy Policy, You can contact us:
+* By email: feedbackflashfonic@gmail.com
 `;
 
 // --- HELPER FUNCTIONS ---
@@ -249,7 +380,7 @@ const formatTime = (seconds) => {
 
 const DocViewer = ({ docType, onClose }) => {
     const content = docType === 'eula' ? eulaContent : privacyPolicyContent;
-    const title = docType === 'eula' ? 'End-User License Agreement' : 'Privacy Policy';
+    const title = docType === 'eula' ? 'Terms and Conditions' : 'Privacy Policy';
 
     return (
         <div className="viewer-overlay" onClick={onClose}>
@@ -271,7 +402,7 @@ const EULAModal = ({ onAccept }) => {
     return (
         <div className="viewer-overlay">
             <div className="modal-content" style={{ maxWidth: '800px', textAlign: 'left', padding: '2rem', overflowY: 'auto', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
-                <h2 className="how-to-play-title" style={{textAlign: 'center'}}>End-User License Agreement</h2>
+                <h2 className="how-to-play-title" style={{textAlign: 'center'}}>Terms and Conditions</h2>
                 <div className="how-to-play-content" dangerouslySetInnerHTML={{ __html: marked(eulaContent) }} />
                 <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem' }}>
                     <button onClick={onAccept} className="modal-create-btn">I Agree</button>
@@ -4314,7 +4445,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                     setModalConfig(null);
                 }}>Send Feedback</button>
                 <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'center', gap: '1rem' }}>
-                    <button className="game-action-btn" onClick={() => setShowDocViewer('eula')}>User Agreement</button>
+                    <button className="game-action-btn" onClick={() => setShowDocViewer('eula')}>Terms and Conditions</button>
                     <button className="game-action-btn" onClick={() => setShowDocViewer('privacy')}>Privacy Policy</button>
                 </div>
                 <p className="footer-credit" style={{ marginTop: '1rem', color: 'var(--primary-purple)' }}>© FlashFonic, Trifecta Pro LLC</p>
