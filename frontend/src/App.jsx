@@ -1474,30 +1474,66 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
 };
 
 const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) => {
+    // This new state will hold the shuffled version of the exam
+    const [shuffledExam, setShuffledExam] = useState(null);
     const [gameState, setGameState] = useState('testing'); // 'testing', 'results', 'reviewing'
     const [currentIndex, setCurrentIndex] = useState(0);
     const [userAnswers, setUserAnswers] = useState({});
     const [score, setScore] = useState(0);
-    // --- ADD THIS NEW STATE ---
-    const [flaggedQuestions, setFlaggedQuestions] = useState({}); // Tracks { index: true }
+    const [flaggedQuestions, setFlaggedQuestions] = useState({});
+
+    // This useEffect runs once when the component mounts to shuffle the exam
+    useEffect(() => {
+        const shuffleChoices = (question) => {
+            const choicesArray = Object.entries(question.choices); // e.g., [['A', 'text'], ['B', 'text']]
+            const originalCorrectText = question.choices[question.correctAnswer];
+
+            // Fisher-Yates shuffle algorithm for true randomness
+            for (let i = choicesArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [choicesArray[i], choicesArray[j]] = [choicesArray[j], choicesArray[i]];
+            }
+
+            const newChoices = {};
+            let newCorrectAnswer = '';
+            const newKeys = ['A', 'B', 'C', 'D', 'E'];
+
+            choicesArray.forEach((choice, index) => {
+                const newKey = newKeys[index];
+                const choiceText = choice[1];
+                newChoices[newKey] = choiceText;
+                if (choiceText === originalCorrectText) {
+                    newCorrectAnswer = newKey;
+                }
+            });
+
+            return { ...question, choices: newChoices, correctAnswer: newCorrectAnswer };
+        };
+
+        const newShuffledQuestions = exam.questions.map(shuffleChoices);
+        setShuffledExam({ ...exam, questions: newShuffledQuestions });
+    }, [exam]); // Reruns only if a new exam is passed in
 
     useEffect(() => {
-        if (gameState === 'results') {
-            const totalQuestions = exam.questions.length;
+        if (gameState === 'results' && shuffledExam) {
+            const totalQuestions = shuffledExam.questions.length;
             onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
         }
     }, [gameState]); 
 
-    const currentQuestion = exam.questions[currentIndex];
+    // Guard against rendering before the exam is shuffled
+    if (!shuffledExam) {
+        return <div className="viewer-overlay">Loading Exam...</div>;
+    }
 
-    const handleToggleFlag = () => {
-        setFlaggedQuestions(prev => ({
-            ...prev,
-            [currentIndex]: !prev[currentIndex]
-        }));
-    };
-
-    const handleAnswerSelect = (choiceKey) => {
+    const currentQuestion = shuffledExam.questions[currentIndex];
+    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
+    const handleAnswerSelect = (choiceKey) => { /* ... (no changes here) ... */ };
+    const handleNext = () => { /* ... (no changes here) ... */ };
+    const handleReview = () => { /* ... (no changes here) ... */ };
+    
+    // The rest of the functions are the same. Let's include them for a full copy-paste.
+    const handleAnswerSelectFull = (choiceKey) => {
         if (gameState !== 'testing') return;
         const isCorrect = choiceKey === currentQuestion.correctAnswer;
         setUserAnswers(prev => ({ ...prev, [currentIndex]: { choice: choiceKey, isCorrect } }));
@@ -1505,16 +1541,14 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             setScore(prev => prev + 1);
         }
     };
-
-    const handleNext = () => {
-        if (currentIndex < exam.questions.length - 1) {
+    const handleNextFull = () => {
+        if (currentIndex < shuffledExam.questions.length - 1) {
             setCurrentIndex(prev => prev + 1);
         } else {
             setGameState('results');
         }
     };
-
-    const handleReview = () => {
+    const handleReviewFull = () => {
         setCurrentIndex(0);
         setGameState('reviewing');
     };
@@ -1524,7 +1558,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
 
     if (gameState === 'results') {
-        const totalQuestions = exam.questions.length;
+        const totalQuestions = shuffledExam.questions.length;
         const percentage = Math.round((score / totalQuestions) * 100);
 
         return (
@@ -1535,11 +1569,10 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                     <p className="final-score-details">You answered {score} out of {totalQuestions} questions correctly.</p>
                     {flaggedCount > 0 && <p className="final-score-details">{flaggedCount} questions flagged for review.</p>}
                     <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
-                        <button className="modal-cancel-btn" onClick={handleReview}>Review Answers</button>
-                        {/* --- THIS BUTTON IS NEW --- */}
+                        <button className="modal-cancel-btn" onClick={handleReviewFull}>Review Answers</button>
                         <button 
                             className="modal-create-btn" 
-                            onClick={() => onCreateFlaggedFolder(exam, flaggedQuestions)}
+                            onClick={() => onCreateFlaggedFolder(shuffledExam, flaggedQuestions)}
                             disabled={flaggedCount === 0}
                             style={{backgroundColor: 'var(--gold)', color: 'var(--dark-bg)'}}
                         >
@@ -1554,13 +1587,15 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
     return (
         <div className="viewer-overlay exam-viewer-overlay">
+            {/* --- THIS HEADER LAYOUT IS UPDATED --- */}
             <div className="exam-header">
                 <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
-                <div className="exam-progress">Question {currentIndex + 1} of {exam.questions.length}</div>
-                {/* --- THIS BUTTON IS NEW --- */}
-                <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
-                    &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
-                </button>
+                <div className="exam-progress-group">
+                    <div className="exam-progress">Question {currentIndex + 1} of {shuffledExam.questions.length}</div>
+                    <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
+                        &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
+                    </button>
+                </div>
                 <button onClick={onClose} className="viewer-close-btn">&times;</button>
             </div>
 
@@ -1581,7 +1616,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                         <button
                             key={key}
                             className={`choice-btn ${choiceStatus}`}
-                            onClick={() => handleAnswerSelect(key)}
+                            onClick={() => handleAnswerSelectFull(key)}
                             disabled={isAnswered || gameState === 'reviewing'}
                         >
                             <span className="choice-letter">{key}</span>
@@ -1607,8 +1642,8 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             
             {(isAnswered || gameState === 'reviewing') && (
                 <div className="exam-footer">
-                    <button className="exam-next-btn" onClick={handleNext}>
-                        {currentIndex < exam.questions.length - 1 ? 'Next Question' : (gameState === 'testing' ? 'Finish Exam' : 'Finish Review')}
+                    <button className="exam-next-btn" onClick={handleNextFull}>
+                        {currentIndex < shuffledExam.questions.length - 1 ? 'Next Question' : (gameState === 'testing' ? 'Finish Exam' : 'Finish Review')}
                     </button>
                 </div>
             )}

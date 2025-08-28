@@ -3111,3 +3111,13 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--text-soft);
     margin-bottom: 2rem;
 }
+
+.exam-progress-group {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    /* This will keep this group from being pushed to the edges */
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
