@@ -1574,7 +1574,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
-const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder, onSaveExam }) => {
+const ExamViewer = ({ exam, onClose, onCreateFlaggedFolder, onSaveAndRecord }) => {
     const [shuffledExam, setShuffledExam] = useState(null);
     const [gameState, setGameState] = useState('testing'); // 'testing', 'results', 'reviewing'
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -1596,12 +1596,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder, onSa
         setShuffledExam({ ...exam, questions: newShuffledQuestions });
     }, [exam]);
 
-    useEffect(() => {
-        if (gameState === 'results' && shuffledExam) {
-            const totalQuestions = shuffledExam.questions.length;
-            onExamComplete({ score, totalQuestions, examTitle: exam.title || "Untitled Exam" });
-        }
-    }, [gameState, shuffledExam, score, onExamComplete, exam.title]);
+    // This useEffect is now removed, as saving is no longer automatic.
 
     if (!shuffledExam) {
         return <div className="viewer-overlay">Preparing Exam...</div>;
@@ -1660,12 +1655,12 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder, onSa
                     {flaggedCount > 0 && <p className="final-score-details">{flaggedCount} questions flagged for review.</p>}
                     <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
                         <button className="modal-cancel-btn" onClick={handleReview}>Review Answers</button>
-                        {/* --- THIS BUTTON IS NEW --- */}
+                        {/* --- THIS BUTTON IS UPDATED --- */}
                         <button 
                             className="modal-create-btn"
-                            onClick={() => onSaveExam(exam)} // It saves the original, unshuffled exam
+                            onClick={() => onSaveAndRecord(exam, score)}
                         >
-                            Save Exam
+                            Save Exam & Score
                         </button>
                         <button 
                             className="modal-create-btn" 
@@ -3185,16 +3180,33 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         }
     };
 
-    const handleExamComplete = ({ score, totalQuestions, examTitle }) => {
-        const percentage = Math.round((score / totalQuestions) * 100);
-        const newEntry = {
-            id: Date.now(),
-            title: examTitle,
-            score: percentage,
-            date: new Date().toISOString(),
-        };
-        setExamHistory(prev => [newEntry, ...prev].sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date)));
-        // We no longer call setActiveExam(null) here, so the results screen stays open.
+    const handleSaveAndRecordExam = (examData, finalScore) => {
+        const totalQuestions = examData.questions.length;
+        const percentage = Math.round((finalScore / totalQuestions) * 100);
+
+        setModalConfig({
+            type: 'prompt',
+            title: 'Save Exam & Record Score',
+            message: 'Enter a name for this exam:',
+            defaultValue: examData.title,
+            onConfirm: (examName) => {
+                // 1. Save the exam with the user's name for retaking
+                const newSavedExam = { ...examData, title: examName, id: Date.now() };
+                setSavedExams(prev => [newSavedExam, ...prev]);
+
+                // 2. Save the score to history with the user's name
+                const newHistoryEntry = {
+                    id: newSavedExam.id, // Use the same ID for consistency
+                    title: examName,
+                    score: percentage,
+                    date: new Date().toISOString(),
+                };
+                setExamHistory(prev => [newHistoryEntry, ...prev].sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date)));
+                
+                setNotification(`Exam "${examName}" saved!`);
+                setModalConfig(null);
+            }
+        });
     };
 
     const handleSaveExam = (examToSave) => {
@@ -3837,9 +3849,9 @@ const exportFolderToPDF = useCallback((folderId) => {
                 <ExamViewer
                     exam={activeExam}
                     onClose={() => setActiveExam(null)}
-                    onExamComplete={handleExamComplete}
                     onCreateFlaggedFolder={handleCreateFlaggedFolder} 
                     onSaveExam={handleSaveExam}
+                    onSaveAndRecord={handleSaveAndRecordExam}
                 />
             )}
 
