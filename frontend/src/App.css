@@ -1064,23 +1064,24 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* --- Styles for Exam Flag Button --- */
 .exam-header .flag-btn {
-    background: none;
-    border: none;
-    font-size: 1.5rem; /* Controls the size of the flag icon */
+    font-size: 1.5em; 
+    font-weight: bold;
     color: var(--text-dark);
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 0.3em 0.7em; /* <-- SMALLER PADDING */
     cursor: pointer;
-    padding: 0;
-    transition: color 0.2s, transform 0.2s;
-    /* Positioning from before */
-    position: absolute;
-    left: 65%;
-    transform: translateX(-50%);
+    transition: all 0.2s ease;
+    white-space: nowrap; /* Prevents text from wrapping */
 }
 
 .exam-header .flag-btn.active {
-    color: var(--secondary-pink);
-    transform: translateX(-50%) scale(1.1);
+    color: white;
+    background-color: var(--secondary-pink);
+    border-color: var(--secondary-pink);
 }
+
 
 .viewer-empty {
   width: 100%;
