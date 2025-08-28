@@ -1574,7 +1574,7 @@ const GameViewer = ({ folder, onClose, onBackToStudy, onExitGame, cameFromStudy,
     );
 };
 
-const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) => {
+const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder, onSaveExam }) => {
     const [shuffledExam, setShuffledExam] = useState(null);
     const [gameState, setGameState] = useState('testing'); // 'testing', 'results', 'reviewing'
     const [currentIndex, setCurrentIndex] = useState(0);
@@ -1599,9 +1599,9 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     useEffect(() => {
         if (gameState === 'results' && shuffledExam) {
             const totalQuestions = shuffledExam.questions.length;
-            onExamComplete({ score, totalQuestions, examTitle: exam.name || "Untitled Exam" });
+            onExamComplete({ score, totalQuestions, examTitle: exam.title || "Untitled Exam" });
         }
-    }, [gameState, shuffledExam, score, onExamComplete, exam.name]);
+    }, [gameState, shuffledExam, score, onExamComplete, exam.title]);
 
     if (!shuffledExam) {
         return <div className="viewer-overlay">Preparing Exam...</div>;
@@ -1660,6 +1660,13 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                     {flaggedCount > 0 && <p className="final-score-details">{flaggedCount} questions flagged for review.</p>}
                     <div className="modal-actions" style={{ justifyContent: 'center', marginTop: '2rem', flexWrap: 'wrap' }}>
                         <button className="modal-cancel-btn" onClick={handleReview}>Review Answers</button>
+                        {/* --- THIS BUTTON IS NEW --- */}
+                        <button 
+                            className="modal-create-btn"
+                            onClick={() => onSaveExam(exam)} // It saves the original, unshuffled exam
+                        >
+                            Save Exam
+                        </button>
                         <button 
                             className="modal-create-btn" 
                             onClick={() => onCreateFlaggedFolder(shuffledExam, flaggedQuestions)}
@@ -1677,21 +1684,21 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
     return (
         <div className="viewer-overlay exam-viewer-overlay">
-            {/* --- THIS IS THE CORRECTED HEADER STRUCTURE --- */}
             <div className="exam-header">
-                <h2 className="exam-header-title">
-                    {gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}
-                </h2>
-                
-                <div className="exam-header-progress">
+                <div className="exam-header-item exam-header-title">
+                    <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
+                </div>
+                <div className="exam-header-item exam-header-progress">
                     Question {currentIndex + 1} of {shuffledExam.questions.length}
                 </div>
-
-                <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
-                    &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
-                </button>
-
-                <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                <div className="exam-header-item exam-header-flag">
+                    <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
+                        &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
+                    </button>
+                </div>
+                <div className="exam-header-item exam-header-close">
+                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
+                </div>
             </div>
 
             <div className="exam-question-container">
@@ -3190,6 +3197,22 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         // We no longer call setActiveExam(null) here, so the results screen stays open.
     };
 
+    const handleSaveExam = (examToSave) => {
+        setModalConfig({
+            type: 'prompt',
+            title: 'Save Exam',
+            message: 'Enter a name for this exam:',
+            defaultValue: examToSave.title,
+            onConfirm: (examName) => {
+                // We use the original, unshuffled exam data for saving
+                const newSavedExam = { ...examToSave, title: examName, id: Date.now() };
+                setSavedExams(prev => [newSavedExam, ...prev]);
+                setNotification(`Exam "${examName}" saved!`);
+                setModalConfig(null);
+            }
+        });
+    };
+
     const handleCreateFlaggedFolder = (exam, flaggedQuestions) => {
         // 1. Collect all the unique source card IDs from the flagged questions
         const flaggedIndices = Object.keys(flaggedQuestions).filter(key => flaggedQuestions[key]);
@@ -3231,7 +3254,6 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
                     }
                 }));
                 setModalConfig(null);
-                setActiveExam(null); // Close the exam viewer after creating the folder
                 setNotification(`Successfully created folder "${folderName}" with ${flaggedCards.length} cards.`);
             }
         });
@@ -3817,6 +3839,7 @@ const exportFolderToPDF = useCallback((folderId) => {
                     onClose={() => setActiveExam(null)}
                     onExamComplete={handleExamComplete}
                     onCreateFlaggedFolder={handleCreateFlaggedFolder} 
+                    onSaveExam={handleSaveExam}
                 />
             )}
 
