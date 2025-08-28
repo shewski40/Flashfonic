@@ -574,6 +574,17 @@ const ExplanationModal = ({ question, userAnswer, onClose, onNext, isLastQuestio
     );
 };
 
+const ProgressModal = ({ message }) => {
+    return (
+        <div className="modal-overlay progress-overlay">
+            <div className="progress-modal-content">
+                <div className="spinner"></div>
+                <p>{message}</p>
+            </div>
+        </div>
+    );
+};
+
 const ExamHubModal = ({ onSelect }) => {
     return (
         <div className="modal-overlay">
@@ -2198,6 +2209,7 @@ const MainApp = ({ showDocViewer, setShowDocViewer }) => {
     const fotoFileInputRef = useRef(null);
     const videoRef = useRef(null);
     const canvasRef = useRef(null);
+    const [loadingState, setLoadingState] = useState({ isActive: false, message: '' });
     
     const isGeneratingRef = useRef(isGenerating);
     useEffect(() => { isGeneratingRef.current = isGenerating; }, [isGenerating]);
@@ -3153,7 +3165,7 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
             return;
         }
 
-        setNotification('Generating your Flash Exam with AI...');
+        setLoadingState({ isActive: true, message: 'Generating your Flash Exam with AI...' });
         setIsGenerating(true);
 
         try {
@@ -3177,6 +3189,7 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         } finally {
             setIsGenerating(false);
             setExamSelectedFolderIds({});
+            setLoadingState({ isActive: false, message: '' });
         }
     };
 
@@ -3289,8 +3302,8 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
             return;
         }
 
+        setLoadingState({ isActive: true, message: 'Synthesizing your Flash Notes with AI...' });
         setIsGeneratingNotes(true);
-        setNotification('Synthesizing your Flash Notes with AI...');
         try {
             const response = await fetch('https://flashfonic-backend-shewski.replit.app/generate-notes', {
                 method: 'POST',
@@ -3316,6 +3329,7 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
             setNotification(`Error: ${error.message}`);
         } finally {
             setIsGeneratingNotes(false);
+            setLoadingState({ isActive: false, message: '' });
         }
     };
 
@@ -3925,7 +3939,10 @@ const exportFolderToPDF = useCallback((folderId) => {
                     onLaunchAnamnesisNemesis={handleLaunchAnamnesisNemesis}
                 />
             )}
-            {/* --- PASTE THE NEW MODAL RENDER LOGIC HERE --- */}
+            {loadingState.isActive && (
+                <ProgressModal message={loadingState.message} />
+            )}
+            
             {examWizardState?.stage === 'hub' && (
                 <ExamHubModal onSelect={handleExamHubSelection} />
             )}
