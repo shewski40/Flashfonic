@@ -3222,6 +3222,21 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
         });
     };
 
+    const handleSaveExam = (examToSave) => {
+	    setModalConfig({
+		    type: 'prompt',
+		    title: 'Save Exam',
+		    message: 'Enter a name for this exam:',
+		    defaultValue: examToSave.title,
+		    onConfirm: (examName) => {
+		        const newSavedExam = { ...examToSave, title: examName, id: Date.now() };
+		        setSavedExams(prev => [newSavedExam, ...prev]);
+		        setNotification(`Exam "${examName}" saved!`);
+		        setModalConfig(null);
+            }
+        });
+    };
+    
     const handleCreateFlaggedFolder = (exam, flaggedQuestions) => {
         // 1. Collect all the unique source card IDs from the flagged questions
         const flaggedIndices = Object.keys(flaggedQuestions).filter(key => flaggedQuestions[key]);
