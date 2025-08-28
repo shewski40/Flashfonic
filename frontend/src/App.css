@@ -1063,17 +1063,21 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* --- Styles for Exam Flag Button --- */
+
 .exam-header .flag-btn {
-    font-size: 1.5em; 
+    font-size: 0.8em; /* Keeping this small for overall size */
     font-weight: bold;
     color: var(--text-dark);
     background-color: var(--content-bg);
     border: 1px solid var(--border-color);
     border-radius: 20px;
-    padding: 0.3em 0.7em; /* <-- SMALLER PADDING */
+    padding: 0.2em 0.4em; /* Slightly less horizontal padding */
     cursor: pointer;
     transition: all 0.2s ease;
-    white-space: nowrap; /* Prevents text from wrapping */
+    /* REMOVE: white-space: nowrap; */ /* <-- THIS IS THE KEY CHANGE! */
+    display: inline-flex; /* Use flexbox to align icon and text neatly */
+    align-items: center;
+    gap: 0.3em; /* Small gap between icon and text */
 }
 
 .exam-header .flag-btn.active {
