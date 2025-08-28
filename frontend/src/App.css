@@ -2910,31 +2910,6 @@ input[type="range"]::-webkit-slider-thumb {
     flex-direction: column;
 }
 
-.exam-header {
-    width: 100%;
-    max-width: 800px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 2rem;
-    color: var(--text-light);
-}
-
-.exam-header h2 {
-    background-image: var(--brand-gradient);
-    background-clip: text;
-    -webkit-background-clip: text;
-    color: transparent;
-    font-size: 1.5rem;
-    margin: 0;
-}
-
-.exam-progress {
-    font-size: 1rem;
-    font-weight: 500;
-    color: var(--text-dark);
-}
-
 .exam-question-container {
     background-color: var(--content-bg);
     border: 1px solid var(--border-color);
@@ -3167,4 +3142,56 @@ input[type="range"]::-webkit-slider-thumb {
 /* Add this new rule to highlight the correct answer's letter */
 .explanation-modal-content li.correct-explanation strong {
     color: var(--success-green);
+}
+
+/* --- Styles for Exam Header Layout --- */
+.exam-header {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    color: var(--text-light);
+    position: relative; /* This is crucial for positioning children */
+}
+
+.exam-header h2 {
+    background-image: var(--brand-gradient);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+    font-size: 1.5rem;
+    margin: 0;
+}
+
+.exam-progress {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+.exam-header .flag-btn {
+    font-size: 0.9em;
+    font-weight: bold;
+    color: var(--text-dark);
+    background-color: var(--content-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    padding: 0.4em 0.8em;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    /* New positioning */
+    position: absolute;
+    left: 65%;
+    transform: translateX(-50%);
+}
+
+.exam-header .flag-btn.active {
+    color: white;
+    background-color: var(--secondary-pink);
+    border-color: var(--secondary-pink);
 }
