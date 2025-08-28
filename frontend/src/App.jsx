@@ -1606,25 +1606,21 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
     return (
         <div className="viewer-overlay exam-viewer-overlay">
-            {/* --- THIS IS THE CORRECTED HEADER STRUCTURE --- */}
             <div className="exam-header">
-                <div className="exam-header-item exam-header-title">
-                    <h2>{gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}</h2>
-                </div>
+                <h2 className="exam-header-title">
+                    {gameState === 'reviewing' ? 'Reviewing Exam' : 'Flash Exam'}
+                </h2>
                 
-                <div className="exam-header-item exam-header-progress">
-                    Question {currentIndex + 1} of {shuffledExam.questions.length}
-                </div>
-
-                <div className="exam-header-item exam-header-flag">
+                <div className="exam-header-center-content">
                     <button onClick={handleToggleFlag} className={`flag-btn ${flaggedQuestions[currentIndex] ? 'active' : ''}`}>
                         &#9873; {flaggedQuestions[currentIndex] ? 'Flagged' : 'Flag'}
                     </button>
+                    <div className="exam-progress">
+                        Question {currentIndex + 1} of {shuffledExam.questions.length}
+                    </div>
                 </div>
 
-                <div className="exam-header-item exam-header-close">
-                    <button onClick={onClose} className="viewer-close-btn">&times;</button>
-                </div>
+                <button onClick={onClose} className="viewer-close-btn">&times;</button>
             </div>
 
             <div className="exam-question-container">

@@ -3108,25 +3108,18 @@ input[type="range"]::-webkit-slider-thumb {
     color: var(--success-green);
 }
 
+/* --- FINAL EXAM HEADER STYLES (for Centered Flag Button) --- */
+
 .exam-header {
     width: 100%;
     max-width: 800px;
     display: flex;
+    justify-content: space-between; /* Pushes title to left, close to right */
     align-items: center;
     margin-bottom: 2rem;
+    position: relative; /* This is the key for centering */
 }
 
-/* This new class makes each of the 4 items take up a specific space */
-.exam-header-item {
-    display: flex;
-    align-items: center;
-}
-
-/* Column 1: Title (takes up all remaining space on the left) */
-.exam-header-title {
-    justify-content: flex-start;
-    flex-grow: 1;
-}
 .exam-header-title h2 {
     background-image: var(--brand-gradient);
     background-clip: text;
@@ -3136,19 +3129,17 @@ input[type="range"]::-webkit-slider-thumb {
     margin: 0;
 }
 
-/* Column 2: Progress Text */
-.exam-header-progress {
-    justify-content: center;
-    color: var(--text-dark);
-    font-weight: 500;
-    white-space: nowrap;
-    padding: 0 1rem; /* Adds space around the text */
+/* This new container will hold the centered items */
+.exam-header-center-content {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem; /* Space between flag button and progress text */
 }
 
-/* Column 3: Flag Button */
-.exam-header-flag {
-    justify-content: center;
-}
 .exam-header .flag-btn {
     font-size: 0.8em;
     font-weight: bold;
@@ -3164,16 +3155,20 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: center;
     gap: 0.3em;
 }
+
 .exam-header .flag-btn.active {
     color: white;
     background-color: var(--secondary-pink);
     border-color: var(--secondary-pink);
 }
 
-/* Column 4: Close Button */
-.exam-header-close {
-    justify-content: flex-end;
+.exam-header-progress {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: var(--text-dark);
+    white-space: nowrap;
 }
+
 .exam-header .viewer-close-btn {
     padding: 0;
     line-height: 1;
