@@ -1538,7 +1538,6 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
     const currentQuestion = shuffledExam.questions[currentIndex];
     
-    // --- THIS LOGIC IS NOW COMPLETE AND CORRECT ---
     const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
 
     const handleAnswerSelect = (selectedOption) => {
@@ -1576,8 +1575,9 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     };
 
     const isAnswered = userAnswers[currentIndex] !== undefined;
-    const choiceKeys = Object.keys(currentQuestion.choices);
     const flaggedCount = Object.values(flaggedQuestions).filter(Boolean).length;
+
+    // REMOVED: The buggy 'choiceKeys' variable that was here has been deleted.
 
     if (gameState === 'results') {
         const totalQuestions = shuffledExam.questions.length;
