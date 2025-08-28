@@ -3160,6 +3160,10 @@ input[type="range"]::-webkit-slider-thumb {
     display: inline-flex;
     align-items: center;
     gap: 0.3em;
+    /* --- ADD THESE 3 LINES BACK --- */
+    position: absolute;
+    left: 65%;
+    transform: translateX(-50%);
 }
 
 .exam-header .flag-btn.active {
