@@ -3214,7 +3214,7 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
                     score: percentage,
                     date: new Date().toISOString(),
                 };
-                setExamHistory(prev => [newHistoryEntry, ...prev].sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date)));
+                setExamHistory(prev => [newHistoryEntry, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date)));
                 
                 setNotification(`Exam "${examName}" saved!`);
                 setModalConfig(null);
@@ -3236,7 +3236,7 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
             }
         });
     };
-    
+
     const handleCreateFlaggedFolder = (exam, flaggedQuestions) => {
         // 1. Collect all the unique source card IDs from the flagged questions
         const flaggedIndices = Object.keys(flaggedQuestions).filter(key => flaggedQuestions[key]);
