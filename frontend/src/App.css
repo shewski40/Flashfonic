@@ -3156,11 +3156,9 @@ input[type="range"]::-webkit-slider-thumb {
     padding: 0.2em 0.4em;
     cursor: pointer;
     transition: all 0.2s ease;
-    white-space: nowrap;
     display: inline-flex;
     align-items: center;
     gap: 0.3em;
-    position: absolute;
     left: 65%;
     transform: translateX(-50%);
 }
