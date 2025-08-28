@@ -544,13 +544,19 @@ const ExamConfigModal = ({ onConfirm, onClose }) => {
     );
 };
 
-const ExplanationModal = ({ question, onClose, onNext, isLastQuestion }) => {
+const ExplanationModal = ({ question, userAnswer, onClose, onNext, isLastQuestion }) => {
+    const choiceKeys = Object.keys(question.choices);
+    const selectedOption = question.options.find(opt => opt.text === userAnswer.choice);
+
     return (
         <div className="modal-overlay">
             <div className="modal-content" style={{ maxWidth: '600px', textAlign: 'left' }}>
-                <h2 style={{ textAlign: 'center' }}>Explanation</h2>
+                {/* This title is now dynamic */}
+                <h2 style={{ textAlign: 'center', color: userAnswer.isCorrect ? 'var(--success-green)' : 'var(--danger-red)' }}>
+                    {userAnswer.isCorrect ? 'Correct!' : 'Incorrect'}
+                </h2>
                 <div className="explanation-modal-content">
-                    {/* Find and display the main 'correct' explanation first */}
+                    {/* It still shows the main explanation */}
                     <p><strong>{question.options.find(opt => opt.isCorrect)?.explanation}</strong></p>
                     <ul>
                         {question.options.map((option, index) => (
@@ -1510,7 +1516,6 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     const [showExplanationModal, setShowExplanationModal] = useState(false);
 
     useEffect(() => {
-        // This effect runs once to shuffle the choices for every question in the exam
         const shuffleOptions = (question) => {
             const newOptions = [...question.options];
             for (let i = newOptions.length - 1; i > 0; i--) {
@@ -1535,6 +1540,8 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
     }
 
     const currentQuestion = shuffledExam.questions[currentIndex];
+    
+    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
 
     const handleAnswerSelect = (selectedOption) => {
         if (gameState !== 'testing' || userAnswers[currentIndex]) return;
@@ -1558,9 +1565,12 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             setGameState('results');
         }
     };
+
+    const handleReview = () => {
+        setCurrentIndex(0);
+        setGameState('reviewing');
+    };
     
-    const handleToggleFlag = () => setFlaggedQuestions(prev => ({ ...prev, [currentIndex]: !prev[currentIndex] }));
-    const handleReview = () => { setCurrentIndex(0); setGameState('reviewing'); };
     const handleCloseExplanation = () => setShowExplanationModal(false);
     const handleAdvanceFromExplanation = () => {
         setShowExplanationModal(false);
@@ -1616,13 +1626,16 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
 
             <div className="answer-choices">
                 {currentQuestion.options.map((option, index) => {
-                    const choiceLetter = String.fromCharCode(65 + index); // A, B, C...
+                    const choiceLetter = String.fromCharCode(65 + index);
                     const isSelectedChoice = userAnswers[currentIndex]?.choice === option.text;
                     let choiceStatus = '';
-                    if (isAnswered) {
-                        if (option.isCorrect) choiceStatus = 'correct';
-                        else if (isSelectedChoice) choiceStatus = 'incorrect';
+                    
+                    // --- THIS IS THE NEW HIGHLIGHTING LOGIC ---
+                    // It only applies a color to the button the user actually clicked.
+                    if (isAnswered && isSelectedChoice) {
+                        choiceStatus = option.isCorrect ? 'correct' : 'incorrect';
                     }
+                    
                     return (
                         <button
                             key={index}
@@ -1637,7 +1650,9 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
                 })}
             </div>
             
-            {(isAnswered && exam.config.explanationMode === 'later') || gameState === 'reviewing' ? (
+            {/* --- THIS IS THE NEW "NEXT BUTTON" LOGIC --- */}
+            {/* It appears if the mode is 'later' OR if the explanation modal is not showing */}
+            {(isAnswered && (exam.config.explanationMode === 'later' || !showExplanationModal)) || gameState === 'reviewing' ? (
                 <div className="exam-footer">
                     <button className="exam-next-btn" onClick={handleNext}>
                         {currentIndex < shuffledExam.questions.length - 1 ? 'Next Question' : (gameState === 'testing' ? 'Finish Exam' : 'Finish Review')}
@@ -1648,6 +1663,7 @@ const ExamViewer = ({ exam, onClose, onExamComplete, onCreateFlaggedFolder }) =>
             {showExplanationModal && (
                 <ExplanationModal
                     question={currentQuestion}
+                    userAnswer={userAnswers[currentIndex]} 
                     onClose={handleCloseExplanation}
                     onNext={handleAdvanceFromExplanation}
                     isLastQuestion={currentIndex === shuffledExam.questions.length - 1}
