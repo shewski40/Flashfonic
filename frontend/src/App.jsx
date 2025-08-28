@@ -3214,24 +3214,9 @@ const getAllCardsFromFolders = (folderIds, allFolders) => {
                     score: percentage,
                     date: new Date().toISOString(),
                 };
-                setExamHistory(prev => [newHistoryEntry, ...prev].sort((a, b) => b.score - a.score || new Date(b.date) - new Date(a.date)));
+                // This now simply adds the new entry to the top of the list
+                setExamHistory(prev => [newHistoryEntry, ...prev]);
                 
-                setNotification(`Exam "${examName}" saved!`);
-                setModalConfig(null);
-            }
-        });
-    };
-
-    const handleSaveExam = (examToSave) => {
-        setModalConfig({
-            type: 'prompt',
-            title: 'Save Exam',
-            message: 'Enter a name for this exam:',
-            defaultValue: examToSave.title,
-            onConfirm: (examName) => {
-                // We use the original, unshuffled exam data for saving
-                const newSavedExam = { ...examToSave, title: examName, id: Date.now() };
-                setSavedExams(prev => [newSavedExam, ...prev]);
                 setNotification(`Exam "${examName}" saved!`);
                 setModalConfig(null);
             }
@@ -3942,7 +3927,7 @@ const exportFolderToPDF = useCallback((folderId) => {
             {loadingState.isActive && (
                 <ProgressModal message={loadingState.message} />
             )}
-            
+
             {examWizardState?.stage === 'hub' && (
                 <ExamHubModal onSelect={handleExamHubSelection} />
             )}
